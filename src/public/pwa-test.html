@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Test - CONECTOCA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #1e40af;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border-left: 4px solid #1e40af;
+        }
+        
+        .section h2 {
+            color: #1e40af;
+            margin-bottom: 15px;
+            font-size: 1.25rem;
+        }
+        
+        .test-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 8px;
+        }
+        
+        .status {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        
+        .status.pass {
+            background: #10b981;
+        }
+        
+        .status.fail {
+            background: #ef4444;
+        }
+        
+        .status.pending {
+            background: #f59e0b;
+        }
+        
+        button {
+            background: #1e40af;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #1e3a8a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .info {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        
+        .warning {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        
+        .success {
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        
+        code {
+            background: #1e293b;
+            color: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .back-link {
+            display: inline-block;
+            color: #1e40af;
+            text-decoration: none;
+            margin-top: 20px;
+            font-weight: 600;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 PWA Test Suite</h1>
+        <p class="subtitle">Verificación de Progressive Web App - CONECTOCA</p>
+        
+        <!-- Basic Info -->
+        <div class="section">
+            <h2>📱 Información Básica</h2>
+            <div id="basicInfo"></div>
+        </div>
+        
+        <!-- PWA Tests -->
+        <div class="section">
+            <h2>✅ Tests de PWA</h2>
+            <div id="pwaTests"></div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="section">
+            <h2>🔧 Acciones</h2>
+            <button onclick="runAllTests()">🔄 Ejecutar Todos los Tests</button>
+            <button onclick="clearAllCaches()">🗑️ Limpiar Caché</button>
+            <button onclick="unregisterSW()">❌ Desregistrar SW</button>
+            <button onclick="checkForUpdates()">🔍 Buscar Actualizaciones</button>
+            <button onclick="showCacheContents()">📦 Ver Contenido del Caché</button>
+        </div>
+        
+        <!-- Results -->
+        <div class="section">
+            <h2>📊 Resultados</h2>
+            <div id="results"></div>
+        </div>
+        
+        <a href="/" class="back-link">← Volver a CONECTOCA</a>
+    </div>
+
+    <script>
+        // Utility functions
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const className = type === 'success' ? 'success' : 
+                            type === 'warning' ? 'warning' : 'info';
+            results.innerHTML += `<div class="${className}">${message}</div>`;
+        }
+
+        function createTestItem(label, status) {
+            const statusClass = status === true ? 'pass' : 
+                              status === false ? 'fail' : 'pending';
+            const emoji = status === true ? '✓' : 
+                         status === false ? '✗' : '⏳';
+            return `
+                <div class="test-item">
+                    <div class="status ${statusClass}"></div>
+                    <span>${emoji} ${label}</span>
+                </div>
+            `;
+        }
+
+        // Basic Info
+        async function showBasicInfo() {
+            const info = document.getElementById('basicInfo');
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isOnline = navigator.onLine;
+            
+            info.innerHTML = `
+                ${createTestItem('Modo Standalone', isStandalone)}
+                ${createTestItem('Dispositivo iOS', isIOS)}
+                ${createTestItem('Conexión Online', isOnline)}
+                ${createTestItem('Service Workers Soportados', 'serviceWorker' in navigator)}
+                ${createTestItem('Cache API Soportada', 'caches' in window)}
+            `;
+        }
+
+        // PWA Tests
+        async function runPWATests() {
+            const testsDiv = document.getElementById('pwaTests');
+            testsDiv.innerHTML = '<p>Ejecutando tests...</p>';
+            
+            const tests = [];
+            
+            // Test 1: Manifest
+            try {
+                const manifestResponse = await fetch('/manifest.json');
+                const manifest = await manifestResponse.json();
+                tests.push(createTestItem('Manifest accesible', manifestResponse.ok));
+                tests.push(createTestItem(`Nombre: ${manifest.name}`, true));
+            } catch (e) {
+                tests.push(createTestItem('Manifest accesible', false));
+            }
+            
+            // Test 2: Service Worker
+            if ('serviceWorker' in navigator) {
+                const registration = await navigator.serviceWorker.getRegistration();
+                tests.push(createTestItem('Service Worker registrado', !!registration));
+                if (registration) {
+                    tests.push(createTestItem('SW Estado: ' + (registration.active ? 'Activo' : 'Inactivo'), !!registration.active));
+                }
+            }
+            
+            // Test 3: Icons
+            const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
+            let iconsFound = 0;
+            for (const size of iconSizes) {
+                try {
+                    const response = await fetch(`/icons/icon-${size}x${size}.png`);
+                    if (response.ok) iconsFound++;
+                } catch (e) {}
+            }
+            tests.push(createTestItem(`Iconos encontrados: ${iconsFound}/${iconSizes.length}`, iconsFound > 0));
+            
+            // Test 4: Cache
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                tests.push(createTestItem(`Cachés activos: ${cacheNames.length}`, cacheNames.length > 0));
+                
+                for (const name of cacheNames) {
+                    const cache = await caches.open(name);
+                    const keys = await cache.keys();
+                    tests.push(createTestItem(`  └─ ${name}: ${keys.length} items`, true));
+                }
+            }
+            
+            // Test 5: HTTPS
+            const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost';
+            tests.push(createTestItem('Usando HTTPS (o localhost)', isHTTPS));
+            
+            testsDiv.innerHTML = tests.join('');
+        }
+
+        // Actions
+        async function runAllTests() {
+            document.getElementById('results').innerHTML = '';
+            log('Iniciando suite de tests...', 'info');
+            await showBasicInfo();
+            await runPWATests();
+            log('Tests completados ✓', 'success');
+        }
+
+        async function clearAllCaches() {
+            if (!('caches' in window)) {
+                log('Cache API no soportada', 'warning');
+                return;
+            }
+            
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map(name => caches.delete(name)));
+            log(`${cacheNames.length} cachés eliminados. Recarga la página.`, 'success');
+        }
+
+        async function unregisterSW() {
+            if (!('serviceWorker' in navigator)) {
+                log('Service Workers no soportados', 'warning');
+                return;
+            }
+            
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map(r => r.unregister()));
+            log(`${registrations.length} service workers desregistrados. Recarga la página.`, 'success');
+        }
+
+        async function checkForUpdates() {
+            if (!('serviceWorker' in navigator)) {
+                log('Service Workers no soportados', 'warning');
+                return;
+            }
+            
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (!registration) {
+                log('No hay service worker registrado', 'warning');
+                return;
+            }
+            
+            log('Buscando actualizaciones...', 'info');
+            await registration.update();
+            log('Verificación de actualización completada ✓', 'success');
+        }
+
+        async function showCacheContents() {
+            if (!('caches' in window)) {
+                log('Cache API no soportada', 'warning');
+                return;
+            }
+            
+            const cacheNames = await caches.keys();
+            
+            if (cacheNames.length === 0) {
+                log('No hay cachés disponibles', 'warning');
+                return;
+            }
+            
+            for (const name of cacheNames) {
+                const cache = await caches.open(name);
+                const keys = await cache.keys();
+                
+                let content = `<strong>Caché: ${name}</strong><br>`;
+                content += keys.map(req => `  - ${req.url}`).join('<br>');
+                log(content, 'info');
+            }
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            showBasicInfo();
+            runPWATests();
+            log('PWA Test Suite cargado. Ejecuta las acciones para probar funcionalidades.', 'info');
+        });
+
+        // Console helpers
+        console.log('%c🧪 PWA Test Suite', 'font-size: 20px; color: #1e40af; font-weight: bold;');
+        console.log('Funciones disponibles:');
+        console.log('  - runAllTests()');
+        console.log('  - clearAllCaches()');
+        console.log('  - unregisterSW()');
+        console.log('  - checkForUpdates()');
+        console.log('  - showCacheContents()');
+    </script>
+</body>
+</html>

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONECTOCA - Generador Rápido de Íconos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 48px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 900px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #1e40af;
+            font-size: 32px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #64748b;
+            text-align: center;
+            margin-bottom: 32px;
+            font-size: 16px;
+        }
+        
+        .preview-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 32px;
+        }
+        
+        #preview {
+            border-radius: 24px;
+            box-shadow: 0 8px 24px rgba(30, 64, 175, 0.2);
+            max-width: 200px;
+            width: 100%;
+            height: auto;
+        }
+        
+        .btn-container {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-bottom: 32px;
+        }
+        
+        button {
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.4);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(30, 64, 175, 0.5);
+        }
+        
+        .btn-secondary {
+            background: #fbbf24;
+            color: #1e40af;
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(251, 191, 36, 0.5);
+        }
+        
+        .icons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        
+        .icon-item {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        
+        .icon-item:hover {
+            border-color: #1e40af;
+            transform: scale(1.05);
+        }
+        
+        .icon-item img {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .icon-size {
+            font-size: 12px;
+            font-weight: 600;
+            color: #1e40af;
+        }
+        
+        .instructions {
+            background: #eff6ff;
+            border-left: 4px solid #1e40af;
+            padding: 24px;
+            border-radius: 8px;
+            margin-top: 24px;
+        }
+        
+        .instructions h3 {
+            color: #1e40af;
+            margin-bottom: 16px;
+            font-size: 18px;
+        }
+        
+        .instructions ol {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin: 8px 0;
+            color: #475569;
+            line-height: 1.6;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-weight: 600;
+            display: none;
+        }
+        
+        .status.success {
+            background: #dcfce7;
+            color: #166534;
+            display: block;
+        }
+        
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            display: block;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🦆 CONECTOCA</h1>
+        <p class="subtitle">Generador de Íconos para PWA</p>
+        
+        <div class="preview-container">
+            <canvas id="preview" width="512" height="512"></canvas>
+        </div>
+        
+        <div id="status" class="status"></div>
+        
+        <div class="btn-container">
+            <button class="btn-primary" onclick="generateIcons()">
+                <span>🎨</span>
+                <span>Generar Íconos</span>
+            </button>
+        </div>
+        
+        <div id="iconsGrid" class="icons-grid hidden"></div>
+        
+        <div class="instructions">
+            <h3>📋 Instrucciones</h3>
+            <ol>
+                <li>Haz clic en <strong>"Generar Íconos"</strong></li>
+                <li>Se generarán automáticamente todos los tamaños (72x72 hasta 512x512)</li>
+                <li>Haz <strong>clic derecho</strong> en cada ícono → <strong>"Guardar imagen como..."</strong></li>
+                <li>Guarda con el nombre exacto: <code>icon-72x72.png</code>, <code>icon-96x96.png</code>, etc.</li>
+                <li>Coloca todos los archivos en la carpeta <code>/public/icons/</code> de tu proyecto</li>
+                <li>¡Listo! El logo aparecerá cuando ancles la app a la pantalla de inicio</li>
+            </ol>
+        </div>
+        
+        <!-- Canvas ocultos para generar los diferentes tamaños -->
+        <div style="display: none;">
+            <canvas id="canvas72" width="72" height="72"></canvas>
+            <canvas id="canvas96" width="96" height="96"></canvas>
+            <canvas id="canvas128" width="128" height="128"></canvas>
+            <canvas id="canvas144" width="144" height="144"></canvas>
+            <canvas id="canvas152" width="152" height="152"></canvas>
+            <canvas id="canvas192" width="192" height="192"></canvas>
+            <canvas id="canvas384" width="384" height="384"></canvas>
+            <canvas id="canvas512" width="512" height="512"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+        
+        // Función para dibujar el logo de La Oca
+        function drawLogo(ctx, size) {
+            // Fondo azul
+            ctx.fillStyle = '#1e40af';
+            ctx.fillRect(0, 0, size, size);
+            
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const scale = size / 512;
+            
+            // Cuerpo de la oca (blanco)
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY + 40 * scale, 120 * scale, 140 * scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Cuello
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY - 40 * scale, 50 * scale, 80 * scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Cabeza
+            ctx.beginPath();
+            ctx.arc(centerX, centerY - 100 * scale, 50 * scale, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Pico (amarillo)
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.moveTo(centerX + 40 * scale, centerY - 100 * scale);
+            ctx.lineTo(centerX + 80 * scale, centerY - 110 * scale);
+            ctx.lineTo(centerX + 80 * scale, centerY - 90 * scale);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Ojo
+            ctx.fillStyle = '#1e40af';
+            ctx.beginPath();
+            ctx.arc(centerX + 15 * scale, centerY - 110 * scale, 8 * scale, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Patas (amarillo)
+            ctx.fillStyle = '#fbbf24';
+            ctx.fillRect(centerX - 60 * scale, centerY + 160 * scale, 30 * scale, 40 * scale);
+            ctx.fillRect(centerX + 30 * scale, centerY + 160 * scale, 30 * scale, 40 * scale);
+            
+            // Texto CONECTOCA
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${60 * scale}px Arial, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('CONECT', centerX, centerY + 180 * scale);
+            
+            // OCA en amarillo
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = `bold ${60 * scale}px Arial, sans-serif`;
+            ctx.fillText('OCA', centerX, centerY + 230 * scale);
+        }
+        
+        // Generar preview al cargar
+        window.onload = function() {
+            const preview = document.getElementById('preview');
+            const ctx = preview.getContext('2d');
+            drawLogo(ctx, 512);
+        };
+        
+        // Generar todos los íconos
+        function generateIcons() {
+            const grid = document.getElementById('iconsGrid');
+            const status = document.getElementById('status');
+            
+            grid.innerHTML = '';
+            grid.classList.remove('hidden');
+            
+            status.textContent = '✅ ¡Íconos generados exitosamente! Haz clic derecho en cada uno para descargar.';
+            status.className = 'status success';
+            
+            sizes.forEach(size => {
+                const canvas = document.getElementById(`canvas${size}`);
+                const ctx = canvas.getContext('2d');
+                
+                // Dibujar logo
+                drawLogo(ctx, size);
+                
+                // Convertir a imagen
+                const dataUrl = canvas.toDataURL('image/png');
+                
+                // Crear elemento en la grid
+                const item = document.createElement('div');
+                item.className = 'icon-item';
+                
+                const img = document.createElement('img');
+                img.src = dataUrl;
+                img.alt = `Icon ${size}x${size}`;
+                img.title = `Clic derecho → Guardar como: icon-${size}x${size}.png`;
+                
+                // Permitir download al hacer clic
+                img.onclick = function() {
+                    const link = document.createElement('a');
+                    link.download = `icon-${size}x${size}.png`;
+                    link.href = dataUrl;
+                    link.click();
+                };
+                
+                const label = document.createElement('div');
+                label.className = 'icon-size';
+                label.textContent = `${size}x${size}`;
+                
+                item.appendChild(img);
+                item.appendChild(label);
+                grid.appendChild(item);
+            });
+            
+            // Scroll suave hacia los iconos
+            setTimeout(() => {
+                grid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        }
+    </script>
+</body>
+</html>

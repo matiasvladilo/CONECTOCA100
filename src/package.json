@@ -1,0 +1,33 @@
+{
+  "name": "conectoca",
+  "version": "1.0.0",
+  "description": "Sistema de gestión de pedidos, producción y asistencia",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "netlify": "vite build && cp _redirects dist/_redirects && cp public/* dist/ -r"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "lucide-react": "latest",
+    "recharts": "^2.12.7",
+    "sonner": "^2.0.3",
+    "motion": "latest",
+    "react-hook-form": "^7.55.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
