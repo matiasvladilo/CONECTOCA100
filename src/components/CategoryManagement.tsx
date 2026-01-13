@@ -9,18 +9,18 @@ import { Badge } from './ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  ArrowLeft, 
-  Plus, 
-  Tag, 
-  Edit, 
-  Trash2, 
+import {
+  ArrowLeft,
+  Plus,
+  Tag,
+  Edit,
+  Trash2,
   Folder,
   Sparkles,
   Palette
 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
-import logo from 'figma:asset/57300e671c33792006605871a879c67257646bdd.png';
+import { toast } from 'sonner';
+import logo from '../assets/logo.png';
 
 interface CategoryManagementProps {
   accessToken: string;
@@ -99,7 +99,7 @@ export function CategoryManagement({ accessToken, onBack }: CategoryManagementPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim()) {
       toast.error('El nombre es obligatorio');
       return;
@@ -224,12 +224,12 @@ export function CategoryManagement({ accessToken, onBack }: CategoryManagementPr
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          <div 
+                          <div
                             className="w-12 h-12 rounded-lg flex items-center justify-center"
                             style={{ backgroundColor: `${category.color}20` }}
                           >
-                            <Tag 
-                              className="w-6 h-6" 
+                            <Tag
+                              className="w-6 h-6"
                               style={{ color: category.color }}
                             />
                           </div>
@@ -283,8 +283,8 @@ export function CategoryManagement({ accessToken, onBack }: CategoryManagementPr
                 {editingCategory ? 'Editar Categoría' : 'Nueva Categoría'}
               </DialogTitle>
               <DialogDescription>
-                {editingCategory 
-                  ? 'Actualiza la información de la categoría' 
+                {editingCategory
+                  ? 'Actualiza la información de la categoría'
                   : 'Crea una nueva categoría para organizar tus productos'}
               </DialogDescription>
             </DialogHeader>
@@ -322,8 +322,8 @@ export function CategoryManagement({ accessToken, onBack }: CategoryManagementPr
                       onClick={() => setFormData({ ...formData, color: option.value })}
                       className={`
                         h-12 rounded-lg border-2 transition-all flex items-center justify-center
-                        ${formData.color === option.value 
-                          ? 'border-gray-900 ring-2 ring-offset-2 ring-gray-900' 
+                        ${formData.color === option.value
+                          ? 'border-gray-900 ring-2 ring-offset-2 ring-gray-900'
                           : 'border-gray-200 hover:border-gray-300'
                         }
                       `}

@@ -2,11 +2,11 @@ import { Order } from '../App';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { formatCLP } from '../utils/format';
-import { 
-  Printer, 
-  Package, 
-  User, 
-  MapPin, 
+import {
+  Printer,
+  Package,
+  User,
+  MapPin,
   Calendar,
   Hash,
   Phone,
@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState, useRef } from 'react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface StandardDeliveryGuideProps {
   order: Order;
@@ -28,9 +28,9 @@ interface StandardDeliveryGuideProps {
   businessRut?: string;
 }
 
-export function StandardDeliveryGuide({ 
-  order, 
-  open, 
+export function StandardDeliveryGuide({
+  order,
+  open,
   onClose,
   businessName = "CONECTOCA",
   businessAddress = "Dirección del Negocio",
@@ -42,11 +42,11 @@ export function StandardDeliveryGuide({
 
   const handlePrint = () => {
     setIsPrinting(true);
-    
+
     // Small delay to ensure the print styles are applied
     setTimeout(() => {
       window.print();
-      
+
       // Reset after print dialog closes (approximate)
       setTimeout(() => {
         setIsPrinting(false);
@@ -81,7 +81,7 @@ export function StandardDeliveryGuide({
 
           <div className="space-y-4">
             {/* Preview of standard delivery guide */}
-            <div 
+            <div
               ref={printRef}
               className="standard-delivery-guide-preview border-2 border-gray-300 rounded-lg p-8 bg-white"
             >
@@ -161,9 +161,9 @@ export function StandardDeliveryGuide({
                     <div>
                       <p className="text-xs text-gray-500">Estado</p>
                       <p className="text-sm font-medium text-gray-900">
-                        {order.status === 'completed' ? 'LISTO PARA DESPACHO' : 
-                         order.status === 'cancelled' ? 'DESPACHADO' : 
-                         order.status === 'in_progress' ? 'EN PREPARACIÓN' : 'PENDIENTE'}
+                        {order.status === 'completed' ? 'LISTO PARA DESPACHO' :
+                          order.status === 'cancelled' ? 'DESPACHADO' :
+                            order.status === 'in_progress' ? 'EN PREPARACIÓN' : 'PENDIENTE'}
                       </p>
                     </div>
                   </div>
@@ -279,7 +279,7 @@ export function StandardDeliveryGuide({
             {/* Instructions */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <p className="text-xs text-blue-800">
-                <strong>Nota:</strong> Esta guía está optimizada para impresoras estándar en formato A4 o Carta. 
+                <strong>Nota:</strong> Esta guía está optimizada para impresoras estándar en formato A4 o Carta.
                 El diseño es profesional y adecuado para documentación formal.
               </p>
             </div>
@@ -355,9 +355,9 @@ export function StandardDeliveryGuide({
                   <div className="mt-2">
                     <p className="text-xs text-gray-600">Estado</p>
                     <p className="text-sm font-medium text-gray-900">
-                      {order.status === 'completed' ? 'LISTO PARA DESPACHO' : 
-                       order.status === 'cancelled' ? 'DESPACHADO' : 
-                       order.status === 'in_progress' ? 'EN PREPARACIÓN' : 'PENDIENTE'}
+                      {order.status === 'completed' ? 'LISTO PARA DESPACHO' :
+                        order.status === 'cancelled' ? 'DESPACHADO' :
+                          order.status === 'in_progress' ? 'EN PREPARACIÓN' : 'PENDIENTE'}
                     </p>
                   </div>
                 </div>

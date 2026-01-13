@@ -3,7 +3,7 @@ import { ArrowLeft, Plus, Save, Trash2, Package, AlertTriangle, TrendingDown, Tr
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { ingredientsAPI, type Ingredient as APIIngredient } from "../utils/api";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 
 interface IngredientManagementProps {
@@ -16,7 +16,7 @@ export function IngredientManagement({ onBack, accessToken }: IngredientManageme
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
-  
+
   // Usamos strings para los campos numéricos durante la edición
   const [formData, setFormData] = useState<{
     name: string;
@@ -143,7 +143,7 @@ export function IngredientManagement({ onBack, accessToken }: IngredientManageme
 
   const getStockStatus = (ingredient: APIIngredient) => {
     const percentage = (ingredient.currentStock / ingredient.minStock) * 100;
-    
+
     if (ingredient.currentStock === 0) {
       return { status: "sin-stock", label: "Sin Stock", color: "bg-red-600" };
     } else if (ingredient.currentStock < ingredient.minStock) {
@@ -201,7 +201,7 @@ export function IngredientManagement({ onBack, accessToken }: IngredientManageme
               <Package className="w-8 h-8 text-blue-500" />
             </div>
           </Card>
-          
+
           <Card className="p-4 bg-white border-l-4 border-red-500">
             <div className="flex items-center justify-between">
               <div>
@@ -455,7 +455,7 @@ export function IngredientManagement({ onBack, accessToken }: IngredientManageme
                           {ingredient.currentStock} {ingredient.unit}
                         </span>
                       </div>
-                      
+
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Stock Mínimo:</span>
                         <span className="text-gray-900">

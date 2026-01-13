@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Camera, Upload, X, Image as ImageIcon } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { projectId } from '../utils/supabase/info';
 
@@ -22,7 +22,7 @@ export function ImageUpload({ value, onChange, label = "Imagen del producto", ac
   const uploadImage = async (file: File) => {
     try {
       setUploading(true);
-      
+
       // Validate file type
       if (!file.type.startsWith('image/')) {
         toast.error('Por favor selecciona una imagen válida');
@@ -57,7 +57,7 @@ export function ImageUpload({ value, onChange, label = "Imagen del producto", ac
       }
 
       const data = await response.json();
-      
+
       if (data.url) {
         setPreviewUrl(data.url);
         onChange(data.url);

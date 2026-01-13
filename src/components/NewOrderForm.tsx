@@ -12,11 +12,11 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Calendar as CalendarComponent } from './ui/calendar';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  ArrowLeft, 
-  ShoppingCart, 
-  Package, 
-  Edit, 
+import {
+  ArrowLeft,
+  ShoppingCart,
+  Package,
+  Edit,
   Plus,
   Minus,
   Trash2,
@@ -32,7 +32,7 @@ import {
   PackagePlus,
   Tag
 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { productsAPI, categoriesAPI, type Product as APIProduct, type Category } from '../utils/api';
 import { formatCLP } from '../utils/format';
@@ -70,13 +70,13 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [productQuantities, setProductQuantities] = useState<{ [key: string]: number }>({});
-  
+
   const today = new Date().toISOString().split('T')[0];
-  
+
   // Initialize with today's date
   const [deadline, setDeadline] = useState(today);
   const [deadlineDate, setDeadlineDate] = useState<Date | undefined>(new Date());
-  
+
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editForm, setEditForm] = useState({ name: '', description: '', price: '', image: '', stock: '', category: '', categoryId: '', trackStock: true });
@@ -99,7 +99,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
       console.log('🟢 [NewOrderForm] Loading products...');
       const apiProducts = await productsAPI.getAll(accessToken);
       console.log('🟢 [NewOrderForm] Products received:', apiProducts?.length || 0, 'products');
-      
+
       // Transform API products to local format
       const transformedProducts: Product[] = apiProducts.map(p => ({
         id: p.id,
@@ -112,15 +112,15 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
         categoryId: p.categoryId,
         trackStock: p.trackStock
       }));
-      
+
       if (transformedProducts.length > 0) {
         console.log('🟢 [NewOrderForm] Sample transformed product:', transformedProducts[0]);
       } else {
         console.log('⚠️ [NewOrderForm] No products received from API');
       }
-      
+
       setProducts(transformedProducts);
-      
+
       // Show message if no products
       if (transformedProducts.length === 0) {
         toast.info('No hay productos disponibles. El administrador debe crear productos primero.');
@@ -200,18 +200,18 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
       const updatedProduct = await productsAPI.update(accessToken, product.id, {
         stock: product.stock + restockAmount
       });
-      
-      setProducts(products.map(p => 
+
+      setProducts(products.map(p =>
         p.id === product.id ? updatedProduct : p
       ));
-      
+
       // Update cart if product is in cart
       setCart(cart.map(item =>
         item.id === product.id
           ? { ...item, stock: updatedProduct.stock }
           : item
       ));
-      
+
       toast.success(`Stock reabastecido: +${restockAmount} unidades de ${product.name}`);
     } catch (error) {
       console.error('Error restocking product:', error);
@@ -235,7 +235,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
     }
 
     const qtyToAdd = quantity || productQuantities[product.id] || 1;
-    
+
     if (qtyToAdd <= 0) {
       toast.error('La cantidad debe ser mayor a 0');
       return;
@@ -262,7 +262,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
       setCart([...cart, { ...product, quantity: qtyToAdd }]);
       toast.success(`${product.name} agregado al pedido`);
     }
-    
+
     setProductQuantities(prev => ({ ...prev, [product.id]: 0 }));
   };
 
@@ -270,13 +270,13 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
     setCart(cart.map(item => {
       if (item.id === productId) {
         const newQuantity = item.quantity + delta;
-        
+
         // Check if new quantity exceeds stock
         if (newQuantity > item.stock && item.trackStock) {
           toast.error(`Solo hay ${item.stock} unidades disponibles en stock`);
           return item;
         }
-        
+
         return { ...item, quantity: Math.max(1, newQuantity) };
       }
       return item;
@@ -324,13 +324,13 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
 
     try {
       await productsAPI.delete(accessToken, editingProduct.id);
-      
+
       // Remove from products
       setProducts(products.filter(p => p.id !== editingProduct.id));
-      
+
       // Remove from cart if exists
       setCart(cart.filter(item => item.id !== editingProduct.id));
-      
+
       // Remove from quantities
       setProductQuantities(prev => {
         const newQuantities = { ...prev };
@@ -348,7 +348,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
 
   const handleSaveEdit = async () => {
     if (!editingProduct) return;
-    
+
     const price = parseFloat(editForm.price);
     if (isNaN(price) || price <= 0) {
       toast.error('El precio debe ser un número válido mayor a 0');
@@ -410,9 +410,9 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
     // Compare dates correctly considering local timezone
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const deadlineLocalDate = new Date(deadline + 'T00:00:00');
-    
+
     if (deadlineLocalDate < today) {
       toast.error('La fecha límite no puede ser anterior a hoy');
       return;
@@ -430,7 +430,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
       total: calculateTotal(),
       notes: notes.trim() // Add notes field
     };
-    
+
     try {
       await onSubmit(orderData);
       // Reload products to reflect updated stock
@@ -461,7 +461,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
-              <motion.button 
+              <motion.button
                 onClick={onBack}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
@@ -474,7 +474,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                 <p className="text-xs text-blue-200 opacity-80">Selecciona productos para tu pedido</p>
               </div>
             </div>
-            
+
             {/* Cart Preview Popover */}
             <Popover open={cartPreviewOpen} onOpenChange={setCartPreviewOpen}>
               <PopoverTrigger asChild>
@@ -499,7 +499,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                       {cart.length} {cart.length === 1 ? 'producto' : 'productos'}
                     </p>
                   </div>
-                  
+
                   {cart.length > 0 ? (
                     <div className="max-h-96 overflow-y-auto">
                       <div className="p-4 space-y-3">
@@ -512,7 +512,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                                 className="w-full h-full object-cover"
                               />
                             </div>
-                            
+
                             <div className="flex-1 min-w-0">
                               <h4 className="text-sm text-gray-900 line-clamp-1">{item.name}</h4>
                               <p className="text-xs text-gray-500">
@@ -522,7 +522,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                                 {formatCLP(item.price * item.quantity)}
                               </p>
                             </div>
-                            
+
                             <button
                               onClick={() => handleRemoveFromCart(item.id)}
                               className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-100 text-red-600 transition-colors flex-shrink-0"
@@ -532,9 +532,9 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                           </div>
                         ))}
                       </div>
-                      
+
                       <Separator />
-                      
+
                       <div className="p-4 bg-gray-50">
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-gray-700">Total</span>
@@ -542,7 +542,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                             ${calculateTotal().toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
-                        
+
                         <Button
                           onClick={() => {
                             setCartPreviewOpen(false);
@@ -585,17 +585,16 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
               <Package className="w-5 h-5 text-blue-600" />
               <h2 className="text-gray-800">Catálogo de Productos</h2>
             </div>
-            
+
             {/* Category Filter */}
             {categories.length > 0 && (
               <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={() => setSelectedCategoryFilter('all')}
-                  className={`px-3 py-1 rounded-lg text-sm transition-colors ${
-                    selectedCategoryFilter === 'all'
+                  className={`px-3 py-1 rounded-lg text-sm transition-colors ${selectedCategoryFilter === 'all'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
+                    }`}
                 >
                   Todas
                 </button>
@@ -603,14 +602,13 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                   <button
                     key={cat.id}
                     onClick={() => setSelectedCategoryFilter(cat.id)}
-                    className={`px-3 py-1 rounded-lg text-sm flex items-center gap-1.5 transition-colors ${
-                      selectedCategoryFilter === cat.id
+                    className={`px-3 py-1 rounded-lg text-sm flex items-center gap-1.5 transition-colors ${selectedCategoryFilter === cat.id
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
+                      }`}
                   >
-                    <div 
-                      className="w-2.5 h-2.5 rounded-full" 
+                    <div
+                      className="w-2.5 h-2.5 rounded-full"
                       style={{ backgroundColor: cat.color }}
                     />
                     {cat.name}
@@ -618,18 +616,17 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                 ))}
                 <button
                   onClick={() => setSelectedCategoryFilter('uncategorized')}
-                  className={`px-3 py-1 rounded-lg text-sm transition-colors ${
-                    selectedCategoryFilter === 'uncategorized'
+                  className={`px-3 py-1 rounded-lg text-sm transition-colors ${selectedCategoryFilter === 'uncategorized'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
+                    }`}
                 >
                   Sin categoría
                 </button>
               </div>
             )}
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {products
               .filter((product: any) => {
@@ -638,143 +635,142 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                 return product.categoryId === selectedCategoryFilter;
               })
               .map((product) => {
-              const productStock = product.stock ?? 0;
-              const isOutOfStock = productStock <= 0 && product.trackStock;
-              const cartItem = cart.find(item => item.id === product.id);
-              const remainingStock = productStock - (cartItem?.quantity || 0);
-              
-              return (
-                <Card 
-                  key={product.id} 
-                  className={`overflow-hidden transition-all ${
-                    isOutOfStock 
-                      ? 'opacity-60 cursor-not-allowed' 
-                      : 'hover:shadow-lg hover:scale-[1.02] cursor-pointer'
-                  }`}
-                >
-                  {/* Clickable area - entire card except edit button */}
-                  <div 
-                    onClick={(e) => {
-                      // Only trigger if not clicking on edit button or input fields
-                      if (!isOutOfStock && 
-                          e.target instanceof Element && 
-                          !e.target.closest('button.edit-btn') && 
-                          !e.target.closest('.quantity-controls')) {
-                        handleAddToCart(product, 1);
-                      }
-                    }}
+                const productStock = product.stock ?? 0;
+                const isOutOfStock = productStock <= 0 && product.trackStock;
+                const cartItem = cart.find(item => item.id === product.id);
+                const remainingStock = productStock - (cartItem?.quantity || 0);
+
+                return (
+                  <Card
+                    key={product.id}
+                    className={`overflow-hidden transition-all ${isOutOfStock
+                        ? 'opacity-60 cursor-not-allowed'
+                        : 'hover:shadow-lg hover:scale-[1.02] cursor-pointer'
+                      }`}
                   >
-                    <div className="relative h-48 bg-gray-200 overflow-hidden group">
-                      <ImageWithFallback
-                        src={product.image}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                      />
-                      {isOutOfStock && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                          <Badge variant="destructive" className="text-sm">
-                            Sin Stock
+                    {/* Clickable area - entire card except edit button */}
+                    <div
+                      onClick={(e) => {
+                        // Only trigger if not clicking on edit button or input fields
+                        if (!isOutOfStock &&
+                          e.target instanceof Element &&
+                          !e.target.closest('button.edit-btn') &&
+                          !e.target.closest('.quantity-controls')) {
+                          handleAddToCart(product, 1);
+                        }
+                      }}
+                    >
+                      <div className="relative h-48 bg-gray-200 overflow-hidden group">
+                        <ImageWithFallback
+                          src={product.image}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                        {isOutOfStock && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <Badge variant="destructive" className="text-sm">
+                              Sin Stock
+                            </Badge>
+                          </div>
+                        )}
+                        {!isOutOfStock && (
+                          <div className="absolute top-2 left-2 w-8 h-8 bg-yellow-500/90 group-hover:bg-yellow-500 rounded-full flex items-center justify-center shadow-md transition-all z-[5]">
+                            <ShoppingCart className="w-4 h-4 text-blue-900" />
+                          </div>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditProduct(product);
+                          }}
+                          className="edit-btn absolute top-2 right-2 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-colors z-[5]"
+                        >
+                          <Edit className="w-4 h-4 text-blue-600" />
+                        </button>
+                      </div>
+
+                      <CardContent className="p-4 space-y-3">
+                        <div>
+                          <h3 className="text-gray-900 mb-1">{product.name}</h3>
+                          <p className="text-xs text-gray-500 line-clamp-2">{product.description}</p>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="w-4 h-4 text-blue-600" />
+                            <span className="text-blue-700">${product.price.toFixed(2)}</span>
+                            <span className="text-xs text-gray-500">/unidad</span>
+                          </div>
+                          <Badge
+                            variant={isOutOfStock ? "destructive" : remainingStock < 10 ? "outline" : "secondary"}
+                            className="text-xs"
+                          >
+                            {product.trackStock === false ? '∞ Ilimitado' : (isOutOfStock ? 'Sin stock' : `Stock: ${productStock}`)}
                           </Badge>
                         </div>
-                      )}
-                      {!isOutOfStock && (
-                        <div className="absolute top-2 left-2 w-8 h-8 bg-yellow-500/90 group-hover:bg-yellow-500 rounded-full flex items-center justify-center shadow-md transition-all z-[5]">
-                          <ShoppingCart className="w-4 h-4 text-blue-900" />
+
+                        <div className="space-y-2 quantity-controls" onClick={(e) => e.stopPropagation()}>
+                          <Label htmlFor={`qty-${product.id}`} className="text-xs text-gray-600">
+                            Cantidad
+                          </Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id={`qty-${product.id}`}
+                              type="number"
+                              min="0"
+                              max={remainingStock > 0 ? remainingStock : undefined}
+                              value={productQuantities[product.id] || ''}
+                              onChange={(e) => handleQuantityChange(product.id, e.target.value)}
+                              placeholder="0"
+                              className="flex-1"
+                              disabled={isOutOfStock}
+                            />
+                            <Button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddToCart(product);
+                              }}
+                              disabled={isOutOfStock}
+                              className="bg-yellow-500 hover:bg-yellow-600 text-blue-900 gap-1 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Agregar
+                            </Button>
+                          </div>
+                          {!isOutOfStock && remainingStock < productStock && (
+                            <p className="text-xs text-orange-600">
+                              {remainingStock} disponibles (ya tienes {cartItem?.quantity} en el carrito)
+                            </p>
+                          )}
+                          {(isOutOfStock || productStock < 20) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRestockProduct(product);
+                              }}
+                              className="w-full mt-2 px-3 py-1.5 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded flex items-center justify-center gap-2 transition-colors"
+                            >
+                              <PackagePlus className="w-3 h-3" />
+                              {isOutOfStock ? 'Reabastecer Stock (+100)' : 'Agregar Stock (+100)'}
+                            </button>
+                          )}
                         </div>
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditProduct(product);
-                        }}
-                        className="edit-btn absolute top-2 right-2 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-colors z-[5]"
-                      >
-                        <Edit className="w-4 h-4 text-blue-600" />
-                      </button>
+                      </CardContent>
                     </div>
-                    
-                    <CardContent className="p-4 space-y-3">
-                      <div>
-                        <h3 className="text-gray-900 mb-1">{product.name}</h3>
-                        <p className="text-xs text-gray-500 line-clamp-2">{product.description}</p>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="w-4 h-4 text-blue-600" />
-                          <span className="text-blue-700">${product.price.toFixed(2)}</span>
-                          <span className="text-xs text-gray-500">/unidad</span>
-                        </div>
-                        <Badge 
-                          variant={isOutOfStock ? "destructive" : remainingStock < 10 ? "outline" : "secondary"}
-                          className="text-xs"
-                        >
-                          {product.trackStock === false ? '∞ Ilimitado' : (isOutOfStock ? 'Sin stock' : `Stock: ${productStock}`)}
-                        </Badge>
-                      </div>
-
-                      <div className="space-y-2 quantity-controls" onClick={(e) => e.stopPropagation()}>
-                        <Label htmlFor={`qty-${product.id}`} className="text-xs text-gray-600">
-                          Cantidad
-                        </Label>
-                        <div className="flex gap-2">
-                          <Input
-                            id={`qty-${product.id}`}
-                            type="number"
-                            min="0"
-                            max={remainingStock > 0 ? remainingStock : undefined}
-                            value={productQuantities[product.id] || ''}
-                            onChange={(e) => handleQuantityChange(product.id, e.target.value)}
-                            placeholder="0"
-                            className="flex-1"
-                            disabled={isOutOfStock}
-                          />
-                          <Button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAddToCart(product);
-                            }}
-                            disabled={isOutOfStock}
-                            className="bg-yellow-500 hover:bg-yellow-600 text-blue-900 gap-1 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <Plus className="w-4 h-4" />
-                            Agregar
-                          </Button>
-                        </div>
-                        {!isOutOfStock && remainingStock < productStock && (
-                          <p className="text-xs text-orange-600">
-                            {remainingStock} disponibles (ya tienes {cartItem?.quantity} en el carrito)
-                          </p>
-                        )}
-                        {(isOutOfStock || productStock < 20) && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRestockProduct(product);
-                            }}
-                            className="w-full mt-2 px-3 py-1.5 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded flex items-center justify-center gap-2 transition-colors"
-                          >
-                            <PackagePlus className="w-3 h-3" />
-                            {isOutOfStock ? 'Reabastecer Stock (+100)' : 'Agregar Stock (+100)'}
-                          </button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </div>
-                </Card>
-              );
-            })}
+                  </Card>
+                );
+              })}
           </div>
         </div>
 
         {/* Order Summary - Collapsible */}
         {cart.length > 0 && (
-          <motion.div 
+          <motion.div
             className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-blue-600 shadow-lg rounded-t-2xl z-20"
             initial={false}
           >
             {/* Collapsed Header - Always Visible */}
-            <div 
+            <div
               onClick={() => setSummaryExpanded(!summaryExpanded)}
               className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
             >
@@ -788,7 +784,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3">
                   <div className="text-right">
                     <p className="text-xs text-gray-500">Total</p>
@@ -816,14 +812,14 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                   className="overflow-hidden"
                 >
                   <Separator />
-                  
+
                   <div className="p-6 space-y-4 max-w-6xl mx-auto">
                     {/* Product List */}
                     <div className="space-y-3 max-h-64 overflow-y-auto">
                       {cart.map((item) => {
                         const isNearLimit = item.quantity >= item.stock * 0.8;
                         const atLimit = item.quantity >= item.stock;
-                        
+
                         return (
                           <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
                             <div className="w-16 h-16 bg-gray-200 rounded overflow-hidden flex-shrink-0">
@@ -833,7 +829,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                                 className="w-full h-full object-cover"
                               />
                             </div>
-                            
+
                             <div className="flex-1 min-w-0">
                               <h4 className="text-sm text-gray-900 mb-1">{item.name}</h4>
                               <p className="text-xs text-gray-500">
@@ -860,11 +856,10 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                               <button
                                 onClick={() => handleUpdateCartQuantity(item.id, 1)}
                                 disabled={atLimit}
-                                className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${
-                                  atLimit 
-                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${atLimit
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                     : 'bg-gray-200 hover:bg-gray-300'
-                                }`}
+                                  }`}
                               >
                                 <Plus className="w-3 h-3" />
                               </button>
@@ -1002,7 +997,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                   className="w-full h-full object-cover"
                 />
               </div>
-              
+
               {/* Image Upload Options */}
               <div className="grid grid-cols-2 gap-2 mb-3">
                 <div>
@@ -1023,7 +1018,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                     Subir Imagen
                   </Button>
                 </div>
-                
+
                 <div>
                   <input
                     type="file"
@@ -1103,15 +1098,15 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                 value={editForm.categoryId || "none"}
                 onValueChange={(value) => {
                   if (value === "none") {
-                    setEditForm({ 
-                      ...editForm, 
+                    setEditForm({
+                      ...editForm,
                       categoryId: '',
                       category: 'General'
                     });
                   } else {
                     const selectedCategory = categories.find(c => c.id === value);
-                    setEditForm({ 
-                      ...editForm, 
+                    setEditForm({
+                      ...editForm,
                       categoryId: value,
                       category: selectedCategory?.name || 'General'
                     });
@@ -1183,8 +1178,8 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                   Controlar stock
                 </Label>
                 <p className="text-xs text-gray-500 mt-1">
-                  {editForm.trackStock 
-                    ? 'El stock se controlará y reducirá con cada pedido' 
+                  {editForm.trackStock
+                    ? 'El stock se controlará y reducirá con cada pedido'
                     : 'Stock ilimitado - No se controla inventario'}
                 </p>
               </div>

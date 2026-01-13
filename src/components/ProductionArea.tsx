@@ -10,10 +10,10 @@ import { Input } from './ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  ArrowLeft, 
-  Package, 
-  Clock, 
+import {
+  ArrowLeft,
+  Package,
+  Clock,
   User,
   CheckCircle2,
   PlayCircle,
@@ -52,9 +52,9 @@ import {
 } from 'lucide-react';
 import { PaginationControls } from './PaginationControls';
 import { PaginationInfo, ProductionArea as ProductionAreaType, productionAreasAPI } from '../utils/api';
-import logo from 'figma:asset/57300e671c33792006605871a879c67257646bdd.png';
-import logoFull from 'figma:asset/57300e671c33792006605871a879c67257646bdd.png';
-import { toast } from 'sonner@2.0.3';
+import logo from '../assets/logo.png';
+const logoFull = logo;
+import { toast } from 'sonner';
 import { formatCLP } from '../utils/format';
 
 interface ProductionAreaProps {
@@ -66,28 +66,29 @@ interface ProductionAreaProps {
   pagination?: PaginationInfo;
   onPageChange?: (page: number) => void;
   onGoToKDS?: () => void;
+  isLoading?: boolean;
 }
 
 type FilterStatus = 'all' | 'pending' | 'in_progress' | 'completed' | 'cancelled';
 type SortOption = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc' | 'customer-asc' | 'customer-desc';
 type ViewMode = 'grid' | 'list';
 
-export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToken, lastSync, pagination, onPageChange, onGoToKDS }: ProductionAreaProps) {
+export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToken, lastSync, pagination, onPageChange, onGoToKDS, isLoading = false }: ProductionAreaProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [showDeliveryGuide, setShowDeliveryGuide] = useState(false);
-  
+
   // Production Areas state
   const [productionAreas, setProductionAreas] = useState<ProductionAreaType[]>([]);
   const [selectedAreaFilter, setSelectedAreaFilter] = useState<string>('all'); // 'all' or area ID
-  
+
   // New advanced filters
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [priorityOrders, setPriorityOrders] = useState<Set<string>>(new Set());
-  
+
   // Advanced filter states
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -104,7 +105,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
 
   const loadProductionAreas = async () => {
     if (!accessToken) return;
-    
+
     try {
       const areas = await productionAreasAPI.getAll(accessToken);
       setProductionAreas(areas);
@@ -232,7 +233,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
   };
 
   // Get icon component for production area
-  const getAreaIcon = (iconName: string) => {
+  const getAreaIcon = (iconName?: string) => {
     const icons: Record<string, any> = {
       ChefHat,
       Cake,
@@ -249,21 +250,21 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
       Fish,
       Apple
     };
-    const IconComponent = icons[iconName] || Factory;
+    const IconComponent = (iconName && icons[iconName]) || Factory;
     return <IconComponent className="w-4 h-4" />;
   };
 
   // Get unique production areas from order
   const getOrderAreas = (order: Order) => {
     if (!order.products) return [];
-    
+
     const areaIds = new Set<string>();
     order.products.forEach(product => {
       if (product.productionAreaId) {
         areaIds.add(product.productionAreaId);
       }
     });
-    
+
     return Array.from(areaIds)
       .map(id => productionAreas.find(a => a.id === id))
       .filter((area): area is ProductionAreaType => area !== undefined);
@@ -299,7 +300,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
   // Apply search filter
   const applySearchFilter = (order: Order) => {
     if (!searchQuery) return true;
-    
+
     const query = searchQuery.toLowerCase();
     return (
       order.id.toLowerCase().includes(query) ||
@@ -340,7 +341,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
   // Sort orders
   const sortOrders = (ordersToSort: Order[]) => {
     const sorted = [...ordersToSort];
-    
+
     switch (sortBy) {
       case 'date-desc':
         return sorted.sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime());
@@ -372,18 +373,18 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
     if (selectedAreaFilter !== 'all') {
       console.log('🔍 Filtrando por área:', selectedAreaFilter);
       console.log('📦 Total de pedidos antes del filtro:', filtered.length);
-      
+
       filtered = filtered.filter(order => {
         // Check if any product in the order belongs to the selected area
         const hasProductInArea = order.products?.some(product => {
           console.log(`  - Producto "${product.name}": areaId=${product.productionAreaId}`);
           return product.productionAreaId === selectedAreaFilter;
         });
-        
+
         console.log(`  Pedido ${order.id.substring(0, 8)}: ${hasProductInArea ? '✅ INCLUIDO' : '❌ EXCLUIDO'}`);
         return hasProductInArea;
       });
-      
+
       console.log('📦 Total de pedidos después del filtro:', filtered.length);
     }
 
@@ -432,16 +433,16 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('es-CL', { 
-      day: '2-digit', 
-      month: 'long', 
-      year: 'numeric' 
+    return date.toLocaleDateString('es-CL', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
     });
   };
 
   const handlePrintGuide = () => {
     if (!selectedOrder) return;
-    
+
     // Create printable content
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
@@ -597,7 +598,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
     printWindow.document.write(guideContent);
     printWindow.document.close();
     printWindow.print();
-    
+
     toast.success('Guía de despacho generada');
     setShowDeliveryGuide(false);
   };
@@ -610,7 +611,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
           {/* Top row with logo and controls */}
           <div className="flex items-center justify-between mb-3 gap-2">
             <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-              <motion.button 
+              <motion.button
                 onClick={onBack}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
@@ -618,12 +619,12 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
               >
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </motion.button>
-              
+
               <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                <motion.img 
-                  src={logo} 
-                  alt="La Oca Logo" 
-                  className="w-8 h-8 sm:w-10 sm:h-10 object-contain flex-shrink-0" 
+                <motion.img
+                  src={logo}
+                  alt="La Oca Logo"
+                  className="w-8 h-8 sm:w-10 sm:h-10 object-contain flex-shrink-0"
                   style={{ imageRendering: 'crisp-edges' }}
                   whileHover={{ rotate: [0, -10, 10, -10, 0], transition: { duration: 0.5 } }}
                 />
@@ -633,7 +634,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
                 </div>
               </div>
             </div>
-            
+
             {/* KDS Button */}
             {onGoToKDS && (
               <Button
@@ -648,7 +649,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
           </div>
 
           {/* Triangular Navigation Buttons */}
-          <motion.div 
+          <motion.div
             className="flex items-center justify-between gap-2"
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
@@ -667,8 +668,8 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
               whileTap={{ scale: filterStatusIndex === 0 ? 1 : 0.9 }}
               className={`
                 flex-shrink-0 touch-manipulation
-                ${filterStatusIndex === 0 
-                  ? 'opacity-30 cursor-not-allowed' 
+                ${filterStatusIndex === 0
+                  ? 'opacity-30 cursor-not-allowed'
                   : 'cursor-pointer opacity-80 hover:opacity-100'
                 }
               `}
@@ -689,7 +690,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ 
+              transition={{
                 type: "spring",
                 stiffness: 300,
                 damping: 25
@@ -724,7 +725,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
               className={`
                 flex-shrink-0 touch-manipulation
                 ${filterStatusIndex === filterStatusOptions.length - 1
-                  ? 'opacity-30 cursor-not-allowed' 
+                  ? 'opacity-30 cursor-not-allowed'
                   : 'cursor-pointer opacity-80 hover:opacity-100'
                 }
               `}
@@ -764,7 +765,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
               </div>
 
               {/* Sort Selector */}
-              <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+              <Select value={sortBy} onValueChange={(value: string) => setSortBy(value as SortOption)}>
                 <SelectTrigger className="w-[200px] bg-white/10 border-white/20 text-white">
                   <ArrowUpDown className="w-4 h-4 mr-2" />
                   <SelectValue />
@@ -783,17 +784,15 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
               <div className="flex gap-1 bg-white/10 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded transition-colors ${
-                    viewMode === 'grid' ? 'bg-white/20' : 'hover:bg-white/10'
-                  }`}
+                  className={`p-2 rounded transition-colors ${viewMode === 'grid' ? 'bg-white/20' : 'hover:bg-white/10'
+                    }`}
                 >
                   <Grid3x3 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded transition-colors ${
-                    viewMode === 'list' ? 'bg-white/20' : 'hover:bg-white/10'
-                  }`}
+                  className={`p-2 rounded transition-colors ${viewMode === 'list' ? 'bg-white/20' : 'hover:bg-white/10'
+                    }`}
                 >
                   <List className="w-4 h-4" />
                 </button>
@@ -909,7 +908,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
               >
                 <Factory className="w-4 h-4 text-blue-300" />
                 <span className="text-sm text-blue-200">Área:</span>
-                <Select value={selectedAreaFilter} onValueChange={(value) => {
+                <Select value={selectedAreaFilter} onValueChange={(value: string) => {
                   setSelectedAreaFilter(value);
                   toast.success(value === 'all' ? 'Mostrando todas las áreas' : `Filtrando por: ${productionAreas.find(a => a.id === value)?.name}`);
                 }}>
@@ -925,14 +924,14 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
                       </div>
                     </SelectItem>
                     {productionAreas.map((area) => (
-                      <SelectItem 
-                        key={area.id} 
+                      <SelectItem
+                        key={area.id}
                         value={area.id}
                         className="text-white hover:bg-white/10"
                       >
                         <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
+                          <div
+                            className="w-3 h-3 rounded-full"
                             style={{ backgroundColor: area.color }}
                           />
                           {getAreaIcon(area.icon)}
@@ -977,10 +976,10 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
           </div>
         ) : (
           <>
-            <div className={viewMode === 'grid' 
+            <div className={`${viewMode === 'grid'
               ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
               : "space-y-3"
-            }>
+              } ${isLoading ? 'opacity-50 transition-opacity duration-300' : ''}`}>
               <AnimatePresence>
                 {filteredOrders.map((order) => (
                   <motion.div
@@ -999,16 +998,15 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
                       }}
                       whileHover={{ scale: 1.2 }}
                       whileTap={{ scale: 0.9 }}
-                      className={`absolute -top-2 -right-2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                        priorityOrders.has(order.id)
-                          ? 'bg-yellow-500 text-yellow-900 shadow-lg'
-                          : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-                      }`}
+                      className={`absolute -top-2 -right-2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all ${priorityOrders.has(order.id)
+                        ? 'bg-yellow-500 text-yellow-900 shadow-lg'
+                        : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                        }`}
                     >
                       <Star className={`w-4 h-4 ${priorityOrders.has(order.id) ? 'fill-current' : ''}`} />
                     </motion.button>
 
-                    <Card 
+                    <Card
                       className={`
                         cursor-pointer
                         border-l-8 ${getStatusColor(order.status)} 
@@ -1027,7 +1025,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
                               {order.id.slice(0, 8).toUpperCase()}
                             </CardTitle>
                             {order.notes && order.notes.trim() && (
-                              <div 
+                              <div
                                 className="w-5 h-5 rounded-full flex items-center justify-center bg-gradient-to-br from-yellow-500 to-amber-600 shadow-lg"
                                 title="Tiene observaciones"
                               >
@@ -1043,7 +1041,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
                           </Badge>
                         </div>
                       </CardHeader>
-                      
+
                       <CardContent className="space-y-3">
                         {/* Production Areas Badges - Show if order has areas */}
                         {getOrderAreas(order).length > 0 && (
@@ -1084,7 +1082,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
                                 <DollarSign className="w-4 h-4 text-green-400" />
                                 <span className="text-green-400">${(order.total || 0).toLocaleString('es-CL')}</span>
                               </div>
-                              
+
                               <div className="flex items-center gap-2 text-sm text-gray-300">
                                 <Package className="w-4 h-4 text-purple-400" />
                                 <span>{order.products?.length || 0} producto{(order.products?.length || 0) !== 1 ? 's' : ''}</span>
@@ -1132,9 +1130,10 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
             {/* Pagination Controls */}
             {pagination && onPageChange && (
               <div className="mt-6">
-                <PaginationControls 
+                <PaginationControls
                   pagination={pagination}
                   onPageChange={onPageChange}
+                  isLoading={isLoading}
                 />
               </div>
             )}
@@ -1211,8 +1210,8 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
                 <h3 className="text-sm text-gray-400 mb-3">Productos solicitados:</h3>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {selectedOrder.products?.map((product, idx) => (
-                    <div 
-                      key={idx} 
+                    <div
+                      key={idx}
                       className="flex justify-between items-center p-3 bg-gray-900 rounded-lg"
                     >
                       <div>
@@ -1273,7 +1272,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
                     <Clock className="w-4 h-4 mr-2" />
                     Pendiente
                   </Button>
-                  
+
                   <Button
                     onClick={() => handleStatusChange(selectedOrder.id, 'in_progress')}
                     disabled={selectedOrder.status === 'in_progress'}
@@ -1282,7 +1281,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
                     <PlayCircle className="w-4 h-4 mr-2" />
                     En Preparación
                   </Button>
-                  
+
                   <Button
                     onClick={() => handleStatusChange(selectedOrder.id, 'completed')}
                     disabled={selectedOrder.status === 'completed'}
@@ -1291,7 +1290,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
                     <CheckCircle2 className="w-4 h-4 mr-2" />
                     Listo
                   </Button>
-                  
+
                   <Button
                     onClick={() => handleStatusChange(selectedOrder.id, 'cancelled')}
                     disabled={selectedOrder.status === 'cancelled'}

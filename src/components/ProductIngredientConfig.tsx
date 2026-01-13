@@ -10,7 +10,7 @@ import {
   type Ingredient as APIIngredient,
   type ProductIngredient as APIProductIngredient,
 } from "../utils/api";
-import { toast } from "sonner@2.0.3";
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from "motion/react";
 
 interface ProductIngredientConfigProps {
@@ -56,7 +56,7 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
       console.log("Ingredients loaded:", ingredientsData.length);
       setProducts(productsData);
       setIngredients(ingredientsData);
-      
+
       if (productsData.length > 0) {
         setSelectedProduct(productsData[0]);
       }
@@ -92,7 +92,7 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
         newIngredient.ingredientId,
         newIngredient.quantity
       );
-      
+
       toast.success("Ingrediente agregado al producto");
       setShowAddForm(false);
       setNewIngredient({ ingredientId: "", quantity: 0 });
@@ -124,7 +124,7 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
         selectedProduct.id,
         updatedIngredients
       );
-      
+
       toast.success("Cantidad actualizada");
       loadProductIngredients(selectedProduct.id);
     } catch (error: any) {
@@ -218,11 +218,10 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
                       <button
                         key={product.id}
                         onClick={() => setSelectedProduct(product)}
-                        className={`w-full text-left p-3 rounded-lg transition-all ${
-                          selectedProduct?.id === product.id
-                            ? "bg-blue-600 text-white shadow-md"
-                            : "bg-gray-50 hover:bg-gray-100 text-gray-900"
-                        }`}
+                        className={`w-full text-left p-3 rounded-lg transition-all ${selectedProduct?.id === product.id
+                          ? "bg-blue-600 text-white shadow-md"
+                          : "bg-gray-50 hover:bg-gray-100 text-gray-900"
+                          }`}
                       >
                         <div className="flex items-center gap-3">
                           {product.imageUrl && (
@@ -237,7 +236,7 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
                               {product.name}
                             </p>
                             <p className={`text-xs ${selectedProduct?.id === product.id ? "text-blue-100" : "text-gray-500"}`}>
-                              {product.categoryName || "Sin categoría"}
+                              {product.category || "Sin categoría"}
                             </p>
                           </div>
                         </div>
@@ -296,7 +295,7 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
                       >
                         <Card className="p-6 bg-white border-2 border-yellow-500">
                           <h3 className="mb-4">Agregar Ingrediente</h3>
-                          
+
                           {availableIngredients.length === 0 ? (
                             <div className="text-center py-8">
                               <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-2" />
@@ -438,7 +437,7 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
                                       )}
                                     </div>
                                   </div>
-                                  
+
                                   <div className="flex items-center gap-2">
                                     <input
                                       type="number"
@@ -481,12 +480,11 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
                             {selectedProduct.price && (
                               <div className="flex justify-between items-center mt-2 pt-2 border-t border-blue-300">
                                 <span className="text-gray-700">Margen de Ganancia:</span>
-                                <span className={`${
-                                  selectedProduct.price - calculateTotalCost() > 0
-                                    ? "text-green-600"
-                                    : "text-red-600"
-                                }`}>
-                                  ${(selectedProduct.price - calculateTotalCost()).toFixed(2)} 
+                                <span className={`${selectedProduct.price - calculateTotalCost() > 0
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                                  }`}>
+                                  ${(selectedProduct.price - calculateTotalCost()).toFixed(2)}
                                   ({((((selectedProduct.price - calculateTotalCost()) / selectedProduct.price) * 100) || 0).toFixed(1)}%)
                                 </span>
                               </div>

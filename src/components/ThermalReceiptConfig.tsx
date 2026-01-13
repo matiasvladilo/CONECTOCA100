@@ -6,8 +6,8 @@ import { Slider } from './ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Switch } from './ui/switch';
 import { formatCLP } from '../utils/format';
-import { 
-  Printer, 
+import {
+  Printer,
   Settings,
   X,
   ZoomIn,
@@ -16,7 +16,7 @@ import {
   Type
 } from 'lucide-react';
 import { useState, useRef } from 'react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface ThermalReceiptConfigProps {
   order: Order;
@@ -27,9 +27,9 @@ interface ThermalReceiptConfigProps {
   businessPhone?: string;
 }
 
-export function ThermalReceiptConfig({ 
-  order, 
-  open, 
+export function ThermalReceiptConfig({
+  order,
+  open,
   onClose,
   businessName = "CONECTOCA",
   businessAddress = "Av. La Oca 123, Santiago",
@@ -45,15 +45,15 @@ export function ThermalReceiptConfig({
   const [boldText, setBoldText] = useState(true);
   const [fontFamily, setFontFamily] = useState<string>('Roboto Mono');
   const [isPrinting, setIsPrinting] = useState(false);
-  
+
   const printRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
     setIsPrinting(true);
-    
+
     setTimeout(() => {
       window.print();
-      
+
       setTimeout(() => {
         setIsPrinting(false);
         toast.success('Recibo enviado a impresora');
@@ -84,7 +84,7 @@ export function ThermalReceiptConfig({
   ];
 
   const getFontStack = (font: string) => {
-    switch(font) {
+    switch (font) {
       case 'Roboto Mono':
         return '"Roboto Mono", "Courier New", monospace';
       case 'Consolas':
@@ -296,9 +296,9 @@ export function ThermalReceiptConfig({
             {/* Preview Panel */}
             <div className="space-y-4">
               <h3 className="font-semibold text-sm">Vista Previa</h3>
-              
+
               <div className="bg-gray-100 p-4 rounded-lg overflow-auto max-h-[600px]">
-                <div 
+                <div
                   ref={printRef}
                   className="bg-white mx-auto shadow-lg"
                   style={{
@@ -311,7 +311,7 @@ export function ThermalReceiptConfig({
                 >
                   {/* Business Info */}
                   <div className="text-center mb-3">
-                    <div 
+                    <div
                       className="text-lg mb-1"
                       style={{ fontWeight: boldText ? '900' : '700' }}
                     >
@@ -349,7 +349,7 @@ export function ThermalReceiptConfig({
 
                   {/* Products Count */}
                   <div className="mb-2" style={{ fontWeight: boldText ? '700' : '600' }}>
-                    {order.products?.length || 0} artículo{(order.products?.length || 0) !== 1 ? 's' : ''} 
+                    {order.products?.length || 0} artículo{(order.products?.length || 0) !== 1 ? 's' : ''}
                     {order.products && order.products.length > 0 && (
                       <span className="ml-1">
                         (Cant: {order.products.reduce((sum, p) => sum + p.quantity, 0)})
@@ -460,7 +460,7 @@ export function ThermalReceiptConfig({
 
       {isPrinting && (
         <div className="thermal-print-container">
-          <div 
+          <div
             style={{
               width: paperWidth,
               fontSize: `${fontSize}px`,
@@ -472,8 +472,8 @@ export function ThermalReceiptConfig({
           >
             {/* Business Info */}
             <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-              <div style={{ 
-                fontSize: '1.2em', 
+              <div style={{
+                fontSize: '1.2em',
                 fontWeight: '900',
                 marginBottom: '4px'
               }}>
@@ -501,7 +501,7 @@ export function ThermalReceiptConfig({
 
             {/* Products Count */}
             <div style={{ fontWeight: '900', marginBottom: '6px' }}>
-              {order.products?.length || 0} artículo{(order.products?.length || 0) !== 1 ? 's' : ''} 
+              {order.products?.length || 0} artículo{(order.products?.length || 0) !== 1 ? 's' : ''}
               {order.products && order.products.length > 0 && (
                 <span>
                   {' '}(Cant: {order.products.reduce((sum, p) => sum + p.quantity, 0)})
@@ -510,9 +510,9 @@ export function ThermalReceiptConfig({
             </div>
 
             {showBorders && (
-              <div style={{ 
-                borderBottom: '1px dashed #666', 
-                margin: '6px 0' 
+              <div style={{
+                borderBottom: '1px dashed #666',
+                margin: '6px 0'
               }} />
             )}
 
@@ -525,9 +525,9 @@ export function ThermalReceiptConfig({
                       {product.quantity}x {product.name}
                     </div>
                     {showBorders && index < order.products!.length - 1 && (
-                      <div style={{ 
-                        borderBottom: '1px dotted #999', 
-                        margin: '4px 0' 
+                      <div style={{
+                        borderBottom: '1px dotted #999',
+                        margin: '4px 0'
                       }} />
                     )}
                   </div>
@@ -540,9 +540,9 @@ export function ThermalReceiptConfig({
             </div>
 
             {showBorders && (
-              <div style={{ 
-                borderBottom: '2px solid #333', 
-                margin: '6px 0' 
+              <div style={{
+                borderBottom: '2px solid #333',
+                margin: '6px 0'
               }} />
             )}
 
@@ -554,16 +554,16 @@ export function ThermalReceiptConfig({
             </div>
 
             {showBorders && (
-              <div style={{ 
-                borderBottom: '2px solid #333', 
-                margin: '6px 0' 
+              <div style={{
+                borderBottom: '2px solid #333',
+                margin: '6px 0'
               }} />
             )}
 
             {/* Date/Time */}
-            <div style={{ 
-              textAlign: 'center', 
-              fontSize: '0.85em', 
+            <div style={{
+              textAlign: 'center',
+              fontSize: '0.85em',
               fontWeight: boldText ? '700' : '600',
               marginTop: '8px'
             }}>

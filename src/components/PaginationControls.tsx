@@ -6,9 +6,10 @@ interface PaginationControlsProps {
   pagination: PaginationInfo;
   onPageChange: (page: number) => void;
   compact?: boolean;
+  isLoading?: boolean;
 }
 
-export function PaginationControls({ pagination, onPageChange, compact = false }: PaginationControlsProps) {
+export function PaginationControls({ pagination, onPageChange, compact = false, isLoading = false }: PaginationControlsProps) {
   const { page, totalPages, hasNext, hasPrev, total } = pagination;
 
   if (totalPages <= 1) {
@@ -19,7 +20,7 @@ export function PaginationControls({ pagination, onPageChange, compact = false }
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     const maxVisible = compact ? 3 : 5;
-    
+
     if (totalPages <= maxVisible) {
       // Show all pages if total is small
       for (let i = 1; i <= totalPages; i++) {
@@ -28,11 +29,11 @@ export function PaginationControls({ pagination, onPageChange, compact = false }
     } else {
       // Always show first page
       pages.push(1);
-      
+
       // Calculate range around current page
       let start = Math.max(2, page - 1);
       let end = Math.min(totalPages - 1, page + 1);
-      
+
       // Adjust range if at the start or end
       if (page <= 2) {
         end = Math.min(totalPages - 1, 3);
@@ -40,26 +41,26 @@ export function PaginationControls({ pagination, onPageChange, compact = false }
       if (page >= totalPages - 1) {
         start = Math.max(2, totalPages - 2);
       }
-      
+
       // Add ellipsis before range if needed
       if (start > 2) {
         pages.push('...');
       }
-      
+
       // Add middle pages
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
-      
+
       // Add ellipsis after range if needed
       if (end < totalPages - 1) {
         pages.push('...');
       }
-      
+
       // Always show last page
       pages.push(totalPages);
     }
-    
+
     return pages;
   };
 
@@ -81,8 +82,8 @@ export function PaginationControls({ pagination, onPageChange, compact = false }
           variant="outline"
           size="sm"
           onClick={() => onPageChange(page - 1)}
-          disabled={!hasPrev}
-          className="h-8 w-8 p-0"
+          disabled={!hasPrev || isLoading}
+          className={`h-8 w-8 p-0 ${isLoading ? 'opacity-50 cursor-wait' : ''}`}
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -99,18 +100,18 @@ export function PaginationControls({ pagination, onPageChange, compact = false }
             }
 
             const isActive = pageNum === page;
-            
+
             return (
               <Button
                 key={pageNum}
                 variant={isActive ? "default" : "outline"}
                 size="sm"
                 onClick={() => onPageChange(pageNum as number)}
-                className={`h-8 w-8 p-0 ${
-                  isActive 
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                    : 'hover:bg-gray-100'
-                }`}
+                disabled={isLoading}
+                className={`h-8 w-8 p-0 ${isActive
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                  : 'hover:bg-gray-100'
+                  } ${isLoading ? 'opacity-50 cursor-wait' : ''}`}
               >
                 {pageNum}
               </Button>
@@ -123,8 +124,8 @@ export function PaginationControls({ pagination, onPageChange, compact = false }
           variant="outline"
           size="sm"
           onClick={() => onPageChange(page + 1)}
-          disabled={!hasNext}
-          className="h-8 w-8 p-0"
+          disabled={!hasNext || isLoading}
+          className={`h-8 w-8 p-0 ${isLoading ? 'opacity-50 cursor-wait' : ''}`}
         >
           <ChevronRight className="h-4 w-4" />
         </Button>

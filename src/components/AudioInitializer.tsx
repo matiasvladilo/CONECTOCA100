@@ -3,7 +3,7 @@ import { Volume2, VolumeX } from 'lucide-react';
 import { Button } from './ui/button';
 import { initializeAudio, playNotificationSound } from '../utils/notificationSound';
 import { motion, AnimatePresence } from 'motion/react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface AudioInitializerProps {
   userRole?: string;
@@ -16,15 +16,15 @@ export function AudioInitializer({ userRole }: AudioInitializerProps) {
   useEffect(() => {
     console.log('%c[AUDIO_INIT] Componente montado', 'background: purple; color: white; font-weight: bold; padding: 5px');
     console.log('[AUDIO_INIT] Rol del usuario:', userRole);
-    
+
     // Only show for dispatch users
     if (userRole === 'dispatch') {
       console.log('[AUDIO_INIT] ✓ Usuario tiene rol de despacho (encargado de recibir pedidos)');
-      
+
       // Check if audio is already initialized
       const hasInteracted = sessionStorage.getItem('audio-initialized');
       console.log('[AUDIO_INIT] ¿Ya inicializado?', hasInteracted);
-      
+
       if (!hasInteracted) {
         console.log('[AUDIO_INIT] Mostrando prompt en 1 segundo...');
         // Show prompt after 1 second
@@ -45,17 +45,17 @@ export function AudioInitializer({ userRole }: AudioInitializerProps) {
     console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: blue; font-size: 14px; font-weight: bold');
     console.log('%c👆 USUARIO HIZO CLIC EN ACTIVAR AUDIO', 'background: blue; color: white; font-size: 20px; font-weight: bold; padding: 10px');
     console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: blue; font-size: 14px; font-weight: bold');
-    
+
     const success = await initializeAudio();
-    
+
     if (success) {
       setAudioReady(true);
       sessionStorage.setItem('audio-initialized', 'true');
-      
+
       // Play a test sound immediately
       console.log('[AUDIO_INIT] Reproduciendo sonido de prueba...');
       await playNotificationSound('new_order');
-      
+
       toast.success('🔊 ¡Audio activado! Escuchaste el sonido de prueba', {
         duration: 5000
       });
@@ -94,8 +94,8 @@ export function AudioInitializer({ userRole }: AudioInitializerProps) {
             repeat: audioReady ? 0 : Infinity,
           }}
           className={`
-            ${audioReady 
-              ? 'bg-gradient-to-r from-green-500 to-emerald-600' 
+            ${audioReady
+              ? 'bg-gradient-to-r from-green-500 to-emerald-600'
               : 'bg-gradient-to-r from-orange-500 via-red-500 to-pink-500'
             }
             text-white p-6 rounded-3xl shadow-2xl
@@ -121,7 +121,7 @@ export function AudioInitializer({ userRole }: AudioInitializerProps) {
                 <VolumeX className="w-12 h-12" />
               )}
             </motion.div>
-            
+
             <div className="flex-1">
               {audioReady ? (
                 <div>

@@ -7,15 +7,15 @@ import { Separator } from './ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { useState } from 'react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { formatCLP } from '../utils/format';
 import { DeliveryGuide } from './DeliveryGuide';
-import { 
-  ArrowLeft, 
-  Package, 
-  Calendar, 
-  Hash, 
-  User, 
+import {
+  ArrowLeft,
+  Package,
+  Calendar,
+  Hash,
+  User,
   Clock,
   CheckCircle2,
   Truck,
@@ -38,29 +38,29 @@ interface OrderDetailProps {
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string; icon: any; description: string }> = {
-  pending: { 
-    label: 'Pendiente', 
+  pending: {
+    label: 'Pendiente',
     color: 'text-amber-700',
     bgColor: 'bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200',
     icon: Clock,
     description: 'Tu pedido está esperando ser procesado'
   },
-  in_progress: { 
-    label: 'En Preparación', 
+  in_progress: {
+    label: 'En Preparación',
     color: 'text-blue-700',
     bgColor: 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200',
     icon: Package,
     description: 'Estamos fabricando tu pedido'
   },
-  completed: { 
-    label: 'Listo para Despacho', 
+  completed: {
+    label: 'Listo para Despacho',
     color: 'text-green-700',
     bgColor: 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200',
     icon: CheckCircle2,
     description: 'Tu pedido está listo'
   },
-  cancelled: { 
-    label: 'Despachado', 
+  cancelled: {
+    label: 'Despachado',
     color: 'text-gray-700',
     bgColor: 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200',
     icon: Truck,
@@ -79,10 +79,10 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeliveryGuide, setShowDeliveryGuide] = useState(false);
-  
+
   const handleDelete = async () => {
     if (!onDelete) return;
-    
+
     setIsDeleting(true);
     try {
       await onDelete(order.id);
@@ -94,9 +94,9 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
       setIsDeleting(false);
     }
   };
-  
-  const config = statusConfig[order.status] || { 
-    label: 'Desconocido', 
+
+  const config = statusConfig[order.status] || {
+    label: 'Desconocido',
     color: 'text-gray-700',
     bgColor: 'bg-gray-50 border-gray-200',
     icon: Package,
@@ -106,15 +106,15 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
   const currentStepIndex = statusSteps.findIndex(step => step.key === order.status);
 
   return (
-    <div 
+    <div
       className="min-h-screen max-h-screen overflow-y-auto relative"
       style={{ background: 'linear-gradient(135deg, #EAF2FF 0%, #CFE0FF 100%)' }}
     >
       {/* Decorative background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div 
+        <motion.div
           className="absolute top-0 right-0 w-96 h-96 bg-blue-200/20 rounded-full blur-3xl"
-          animate={{ 
+          animate={{
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.5, 0.3]
           }}
@@ -123,7 +123,7 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
       </div>
 
       {/* Header - Sticky */}
-      <div 
+      <div
         className="sticky top-0 z-20 shadow-2xl"
         style={{
           background: 'linear-gradient(135deg, #0047BA 0%, #0078FF 100%)',
@@ -132,7 +132,7 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
       >
         <div className="max-w-md mx-auto px-6 py-4">
           <div className="flex items-center gap-3">
-            <motion.button 
+            <motion.button
               onClick={onBack}
               whileHover={{ scale: 1.1, x: -4 }}
               whileTap={{ scale: 0.95 }}
@@ -165,14 +165,14 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <Card 
+          <Card
             className="border-2 shadow-lg overflow-hidden"
-            style={{ 
+            style={{
               borderRadius: '16px',
               borderLeftWidth: '6px',
-              borderLeftColor: order.status === 'pending' ? '#F59E0B' : 
-                              order.status === 'in_progress' ? '#0059FF' : 
-                              order.status === 'completed' ? '#10B981' : '#6B7280',
+              borderLeftColor: order.status === 'pending' ? '#F59E0B' :
+                order.status === 'in_progress' ? '#0059FF' :
+                  order.status === 'completed' ? '#10B981' : '#6B7280',
               borderTopColor: '#E0EDFF',
               borderRightColor: '#E0EDFF',
               borderBottomColor: '#E0EDFF'
@@ -186,21 +186,21 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
                   </h2>
                   <p className="text-gray-600 text-sm mt-1">{config.description}</p>
                 </div>
-                <div 
+                <div
                   className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ 
+                  style={{
                     background: order.status === 'pending' ? 'rgba(245, 158, 11, 0.1)' :
-                               order.status === 'in_progress' ? 'rgba(0, 89, 255, 0.1)' :
-                               order.status === 'completed' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(107, 114, 128, 0.1)'
+                      order.status === 'in_progress' ? 'rgba(0, 89, 255, 0.1)' :
+                        order.status === 'completed' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(107, 114, 128, 0.1)'
                   }}
                 >
-                  <StatusIcon 
-                    className="w-6 h-6" 
-                    style={{ 
+                  <StatusIcon
+                    className="w-6 h-6"
+                    style={{
                       color: order.status === 'pending' ? '#F59E0B' :
-                             order.status === 'in_progress' ? '#0059FF' :
-                             order.status === 'completed' ? '#10B981' : '#6B7280'
-                    }} 
+                        order.status === 'in_progress' ? '#0059FF' :
+                          order.status === 'completed' ? '#10B981' : '#6B7280'
+                    }}
                   />
                 </div>
               </div>
@@ -218,7 +218,7 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
         >
-          <Card 
+          <Card
             className="border-2 shadow-lg"
             style={{ borderRadius: '16px', borderColor: '#E0EDFF' }}
           >
@@ -228,18 +228,18 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
                   <span className="text-sm text-gray-700" style={{ fontWeight: 500 }}>Progreso del pedido</span>
                   <span className="text-[#0059FF]" style={{ fontSize: '16px', fontWeight: 600 }}>{order.progress}%</span>
                 </div>
-                <div 
+                <div
                   className="w-full rounded-full h-3 overflow-hidden"
                   style={{ background: 'rgba(0, 71, 186, 0.1)' }}
                 >
-                  <motion.div 
+                  <motion.div
                     className="h-3 rounded-full"
-                    style={{ 
+                    style={{
                       background: order.status === 'completed' || order.status === 'cancelled'
                         ? 'linear-gradient(90deg, #10B981 0%, #059669 100%)'
                         : order.status === 'in_progress'
-                        ? 'linear-gradient(90deg, #0059FF 0%, #004BCE 100%)'
-                        : 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)',
+                          ? 'linear-gradient(90deg, #0059FF 0%, #004BCE 100%)'
+                          : 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)',
                       width: `${order.progress}%`
                     }}
                     initial={{ width: 0 }}
@@ -254,19 +254,19 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
                 {statusSteps.map((step, index) => {
                   const isCompleted = index <= currentStepIndex;
                   const isCurrent = index === currentStepIndex;
-                  
+
                   return (
-                    <motion.div 
-                      key={step.key} 
+                    <motion.div
+                      key={step.key}
                       className="flex items-center gap-3"
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.4 + (index * 0.1) }}
                     >
-                      <div 
+                      <div
                         className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300`}
                         style={{
-                          background: isCompleted 
+                          background: isCompleted
                             ? 'linear-gradient(135deg, #0059FF 0%, #0047BA 100%)'
                             : 'rgba(229, 231, 235, 1)',
                           boxShadow: isCompleted ? '0 4px 12px rgba(0, 89, 255, 0.3)' : 'none'
@@ -278,9 +278,9 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
                           <div className="w-3 h-3 bg-gray-400 rounded-full" />
                         )}
                       </div>
-                      <span 
+                      <span
                         className={`text-sm transition-colors`}
-                        style={{ 
+                        style={{
                           color: isCurrent ? '#0047BA' : isCompleted ? '#374151' : '#9CA3AF',
                           fontWeight: isCurrent ? 600 : 500
                         }}
@@ -302,12 +302,12 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
           transition={{ duration: 0.4, delay: 0.2 }}
         >
           <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-            <Card 
+            <Card
               className="overflow-hidden border-2 shadow-lg"
               style={{ borderRadius: '16px', borderColor: '#E0EDFF' }}
             >
               <CollapsibleTrigger asChild>
-                <motion.div 
+                <motion.div
                   className="p-6 cursor-pointer hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 transition-all"
                   whileHover={{ backgroundColor: 'rgba(239, 246, 255, 0.5)' }}
                 >
@@ -325,11 +325,11 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
                       <ChevronDown className="w-5 h-5 text-[#0059FF]" />
                     </motion.div>
                   </div>
-                  
+
                   {/* Preview when collapsed */}
                   {!isOpen && (
                     <div className="mt-5 grid grid-cols-2 gap-3">
-                      <div 
+                      <div
                         className="p-3 rounded-xl"
                         style={{ background: 'linear-gradient(135deg, #F0F7FF 0%, #E8F2FF 100%)' }}
                       >
@@ -342,7 +342,7 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
                         </p>
                       </div>
 
-                      <div 
+                      <div
                         className="p-3 rounded-xl"
                         style={{ background: 'linear-gradient(135deg, #F0F7FF 0%, #E8F2FF 100%)' }}
                       >
@@ -355,7 +355,7 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
                         </p>
                       </div>
 
-                      <div 
+                      <div
                         className="p-3 rounded-xl col-span-2"
                         style={{ background: 'linear-gradient(135deg, #F0F7FF 0%, #E8F2FF 100%)' }}
                       >
@@ -364,9 +364,9 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
                           <p className="text-xs text-gray-600" style={{ fontWeight: 500 }}>Fecha de Pedido</p>
                         </div>
                         <p className="text-xs text-gray-800" style={{ fontWeight: 500 }}>
-                          {new Date(order.createdAt || order.date).toLocaleString('es-CL', { 
-                            day: 'numeric', 
-                            month: 'long', 
+                          {new Date(order.createdAt || order.date).toLocaleString('es-CL', {
+                            day: 'numeric',
+                            month: 'long',
                             year: 'numeric',
                             hour: '2-digit',
                             minute: '2-digit'
@@ -374,9 +374,9 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
                         </p>
                       </div>
 
-                      <div 
+                      <div
                         className="p-4 rounded-xl col-span-2 border-2"
-                        style={{ 
+                        style={{
                           background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
                           borderColor: '#0059FF'
                         }}
@@ -395,25 +395,25 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
                   )}
                 </motion.div>
               </CollapsibleTrigger>
-              
+
               <CollapsibleContent>
                 <CardContent className="pt-0 pb-6 px-6">
                   <Separator className="mb-5" />
-                  
+
                   {/* Products Detail */}
                   <div>
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-sm text-gray-700" style={{ fontWeight: 600 }}>
-                        {order.products && order.products.length > 0 
+                        {order.products && order.products.length > 0
                           ? `${order.products.length} ${order.products.length === 1 ? 'producto' : 'productos'}`
                           : '1 producto'}
                       </span>
                     </div>
-                    
+
                     {order.products && order.products.length > 0 ? (
                       <div className="space-y-3">
                         {order.products.map((product, index) => (
-                          <motion.div 
+                          <motion.div
                             key={index}
                             className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors"
                             initial={{ opacity: 0, x: -10 }}
@@ -421,13 +421,13 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
                             transition={{ delay: index * 0.1 }}
                           >
                             {/* Product Image */}
-                            <div 
+                            <div
                               className="w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center"
                               style={{ background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)' }}
                             >
                               <Package className="w-7 h-7 text-[#0059FF]" />
                             </div>
-                            
+
                             {/* Product Info */}
                             <div className="flex-1 min-w-0">
                               <p className="text-sm text-gray-900" style={{ fontWeight: 500 }}>
@@ -437,7 +437,7 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
                                 ${product.price.toLocaleString('es-CL', { minimumFractionDigits: 2 })} c/u
                               </p>
                             </div>
-                            
+
                             {/* Price */}
                             <div className="text-right flex-shrink-0">
                               <p className="text-sm text-[#0047BA]" style={{ fontWeight: 600 }}>
@@ -446,13 +446,13 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
                             </div>
                           </motion.div>
                         ))}
-                        
+
                         <Separator className="my-4" />
-                        
+
                         {/* Total */}
-                        <div 
+                        <div
                           className="flex items-center justify-between p-4 rounded-xl border-2"
-                          style={{ 
+                          style={{
                             background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
                             borderColor: '#0059FF'
                           }}
@@ -495,9 +495,9 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
                               Observaciones
                             </span>
                           </div>
-                          <div 
+                          <div
                             className="p-4 rounded-xl border-2"
-                            style={{ 
+                            style={{
                               background: 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)',
                               borderColor: '#FCD34D'
                             }}
@@ -517,7 +517,7 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
         </motion.div>
 
         {/* Actions */}
-        <motion.div 
+        <motion.div
           className="space-y-3"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -526,7 +526,7 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
           {/* Print Delivery Guide Button - Only for completed or delivered orders */}
           {(order.status === 'completed' || order.status === 'cancelled') && (
             <motion.div whileTap={{ scale: 0.98 }}>
-              <Button 
+              <Button
                 onClick={() => setShowDeliveryGuide(true)}
                 className="w-full h-12 relative overflow-hidden group"
                 style={{
@@ -547,7 +547,7 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
           )}
 
           <motion.div whileTap={{ scale: 0.98 }}>
-            <Button 
+            <Button
               onClick={onBack}
               className="w-full h-12 relative overflow-hidden group"
               style={{
@@ -571,7 +571,7 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <motion.div whileTap={{ scale: 0.98 }}>
-                  <Button 
+                  <Button
                     variant="outline"
                     className="w-full h-12 border-2 border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 hover:text-red-700"
                     style={{

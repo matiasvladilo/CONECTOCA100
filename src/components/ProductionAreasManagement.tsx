@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { productionAreasAPI, type ProductionArea } from '../utils/api';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -83,7 +83,7 @@ export function ProductionAreasManagement({ onBack, accessToken }: ProductionAre
 
   const loadAreas = async () => {
     if (!accessToken) return;
-    
+
     try {
       setLoading(true);
       const data = await productionAreasAPI.getAll(accessToken);
@@ -98,7 +98,7 @@ export function ProductionAreasManagement({ onBack, accessToken }: ProductionAre
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!accessToken) {
       toast.error('No hay sesión activa');
       return;
@@ -117,7 +117,7 @@ export function ProductionAreasManagement({ onBack, accessToken }: ProductionAre
         await productionAreasAPI.create(accessToken, formData);
         toast.success('Área de producción creada correctamente');
       }
-      
+
       await loadAreas();
       handleCloseDialog();
     } catch (error: any) {
@@ -167,15 +167,15 @@ export function ProductionAreasManagement({ onBack, accessToken }: ProductionAre
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen relative overflow-hidden"
       style={{ background: 'linear-gradient(135deg, #EAF2FF 0%, #CFE0FF 100%)' }}
     >
       {/* Decorative background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div 
+        <motion.div
           className="absolute top-0 right-0 w-96 h-96 bg-blue-200/20 rounded-full blur-3xl"
-          animate={{ 
+          animate={{
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.5, 0.3]
           }}
@@ -184,7 +184,7 @@ export function ProductionAreasManagement({ onBack, accessToken }: ProductionAre
       </div>
 
       {/* Header */}
-      <div 
+      <div
         className="relative z-10 shadow-2xl"
         style={{
           background: 'linear-gradient(135deg, #0047BA 0%, #0078FF 100%)',
@@ -194,7 +194,7 @@ export function ProductionAreasManagement({ onBack, accessToken }: ProductionAre
         <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <motion.button 
+              <motion.button
                 onClick={onBack}
                 whileHover={{ scale: 1.1, x: -4 }}
                 whileTap={{ scale: 0.95 }}
@@ -305,8 +305,8 @@ export function ProductionAreasManagement({ onBack, accessToken }: ProductionAre
                             }}
                             title={iconOption.label}
                           >
-                            <IconComponent 
-                              className="w-5 h-5" 
+                            <IconComponent
+                              className="w-5 h-5"
                               style={{ color: formData.icon === iconOption.name ? formData.color : '#6B7280' }}
                             />
                           </button>
@@ -367,7 +367,7 @@ export function ProductionAreasManagement({ onBack, accessToken }: ProductionAre
             <AnimatePresence>
               {areas.map((area, index) => {
                 const IconComponent = getIconComponent(area.icon || 'Briefcase');
-                
+
                 return (
                   <motion.div
                     key={area.id}
@@ -376,19 +376,19 @@ export function ProductionAreasManagement({ onBack, accessToken }: ProductionAre
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ delay: index * 0.05 }}
                   >
-                    <Card 
+                    <Card
                       className="border-2 shadow-lg hover:shadow-xl transition-shadow"
                       style={{ borderLeftWidth: '4px', borderLeftColor: area.color }}
                     >
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
-                            <div 
+                            <div
                               className="w-12 h-12 rounded-xl flex items-center justify-center"
                               style={{ backgroundColor: `${area.color}20` }}
                             >
-                              <IconComponent 
-                                className="w-6 h-6" 
+                              <IconComponent
+                                className="w-6 h-6"
                                 style={{ color: area.color }}
                               />
                             </div>
@@ -405,9 +405,9 @@ export function ProductionAreasManagement({ onBack, accessToken }: ProductionAre
                           </div>
                         </div>
                       </CardHeader>
-                      
+
                       <Separator />
-                      
+
                       <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
                           <Button
@@ -419,7 +419,7 @@ export function ProductionAreasManagement({ onBack, accessToken }: ProductionAre
                             <Edit2 className="w-3.5 h-3.5 mr-1" />
                             Editar
                           </Button>
-                          
+
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button

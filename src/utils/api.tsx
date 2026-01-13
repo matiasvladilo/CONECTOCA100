@@ -115,9 +115,9 @@ async function fetchAPI(
   options: RequestInit = {},
   token?: string
 ) {
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...(options.headers as Record<string, string>),
   };
 
   if (token) {
@@ -135,17 +135,17 @@ async function fetchAPI(
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Error desconocido' }));
       const errorMessage = error.error || error.message || `HTTP error! status: ${response.status}`;
-      
+
       // For 401 errors, always throw to trigger logout in App.tsx
       // This is important to handle expired sessions properly
       if (response.status === 401) {
         throw new Error(errorMessage);
       }
-      
+
       // Only log detailed errors for non-expected cases
       // Don't spam console with "already registered" errors (these are expected)
-      if (!errorMessage.includes('ya está registrado') && 
-          !errorMessage.includes('already registered')) {
+      if (!errorMessage.includes('ya está registrado') &&
+        !errorMessage.includes('already registered')) {
         console.error(`API Error [${endpoint}]:`, {
           status: response.status,
           statusText: response.statusText,
@@ -153,7 +153,7 @@ async function fetchAPI(
           token: token ? 'present' : 'missing'
         });
       }
-      
+
       throw new Error(errorMessage);
     }
 
@@ -162,8 +162,8 @@ async function fetchAPI(
     // If it's a network error or other exception
     // Don't spam console with "already registered" errors (these are expected)
     const errMessage = err?.message || '';
-    if (!errMessage.includes('ya está registrado') && 
-        !errMessage.includes('already registered')) {
+    if (!errMessage.includes('ya está registrado') &&
+      !errMessage.includes('already registered')) {
       console.error(`Fetch error [${endpoint}]:`, err.message || err);
     }
     throw err;
@@ -173,9 +173,9 @@ async function fetchAPI(
 // Auth API
 export const authAPI = {
   signup: async (
-    email: string, 
-    password: string, 
-    name: string, 
+    email: string,
+    password: string,
+    name: string,
     role: 'local' | 'admin' | 'production' | 'dispatch' | 'worker' | 'user',
     businessAction: 'create' | 'join',
     businessName?: string,
@@ -183,10 +183,10 @@ export const authAPI = {
   ) => {
     return fetchAPI('/signup', {
       method: 'POST',
-      body: JSON.stringify({ 
-        email, 
-        password, 
-        name, 
+      body: JSON.stringify({
+        email,
+        password,
+        name,
         role: role || 'user',
         businessAction,
         businessName,
@@ -194,7 +194,7 @@ export const authAPI = {
       }),
     });
   },
-  
+
   resetPassword: async (email: string): Promise<{ success: boolean; message: string }> => {
     return fetchAPI('/auth/reset-password', {
       method: 'POST',
@@ -208,7 +208,7 @@ export const profileAPI = {
   get: async (token: string): Promise<UserProfile> => {
     return fetchAPI('/profile', {}, token);
   },
-  
+
   update: async (token: string, updates: Partial<UserProfile>): Promise<UserProfile> => {
     return fetchAPI('/profile', {
       method: 'PUT',
@@ -305,7 +305,7 @@ export interface Notification {
   userId: string;
   title: string;
   message: string;
-  type: 'order_created' | 'order_updated' | 'order_completed' | 'order_cancelled' | 'info' | 'attendance_check_in' | 'attendance_check_out';
+  type: 'order_created' | 'order_updated' | 'order_completed' | 'order_cancelled' | 'info' | 'warning' | 'error' | 'attendance_check_in' | 'attendance_check_out' | 'product_created' | 'product_updated';
   orderId?: string;
   read: boolean;
   createdAt: string;

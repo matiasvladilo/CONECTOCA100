@@ -3,11 +3,11 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
-import { 
-  ArrowLeft, 
-  User as UserIcon, 
-  Mail, 
-  Bell, 
+import {
+  ArrowLeft,
+  User as UserIcon,
+  Mail,
+  Bell,
   Shield,
   LogOut,
   Package,
@@ -28,10 +28,10 @@ import {
   ChefHat
 } from 'lucide-react';
 import { useState } from 'react';
-import logo from 'figma:asset/57300e671c33792006605871a879c67257646bdd.png';
+
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { motion } from 'motion/react';
 
 interface UserProfileProps {
@@ -70,7 +70,7 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
 
   const handleSaveAddress = async () => {
     if (!onUpdateProfile) return;
-    
+
     setIsSaving(true);
     try {
       await onUpdateProfile({ address: addressValue });
@@ -126,7 +126,7 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
     try {
       const { businessAPI } = await import('../utils/api');
       const businessData = await businessAPI.get(accessToken);
-      
+
       if (businessData.inviteCode) {
         setInviteCode(businessData.inviteCode);
         setShowInviteCode(true);
@@ -158,10 +158,10 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
-        
+
         const successful = document.execCommand('copy');
         textArea.remove();
-        
+
         if (successful) {
           toast.success('Código copiado al portapapeles');
         } else {
@@ -198,7 +198,7 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
   };
 
   const getRoleIcon = (role: string) => {
-    switch(role) {
+    switch (role) {
       case 'admin': return '👑';
       case 'production': return '🏭';
       case 'local': return '🏪';
@@ -207,15 +207,15 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen relative overflow-hidden"
       style={{ background: 'linear-gradient(135deg, #EAF2FF 0%, #CFE0FF 100%)' }}
     >
       {/* Decorative background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div 
+        <motion.div
           className="absolute top-0 right-0 w-96 h-96 bg-blue-200/20 rounded-full blur-3xl"
-          animate={{ 
+          animate={{
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.5, 0.3]
           }}
@@ -224,7 +224,7 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
       </div>
 
       {/* Header */}
-      <div 
+      <div
         className="relative z-10 shadow-2xl"
         style={{
           background: 'linear-gradient(135deg, #0047BA 0%, #0078FF 100%)',
@@ -233,7 +233,7 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
       >
         <div className="max-w-md mx-auto px-6 py-5">
           <div className="flex items-center gap-3">
-            <motion.button 
+            <motion.button
               onClick={onBack}
               whileHover={{ scale: 1.1, x: -4 }}
               whileTap={{ scale: 0.95 }}
@@ -266,18 +266,18 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <Card 
+          <Card
             className="border-2 shadow-lg"
             style={{ borderRadius: '16px', borderColor: '#E0EDFF' }}
           >
             <CardContent className="p-6">
               <div className="flex items-center gap-4 mb-6">
-                <motion.div 
+                <motion.div
                   className="relative"
                   whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <div 
+                  <div
                     className="w-20 h-20 rounded-full flex items-center justify-center relative overflow-hidden"
                     style={{
                       background: 'linear-gradient(135deg, #0059FF 0%, #0047BA 100%)',
@@ -287,7 +287,7 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
                     <UserIcon className="w-10 h-10 text-white relative z-10" />
                     <div className="absolute inset-0 bg-white/10 animate-pulse" />
                   </div>
-                  <div 
+                  <div
                     className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center text-lg"
                     style={{
                       background: 'linear-gradient(135deg, #FFD43B 0%, #FFC700 100%)',
@@ -311,11 +311,11 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
 
               <div className="space-y-3">
                 {/* Email info */}
-                <div 
+                <div
                   className="flex items-center gap-3 p-3.5 rounded-xl"
                   style={{ background: 'linear-gradient(135deg, #F0F7FF 0%, #E8F2FF 100%)' }}
                 >
-                  <div 
+                  <div
                     className="w-10 h-10 rounded-full flex items-center justify-center"
                     style={{ background: 'rgba(0, 89, 255, 0.1)' }}
                   >
@@ -328,11 +328,11 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
                 </div>
 
                 {/* Address editing */}
-                <div 
+                <div
                   className="flex items-center gap-3 p-3.5 rounded-xl"
                   style={{ background: 'linear-gradient(135deg, #F0F7FF 0%, #E8F2FF 100%)' }}
                 >
-                  <div 
+                  <div
                     className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
                     style={{ background: 'rgba(0, 89, 255, 0.1)' }}
                   >
@@ -395,11 +395,11 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
                 </div>
 
                 {/* Role badge */}
-                <div 
+                <div
                   className="flex items-center gap-3 p-3.5 rounded-xl"
                   style={{ background: 'linear-gradient(135deg, #F0F7FF 0%, #E8F2FF 100%)' }}
                 >
-                  <div 
+                  <div
                     className="w-10 h-10 rounded-full flex items-center justify-center"
                     style={{ background: 'rgba(0, 89, 255, 0.1)' }}
                   >
@@ -407,7 +407,7 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
                   </div>
                   <div className="flex-1">
                     <p className="text-xs text-gray-600 mb-1.5" style={{ fontWeight: 500 }}>Rol del usuario</p>
-                    <Badge 
+                    <Badge
                       className={`${getRoleBadgeClass(user.role)} border px-3 py-1 flex items-center gap-2 w-fit`}
                       style={{ fontSize: '12px', fontWeight: 500 }}
                     >
@@ -419,9 +419,9 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
 
                 {/* Production special access */}
                 {user.role === 'production' && (
-                  <motion.div 
+                  <motion.div
                     className="flex items-center gap-3 p-3.5 rounded-xl border-2"
-                    style={{ 
+                    style={{
                       background: 'linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)',
                       borderColor: '#FB923C'
                     }}
@@ -429,7 +429,7 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
                     animate={{ scale: 1 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <div 
+                    <div
                       className="w-10 h-10 rounded-full flex items-center justify-center"
                       style={{ background: 'rgba(251, 146, 60, 0.2)' }}
                     >
@@ -456,13 +456,13 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
         >
-          <Card 
+          <Card
             className="border-2 shadow-lg"
             style={{ borderRadius: '16px', borderColor: '#E0EDFF' }}
           >
             <CardHeader>
               <div className="flex items-center gap-2.5">
-                <div 
+                <div
                   className="w-10 h-10 rounded-full flex items-center justify-center"
                   style={{ background: 'rgba(0, 89, 255, 0.1)' }}
                 >
@@ -583,20 +583,20 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
                       console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: purple; font-size: 14px; font-weight: bold');
                       console.log('%c🎵 PRUEBA DE SONIDO MANUAL', 'background: purple; color: white; font-size: 20px; font-weight: bold; padding: 10px');
                       console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: purple; font-size: 14px; font-weight: bold');
-                      
+
                       const { playNotificationSound, notifyNewOrder, initializeAudio } = await import('../utils/notificationSound');
-                      
+
                       // Initialize audio first
                       console.log('[TEST] Inicializando audio...');
                       await initializeAudio();
-                      
+
                       // Play sound and show notification
                       console.log('[TEST] Reproduciendo sonido...');
                       await playNotificationSound('new_order');
-                      
+
                       console.log('[TEST] Mostrando notificación del navegador...');
                       await notifyNewOrder('TEST-001', 'Cliente de Prueba');
-                      
+
                       toast.success('🔊 Notificación de prueba enviada - ¿Escuchaste el sonido?', {
                         duration: 5000
                       });
@@ -620,13 +620,13 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.15 }}
           >
-            <Card 
+            <Card
               className="border-2 shadow-lg"
               style={{ borderRadius: '16px', borderColor: '#E0EDFF' }}
             >
               <CardHeader>
                 <div className="flex items-center gap-2.5">
-                  <div 
+                  <div
                     className="w-10 h-10 rounded-full flex items-center justify-center"
                     style={{ background: 'rgba(139, 92, 246, 0.1)' }}
                   >
@@ -666,9 +666,9 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <div 
+                    <div
                       className="p-4 rounded-xl border-2"
-                      style={{ 
+                      style={{
                         background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)',
                         borderColor: '#C4B5FD'
                       }}
@@ -677,9 +677,9 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
                         Tu código de invitación:
                       </p>
                       <div className="flex items-center gap-2">
-                        <div 
+                        <div
                           className="flex-1 px-4 py-3 rounded-lg text-center"
-                          style={{ 
+                          style={{
                             background: 'white',
                             border: '2px dashed #8B5CF6'
                           }}

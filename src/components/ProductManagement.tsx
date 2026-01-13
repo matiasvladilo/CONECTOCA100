@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Product, Category, categoriesAPI, ProductionArea, productionAreasAPI, ingredientsAPI, productIngredientsAPI, type Ingredient, type ProductIngredient } from '../utils/api';
+import { Product, Category, categoriesAPI, ProductionArea, productionAreasAPI, ingredientsAPI, type Ingredient, type ProductIngredient, businessAPI, notificationsAPI, profileAPI } from '../utils/api';
 import { productsAPI } from '../utils/api';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -12,13 +12,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  ArrowLeft, 
-  Plus, 
-  Package, 
-  Edit, 
-  Trash2, 
-  DollarSign, 
+import {
+  ArrowLeft,
+  Plus,
+  Package,
+  Edit,
+  Trash2,
+  DollarSign,
   BoxIcon,
   Sparkles,
   Search,
@@ -28,8 +28,8 @@ import {
   Factory,
   AlertTriangle
 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
-import logo from 'figma:asset/57300e671c33792006605871a879c67257646bdd.png';
+import { toast } from 'sonner';
+import logo from '../assets/logo.png';
 import { formatCLP, parseCLP, formatCLPInput } from '../utils/format';
 import { ImageUpload } from './ImageUpload';
 
@@ -77,12 +77,18 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
   const [formData, setFormData] = useState<ProductFormData>(emptyForm);
   const [isDeleting, setIsDeleting] = useState<Product | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     loadProducts();
     loadCategories();
     loadProductionAreas();
     loadIngredients();
+
+    // Load profile to identify current user
+    profileAPI.get(accessToken).then(profile => {
+      setCurrentUserId(profile.id);
+    }).catch(err => console.error("Error loading profile", err));
   }, []);
 
   const loadProducts = async () => {
@@ -160,13 +166,13 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validation
     if (!formData.name.trim()) {
       toast.error('El nombre es requerido');
       return;
     }
-    
+
     // Parse Chilean peso format
     const priceValue = parseCLP(formData.price);
     if (!formData.price || priceValue < 0) {
@@ -180,7 +186,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
 
     try {
       setSubmitting(true);
-      
+
       const productData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
@@ -201,11 +207,39 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
         const updated = await productsAPI.update(accessToken, editingProduct.id, productData);
         setProducts(products.map(p => p.id === updated.id ? updated : p));
         toast.success('Producto actualizado exitosamente');
+
+        // Notify if price changed
+        if (editingProduct.price !== productData.price) {
+          businessAPI.getMembers(accessToken).then(({ members }) => {
+            const promises = members
+              .filter(m => m.id !== currentUserId)
+              .map(m => notificationsAPI.create(accessToken, {
+                title: 'Cambio de Precio',
+                message: `El precio del producto "${productData.name}" ha cambiado a ${formatCLP(productData.price)}.`,
+                type: 'product_updated',
+                targetUserId: m.id
+              }));
+            Promise.all(promises).catch(e => console.error("Error creating notifications", e));
+          }).catch(e => console.error("Error fetching members", e));
+        }
       } else {
         // Create new product
         const created = await productsAPI.create(accessToken, productData);
         setProducts([created, ...products]);
         toast.success('Producto creado exitosamente');
+
+        // Notify creation
+        businessAPI.getMembers(accessToken).then(({ members }) => {
+          const promises = members
+            .filter(m => m.id !== currentUserId)
+            .map(m => notificationsAPI.create(accessToken, {
+              title: 'Nuevo Producto',
+              message: `Se ha agregado el producto "${productData.name}" al catálogo.`,
+              type: 'product_created',
+              targetUserId: m.id
+            }));
+          Promise.all(promises).catch(e => console.error("Error creating notifications", e));
+        }).catch(e => console.error("Error fetching members", e));
       }
 
       handleCloseDialog();
@@ -231,7 +265,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
     }
   };
 
-  const filteredProducts = products.filter(p => 
+  const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.category?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -245,23 +279,23 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen relative overflow-hidden"
       style={{ background: 'linear-gradient(135deg, #EAF2FF 0%, #CFE0FF 100%)' }}
     >
       {/* Decorative background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div 
+        <motion.div
           className="absolute top-0 right-0 w-96 h-96 bg-blue-200/20 rounded-full blur-3xl"
-          animate={{ 
+          animate={{
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.5, 0.3]
           }}
           transition={{ duration: 8, repeat: Infinity }}
         />
-        <motion.div 
+        <motion.div
           className="absolute bottom-0 left-0 w-96 h-96 bg-yellow-200/20 rounded-full blur-3xl"
-          animate={{ 
+          animate={{
             scale: [1.2, 1, 1.2],
             opacity: [0.2, 0.4, 0.2]
           }}
@@ -270,7 +304,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
       </div>
 
       {/* Header */}
-      <div 
+      <div
         className="relative z-10 shadow-2xl"
         style={{
           background: 'linear-gradient(135deg, #0047BA 0%, #0078FF 100%)',
@@ -280,7 +314,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <motion.button 
+              <motion.button
                 onClick={onBack}
                 whileHover={{ scale: 1.1, x: -4 }}
                 whileTap={{ scale: 0.95 }}
@@ -293,17 +327,17 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
               >
                 <ArrowLeft className="w-5 h-5 text-white" />
               </motion.button>
-              
+
               <div className="flex items-center gap-3">
                 <motion.div
                   whileHover={{ rotate: [0, -10, 10, -10, 0] }}
                   transition={{ duration: 0.5 }}
                 >
                   <div className="absolute w-12 h-12 bg-yellow-400/30 rounded-full blur-lg" />
-                  <img 
-                    src={logo} 
-                    alt="La Oca Logo" 
-                    className="w-12 h-12 object-contain relative z-10" 
+                  <img
+                    src={logo}
+                    alt="La Oca Logo"
+                    className="w-12 h-12 object-contain relative z-10"
                     style={{ imageRendering: 'crisp-edges' }}
                   />
                 </motion.div>
@@ -358,7 +392,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <motion.div 
+            <motion.div
               className="p-4 rounded-xl backdrop-blur-md"
               style={{
                 background: 'rgba(255, 255, 255, 0.15)',
@@ -377,7 +411,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
               </p>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="p-4 rounded-xl backdrop-blur-md"
               style={{
                 background: 'rgba(255, 212, 59, 0.2)',
@@ -396,7 +430,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
               </p>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="p-4 rounded-xl backdrop-blur-md"
               style={{
                 background: 'rgba(239, 68, 68, 0.2)',
@@ -415,7 +449,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
               </p>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="p-4 rounded-xl backdrop-blur-md"
               style={{
                 background: 'rgba(16, 185, 129, 0.2)',
@@ -444,7 +478,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card 
+          <Card
             className="border-2 shadow-lg"
             style={{ borderRadius: '16px', borderColor: '#E0EDFF' }}
           >
@@ -477,12 +511,12 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
           >
-            <Card 
+            <Card
               className="border-2 border-dashed"
               style={{ borderRadius: '16px', borderColor: '#CBD5E1' }}
             >
               <CardContent className="p-16 text-center">
-                <div 
+                <div
                   className="w-20 h-20 mx-auto mb-5 rounded-full flex items-center justify-center"
                   style={{ background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)' }}
                 >
@@ -519,9 +553,9 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3 + (index * 0.05) }}
               >
-                <Card 
+                <Card
                   className="border-2 hover:shadow-xl transition-all duration-300 group h-full"
-                  style={{ 
+                  style={{
                     borderRadius: '16px',
                     borderTopWidth: '4px',
                     borderTopColor: product.stock === 0 ? '#EF4444' : product.stock < 10 ? '#F59E0B' : '#10B981',
@@ -532,15 +566,15 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                 >
                   <CardContent className="p-5">
                     {/* Product Image/Icon */}
-                    <div 
+                    <div
                       className="w-full h-32 rounded-xl mb-4 flex items-center justify-center overflow-hidden"
                       style={{
                         background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)'
                       }}
                     >
                       {product.imageUrl ? (
-                        <img 
-                          src={product.imageUrl} 
+                        <img
+                          src={product.imageUrl}
                           alt={product.name}
                           className="w-full h-full object-cover"
                         />
@@ -551,7 +585,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
 
                     {/* Category Badge */}
                     {product.category && (
-                      <Badge 
+                      <Badge
                         className="mb-2 text-xs px-2 py-0.5"
                         style={{
                           background: 'rgba(0, 71, 186, 0.1)',
@@ -565,7 +599,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                     )}
 
                     {/* Product Name */}
-                    <h3 
+                    <h3
                       className="text-[#0047BA] mb-2 line-clamp-2"
                       style={{ fontSize: '16px', fontWeight: 600 }}
                     >
@@ -589,12 +623,11 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-gray-500">Stock</p>
-                        <p 
-                          className={`${
-                            product.stock === 0 ? 'text-red-600' : 
-                            product.stock < 10 ? 'text-amber-600' : 
-                            'text-green-600'
-                          }`}
+                        <p
+                          className={`${product.stock === 0 ? 'text-red-600' :
+                            product.stock < 10 ? 'text-amber-600' :
+                              'text-green-600'
+                            }`}
                           style={{ fontSize: '18px', fontWeight: 600 }}
                         >
                           {product.stock === -1 ? 'Ilimitado' : product.stock}
@@ -639,12 +672,12 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
               {editingProduct ? 'Editar Producto' : 'Crear Nuevo Producto'}
             </DialogTitle>
             <DialogDescription>
-              {editingProduct 
+              {editingProduct
                 ? 'Actualiza la información del producto'
                 : 'Completa los datos del nuevo producto'}
             </DialogDescription>
           </DialogHeader>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
@@ -707,16 +740,16 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
 
               {/* Unlimited Stock Checkbox */}
               <div className="col-span-2">
-                <motion.div 
+                <motion.div
                   className="flex items-center gap-3 p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200"
                   whileHover={{ scale: 1.01 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <Checkbox 
+                  <Checkbox
                     id="unlimited-stock"
                     checked={formData.unlimitedStock}
-                    onCheckedChange={(checked) => setFormData({ 
-                      ...formData, 
+                    onCheckedChange={(checked) => setFormData({
+                      ...formData,
                       unlimitedStock: checked as boolean,
                       stock: checked ? '0' : formData.stock
                     })}
@@ -744,15 +777,15 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                   value={formData.categoryId || "none"}
                   onValueChange={(value) => {
                     if (value === "none") {
-                      setFormData({ 
-                        ...formData, 
+                      setFormData({
+                        ...formData,
                         categoryId: '',
                         category: 'General'
                       });
                     } else {
                       const selectedCategory = categories.find(c => c.id === value);
-                      setFormData({ 
-                        ...formData, 
+                      setFormData({
+                        ...formData,
                         categoryId: value,
                         category: selectedCategory?.name || 'General'
                       });
@@ -784,13 +817,13 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                   value={formData.productionAreaId || "none"}
                   onValueChange={(value) => {
                     if (value === "none") {
-                      setFormData({ 
-                        ...formData, 
+                      setFormData({
+                        ...formData,
                         productionAreaId: ''
                       });
                     } else {
-                      setFormData({ 
-                        ...formData, 
+                      setFormData({
+                        ...formData,
                         productionAreaId: value
                       });
                     }
@@ -1015,7 +1048,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
               ¿Eliminar producto?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Estás a punto de eliminar <strong>{isDeleting?.name}</strong>. 
+              Estás a punto de eliminar <strong>{isDeleting?.name}</strong>.
               Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>

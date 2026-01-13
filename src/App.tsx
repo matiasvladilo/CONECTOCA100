@@ -28,20 +28,15 @@ import {
   profileAPI,
   notificationsAPI,
   productsAPI,
-  ingredientsAPI,
-  productIngredientsAPI,
   type Order as APIOrder,
-  type UserProfile as APIUserProfile,
   type PaginatedResponse,
   type Notification,
-  type Ingredient as APIIngredient,
-  type ProductIngredient as APIProductIngredient,
 } from "./utils/api";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import { Bell } from "lucide-react";
 import { Badge } from "./components/ui/badge";
 import { motion, AnimatePresence } from "motion/react";
-import { notifyNewOrder, notifyOrderUpdate, playNotificationSound, initializeAudio } from "./utils/notificationSound";
+import { notifyNewOrder, notifyOrderUpdate, playNotificationSound } from "./utils/notificationSound";
 
 // CONECTOCA - Sistema de gestión de pedidos y producción
 
@@ -133,7 +128,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: "admin" | "production" | "dispatch" | "local";
+  role: "admin" | "production" | "dispatch" | "local" | "user" | "worker";
   address?: string;
 }
 
@@ -173,7 +168,7 @@ export default function App() {
   );
   const [loading, setLoading] = useState(true);
   const [lastSync, setLastSync] = useState<Date | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+
   const [ordersPagination, setOrdersPagination] =
     useState<any>(null);
   const [notifications, setNotifications] = useState<
@@ -181,7 +176,7 @@ export default function App() {
   >([]);
   const [notificationsOpen, setNotificationsOpen] =
     useState(false);
-  
+
   // Use ref instead of state to avoid closure issues with setInterval
   const hasLoadedInitialOrders = useRef(false);
   const initialOrderIds = useRef<Set<string>>(new Set());
@@ -208,7 +203,7 @@ export default function App() {
     // Force document to use device pixels
     if (document.body) {
       document.body.style.webkitTextSizeAdjust = "100%";
-      document.body.style.textSizeAdjust = "100%";
+      (document.body.style as any).textSizeAdjust = "100%";
     }
 
     // Register Service Worker for PWA
@@ -275,20 +270,22 @@ export default function App() {
     const intervalId = setInterval(() => {
       // Only poll if still authenticated
       if (accessToken && currentUser) {
-        console.log('[POLLING] Checking for updates...', { role: currentUser.role });
-        loadOrders(accessToken, true); // Pass true to indicate it's a background refresh
+        console.log('[POLLING] Checking for updates...', { role: currentUser.role, page: ordersPagination?.page || 1 });
+        // Use current page from pagination state to avoid resetting to page 1
+        const currentPage = ordersPagination?.page || 1;
+        loadOrders(accessToken, true, currentPage);
         loadNotifications();
       } else {
         console.log('[POLLING] Session invalidated, stopping polling');
       }
     }, 5000);
 
-    // Cleanup interval on unmount or when accessToken changes
+    // Cleanup interval on unmount or when dependencies change
     return () => {
       console.log('[POLLING] Cleaning up polling interval');
       clearInterval(intervalId);
     };
-  }, [accessToken, currentUser]);
+  }, [accessToken, currentUser, ordersPagination]);
 
   const initializeDemoUsers = async () => {
     // Create demo users if they don't exist (silently)
@@ -351,7 +348,7 @@ export default function App() {
           // Retry logic in case business is not yet available
           let retries = 3;
           let success = false;
-          
+
           while (retries > 0 && !success) {
             try {
               await authAPI.signup(
@@ -367,13 +364,13 @@ export default function App() {
               success = true;
             } catch (joinError: any) {
               const joinErrorMsg = joinError?.message || "";
-              
+
               // If user already exists, that's fine
               if (joinErrorMsg.includes("already") || joinErrorMsg.includes("registrado")) {
                 success = true;
                 break;
               }
-              
+
               // If code is invalid, retry after delay
               if (joinErrorMsg.includes("Código de invitación inválido") && retries > 1) {
                 console.log(`⏳ Business not ready yet, retrying for ${user.email}... (${retries - 1} attempts left)`);
@@ -443,7 +440,7 @@ export default function App() {
           stock: 30
         }
       ];
-      
+
       for (const product of demoProducts) {
         try {
           await productsAPI.create(session.access_token, product);
@@ -453,7 +450,7 @@ export default function App() {
       }
 
       console.log('✓ Demo products initialized');
-      
+
       // Sign out after creating products
       await supabase.auth.signOut();
     } catch (error) {
@@ -513,10 +510,7 @@ export default function App() {
       };
 
       setCurrentUser(user);
-      // Production users go directly to production dashboard, others go to home
-      setCurrentScreen(
-        user.role === "production" ? "productionDashboard" : "home",
-      );
+      setCurrentScreen("home");
 
       // Load orders
       console.log(" Loading orders...");
@@ -605,19 +599,19 @@ export default function App() {
 
       // Only check for NEW orders if we already completed the first load
       // This prevents false notifications on login but allows notifications after that
-      if (isBackgroundRefresh && 
-          currentUser?.role === "dispatch" &&
-          hasLoadedInitialOrders.current) {
+      if (isBackgroundRefresh &&
+        currentUser?.role === "dispatch" &&
+        hasLoadedInitialOrders.current) {
         // Find TRULY NEW orders (orders that weren't in the INITIAL load)
         const newOrders = transformedOrders.filter(o => !initialOrderIds.current.has(o.id));
-        
+
         console.log('[NOTIF] New orders check:', {
           initialOrderIdsCount: initialOrderIds.current.size,
           currentOrdersCount: transformedOrders.length,
           newOrdersFound: newOrders.length,
           newOrderIds: newOrders.map(o => o.id.substring(0, 8))
         });
-        
+
         if (newOrders.length > 0) {
           // Add new order IDs to the set so we don't notify again
           newOrders.forEach(order => initialOrderIds.current.add(order.id));
@@ -626,15 +620,15 @@ export default function App() {
           console.log('%cCantidad de pedidos nuevos:', 'font-weight: bold', newOrders.length);
           console.log('%cPedidos:', 'font-weight: bold', newOrders);
           console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: orange; font-weight: bold');
-          
+
           // Play sound notification - ONLY FOR DISPATCH ROLE
           try {
             console.log('%c[NOTIF] 🔊 Intentando reproducir sonido automáticamente...', 'background: blue; color: white; font-weight: bold; padding: 5px');
-            
+
             // Check if audio was initialized by user
             const audioInitialized = sessionStorage.getItem('audio-initialized');
             console.log('[NOTIF] ¿Audio inicializado por usuario?', audioInitialized);
-            
+
             if (!audioInitialized) {
               console.log('%c[NOTIF] ⚠️ Audio no inicializado - El usuario debe hacer clic en "ACTIVAR AUDIO"', 'background: orange; color: white; font-weight: bold; padding: 5px');
               toast.warning('🔊 HAZ CLIC EN "ACTIVAR AUDIO" para escuchar notificaciones', {
@@ -643,9 +637,9 @@ export default function App() {
             } else {
               console.log('%c[NOTIF] ✅ Audio inicializado detectado, reproduciendo...', 'background: green; color: white; font-weight: bold; padding: 5px');
               console.log('[NOTIF] Llamando a playNotificationSound...');
-              
+
               const soundResult = await playNotificationSound('new_order');
-              
+
               console.log('[NOTIF] Resultado de playNotificationSound:', soundResult);
               console.log('%c[NOTIF] ✅✅✅ Sonido reproducido exitosamente', 'background: green; color: white; font-weight: bold; padding: 10px');
             }
@@ -655,7 +649,7 @@ export default function App() {
             console.error('[NOTIF] Error completo:', error);
             console.error('[NOTIF] Stack trace:', error instanceof Error ? error.stack : 'No stack available');
           }
-          
+
           try {
             const firstNewOrder = newOrders[0];
             if (firstNewOrder) {
@@ -668,7 +662,7 @@ export default function App() {
           } catch (error) {
             console.error('[NOTIF] Error showing browser notification:', error);
           }
-          
+
           toast.success(
             `🎉 ${newOrders.length} nuevo${newOrders.length > 1 ? "s" : ""} pedido${newOrders.length > 1 ? "s" : ""} recibido${newOrders.length > 1 ? "s" : ""}`,
             {
@@ -683,12 +677,12 @@ export default function App() {
                 cantidad: newOrders.length,
                 pedidos: newOrders.map(o => o.id.substring(0, 8))
               });
-              
+
               for (const order of newOrders) {
                 const productInfo = order.products && order.products.length > 0
                   ? order.products.map(p => `${p.quantity}x ${p.name}`).join(', ')
                   : `${order.quantity}x ${order.productName}`;
-                
+
                 await notificationsAPI.create(accessToken, {
                   title: '🎉 Nuevo Pedido',
                   message: `${order.customerName || 'Cliente'}: ${productInfo}`,
@@ -697,7 +691,7 @@ export default function App() {
                 });
                 console.log('[NOTIF] ✅ Notificación creada para:', order.id.substring(0, 8));
               }
-              
+
               // Refresh notifications to show the new ones
               await loadNotifications();
               console.log('[NOTIF] 🔔 Panel de notificaciones actualizado con', newOrders.length, 'nuevas notificaciones');
@@ -787,16 +781,16 @@ export default function App() {
       // Check if status has changed and notify
       if (oldOrder.status !== newOrder.status) {
         // Notify about status change (only for non-production/non-admin users or specific statuses)
-        if (currentUser?.role !== "production" && currentUser?.role !== "admin" && 
-            (newOrder.status === "completed" || newOrder.status === "in_progress")) {
+        if (currentUser?.role !== "production" && currentUser?.role !== "admin" &&
+          (newOrder.status === "completed" || newOrder.status === "in_progress")) {
           playNotificationSound('order_update');
-          
-          const statusText = newOrder.status === "completed" 
-            ? "completado" 
-            : newOrder.status === "in_progress" 
-            ? "en producción" 
-            : newOrder.status;
-            
+
+          const statusText = newOrder.status === "completed"
+            ? "completado"
+            : newOrder.status === "in_progress"
+              ? "en producción"
+              : newOrder.status;
+
           notifyOrderUpdate(
             newOrder.id.substring(0, 8),
             `Ahora está ${statusText}`
@@ -833,15 +827,15 @@ export default function App() {
       const notificationsArray = Array.isArray(fetchedNotifications)
         ? fetchedNotifications
         : [];
-      
+
       // Detect new warning/error notifications for stock alerts
       if (previousNotificationIds.current.size > 0) {
         const newNotifications = notificationsArray.filter(
-          n => !previousNotificationIds.current.has(n.id) && 
-          (n.type === 'warning' || n.type === 'error') &&
-          n.title.includes('Stock')
+          n => !previousNotificationIds.current.has(n.id) &&
+            (n.type === 'warning' || n.type === 'error') &&
+            n.title.includes('Stock')
         );
-        
+
         // Show toast for new stock alerts
         newNotifications.forEach(notification => {
           if (notification.type === 'error') {
@@ -857,10 +851,10 @@ export default function App() {
           }
         });
       }
-      
+
       // Update the set of notification IDs
       previousNotificationIds.current = new Set(notificationsArray.map(n => n.id));
-      
+
       setNotifications(notificationsArray);
     } catch (error: any) {
       // Check if it's an auth error (401, Invalid JWT, expired)
@@ -896,10 +890,10 @@ export default function App() {
       setNotifications((prev) =>
         Array.isArray(prev)
           ? prev.map((n) =>
-              n.id === notificationId
-                ? { ...n, read: true }
-                : n,
-            )
+            n.id === notificationId
+              ? { ...n, read: true }
+              : n,
+          )
           : [],
       );
     } catch (error) {
@@ -1019,11 +1013,11 @@ export default function App() {
 
       console.log("✓ Login successful, restoring session...");
       await handleSessionRestore(session.access_token);
-      
+
       // Initialize audio context on successful login
       const { initializeAudio } = await import('./utils/notificationSound');
       await initializeAudio();
-      
+
       toast.success("Inicio de sesión exitoso");
     } catch (error: any) {
       console.error("Login error:", error);
@@ -1032,14 +1026,7 @@ export default function App() {
     }
   };
 
-  const handleSignup = async (
-    email: string,
-    password: string,
-    name: string,
-  ) => {
-    // This function will be called from LoginScreen
-    return { success: true };
-  };
+
 
   const handleLogout = async (silent: boolean = false) => {
     try {
@@ -1121,10 +1108,10 @@ export default function App() {
         prevOrders.map((order) =>
           order.id === orderId
             ? {
-                ...order,
-                status: newStatus,
-                progress: newProgress,
-              }
+              ...order,
+              status: newStatus,
+              progress: newProgress,
+            }
             : order,
         ),
       );
@@ -1249,10 +1236,10 @@ export default function App() {
 
     try {
       await ordersAPI.delete(accessToken, orderId);
-      
+
       // Remove order from state
       setOrders(orders.filter(order => order.id !== orderId));
-      
+
       toast.success("Pedido eliminado correctamente");
     } catch (error: any) {
       console.error("Error deleting order:", error);
@@ -1265,15 +1252,22 @@ export default function App() {
   const userOrders =
     currentUser?.role === "user"
       ? orders.filter(
-          (order) => order.customerName === currentUser.name,
-        )
+        (order) => order.customerName === currentUser.name,
+      )
       : orders;
+
+  // Pagination loading state
+  const [isPaginationLoading, setIsPaginationLoading] = useState(false);
 
   // Handle page change
   const handlePageChange = async (page: number) => {
     if (!accessToken) return;
-    setCurrentPage(page);
-    await loadOrders(accessToken, false, page);
+    setIsPaginationLoading(true);
+    try {
+      await loadOrders(accessToken, true, page);
+    } finally {
+      setIsPaginationLoading(false);
+    }
   };
 
   // Calculate unread count safely - MUST be before any return (hooks rule)
@@ -1323,8 +1317,8 @@ export default function App() {
               animate={
                 unreadCount > 0
                   ? {
-                      rotate: [0, -15, 15, -15, 0],
-                    }
+                    rotate: [0, -15, 15, -15, 0],
+                  }
                   : {}
               }
               transition={{
@@ -1397,6 +1391,7 @@ export default function App() {
           }}
           pagination={ordersPagination}
           onPageChange={handlePageChange}
+          isLoading={isPaginationLoading}
         />
       )}
 
@@ -1405,20 +1400,14 @@ export default function App() {
         currentUser && (
           <OrderDetail
             order={selectedOrder}
-            onBack={() =>
-              setCurrentScreen(
-                currentUser.role === "production" || currentUser.role === "admin"
-                  ? "production"
-                  : "home",
-              )
-            }
+            onBack={() => setCurrentScreen("home")}
             onDelete={handleDeleteOrder}
           />
         )}
 
       {currentScreen === "production" &&
         currentUser &&
-        (currentUser.role === "dispatch" || currentUser.role === "admin") && (
+        (currentUser.role === "dispatch" || currentUser.role === "admin" || currentUser.role === "production") && (
           <ProductionArea
             orders={orders}
             onBack={() => setCurrentScreen("home")}
@@ -1427,6 +1416,7 @@ export default function App() {
             lastSync={lastSync}
             pagination={ordersPagination}
             onPageChange={handlePageChange}
+            isLoading={isPaginationLoading}
           />
         )}
 
@@ -1435,9 +1425,7 @@ export default function App() {
           user={currentUser}
           onBack={() => {
             // Navegación diferenciada por rol
-            if (currentUser.role === "production") {
-              setCurrentScreen("productionOrders");
-            } else if (currentUser.role === "dispatch" || currentUser.role === "admin") {
+            if (currentUser.role === "dispatch") {
               setCurrentScreen("production");
             } else {
               setCurrentScreen("home");

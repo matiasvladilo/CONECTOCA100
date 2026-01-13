@@ -6,8 +6,8 @@ import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
-import { 
-  ArrowLeft, 
+import {
+  ArrowLeft,
   Plus,
   Package,
   Package2,
@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
 
@@ -51,7 +51,7 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
   const [statusFilter, setStatusFilter] = useState<ProductionOrderStatus | 'ALL'>('ALL');
   const [dateFilterFrom, setDateFilterFrom] = useState<string>('');
   const [dateFilterTo, setDateFilterTo] = useState<string>('');
-  
+
   // Form state
   const [selectedProducts, setSelectedProducts] = useState<Array<{ productId: string; name: string; quantity: number }>>([]);
   const [currentProductId, setCurrentProductId] = useState('');
@@ -183,14 +183,14 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
       }
 
       const data = await response.json();
-      
+
       toast.success('✅ Orden de producción creada exitosamente');
-      
+
       // Reset form
       setSelectedProducts([]);
       setNotes('');
       setIsCreateDialogOpen(false);
-      
+
       // Reload orders
       await loadProductionOrders();
     } catch (error: any) {
@@ -215,7 +215,7 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
 
       if (!response.ok) {
         const error = await response.json();
-        
+
         // Special handling for insufficient stock errors
         if (error.details && Array.isArray(error.details)) {
           const detailsMessage = error.details.join('\n');
@@ -228,7 +228,7 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
           });
           throw new Error(error.error);
         }
-        
+
         throw new Error(error.error || 'Error al actualizar estado');
       }
 
@@ -240,7 +240,7 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
       } else {
         toast.success('Estado actualizado correctamente');
       }
-      
+
       await loadProductionOrders();
     } catch (error: any) {
       console.error('Error updating status:', error);
@@ -321,19 +321,19 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
 
   // Filter orders
   const filteredOrders = productionOrders.filter(order => {
-    const matchesSearch = 
+    const matchesSearch =
       order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.products.some(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    
+
     const matchesStatus = statusFilter === 'ALL' || order.status === statusFilter;
-    
+
     // Date range filter logic
     let matchesDate = true;
     if (dateFilterFrom || dateFilterTo) {
       const orderDate = new Date(order.createdAt);
       orderDate.setHours(0, 0, 0, 0); // Reset time to compare only dates
-      
+
       if (dateFilterFrom && dateFilterTo) {
         // Both dates selected - check if order is within range
         const fromDate = new Date(dateFilterFrom);
@@ -353,7 +353,7 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
         matchesDate = orderDate <= toDate;
       }
     }
-    
+
     return matchesSearch && matchesStatus && matchesDate;
   });
 
@@ -416,7 +416,7 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
                     {/* Add Products */}
                     <div className="space-y-4">
                       <Label>Productos a Producir</Label>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div className="md:col-span-2">
                           <Select value={currentProductId} onValueChange={setCurrentProductId}>
@@ -518,7 +518,7 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
                   </div>
                 </DialogContent>
               </Dialog>
-              
+
               {/* Stock de Materia Prima Button */}
               {onNavigateToIngredients && (userRole === 'production' || userRole === 'admin') && (
                 <Button
@@ -530,7 +530,7 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
                   Stock de Materia Prima
                 </Button>
               )}
-              
+
               {/* Recetas Button */}
               {onNavigateToRecipes && (userRole === 'production' || userRole === 'admin') && (
                 <Button
@@ -616,7 +616,7 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
           <Card className="p-12 text-center">
             <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg text-gray-600 mb-2">
-              {searchTerm || statusFilter !== 'ALL' 
+              {searchTerm || statusFilter !== 'ALL'
                 ? 'No se encontraron órdenes con estos filtros'
                 : 'No hay órdenes de producción'}
             </h3>
@@ -735,7 +735,7 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
                             </Button>
                           </>
                         )}
-                        
+
                         {order.status === 'EN_PROCESO' && (
                           <Button
                             size="sm"

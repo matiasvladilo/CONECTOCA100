@@ -2,13 +2,13 @@ import { Order } from '../App';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { formatCLP } from '../utils/format';
-import { 
-  Printer, 
+import {
+  Printer,
   X,
   FileText
 } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { StandardDeliveryGuide } from './StandardDeliveryGuide';
 import { ThermalReceiptConfig } from './ThermalReceiptConfig';
 
@@ -21,9 +21,9 @@ interface DeliveryGuideProps {
   businessPhone?: string;
 }
 
-export function DeliveryGuide({ 
-  order, 
-  open, 
+export function DeliveryGuide({
+  order,
+  open,
   onClose,
   businessName = "CONECTOCA",
   businessAddress = "Dirección del Negocio",

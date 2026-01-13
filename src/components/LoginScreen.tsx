@@ -6,8 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Checkbox } from './ui/checkbox';
 import { Shield, UserIcon as UserCircle, KeyRound, ArrowLeft, Mail, Lock, Sparkles } from 'lucide-react';
-import logo from 'figma:asset/57300e671c33792006605871a879c67257646bdd.png';
-import { toast } from 'sonner@2.0.3';
+import logo from '../assets/logo.png';
+import { toast } from 'sonner';
 import { authAPI } from '../utils/api';
 import { motion } from 'motion/react';
 
@@ -59,12 +59,12 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [showPasswordRecovery, setShowPasswordRecovery] = useState(false);
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [rememberMe, setRememberMe] = useState(true); // Remember session by default
-  
+
   // Business fields
   const [businessAction, setBusinessAction] = useState<'create' | 'join'>('create');
   const [businessName, setBusinessName] = useState('');
   const [businessCode, setBusinessCode] = useState('');
-  
+
   // Seleccionar una frase aleatoria al cargar (solo una vez, sin rotación automática)
   const currentPhrase = useMemo(() => {
     const randomIndex = Math.floor(Math.random() * motivationalPhrases.length);
@@ -73,7 +73,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast.error('Por favor completa todos los campos');
       return;
@@ -100,21 +100,21 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       if (isCreatingAccount) {
         // Sign up
         await authAPI.signup(
-          email, 
-          password, 
-          name, 
+          email,
+          password,
+          name,
           role,
           businessAction,
           businessAction === 'create' ? businessName : undefined,
           businessAction === 'join' ? businessCode : undefined
         );
-        
+
         if (businessAction === 'create') {
           toast.success(`¡Negocio "${businessName}" creado exitosamente! Iniciando sesión...`);
         } else {
           toast.success('¡Te has unido al negocio exitosamente! Iniciando sesión...');
         }
-        
+
         // Automatically log in after signup
         await onLogin(email, password);
       } else {
@@ -123,11 +123,11 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       }
     } catch (error: any) {
       console.error('Auth error:', error);
-      
+
       // Provide more helpful error messages
       let errorMessage = 'Error en la autenticación';
       if (error.message?.includes('Invalid login credentials')) {
-        errorMessage = isCreatingAccount 
+        errorMessage = isCreatingAccount
           ? 'Error al crear la cuenta. Por favor intenta de nuevo.'
           : 'Credenciales incorrectas. Verifica tu email y contraseña o usa las credenciales de demo.';
       } else if (error.message?.includes('already registered') || error.message?.includes('ya está registrado')) {
@@ -136,7 +136,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       } else {
         errorMessage = error.message || errorMessage;
       }
-      
+
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -151,7 +151,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
 
   const handlePasswordRecovery = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!recoveryEmail) {
       toast.error('Por favor ingresa tu correo electrónico');
       return;
@@ -168,11 +168,11 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
 
     try {
       const response = await authAPI.resetPassword(recoveryEmail);
-      
+
       if (response.success) {
         toast.success(response.message || 'Se ha enviado un enlace de recuperación a tu correo');
         setRecoveryEmail('');
-        
+
         // Wait a bit before returning to login
         setTimeout(() => {
           setShowPasswordRecovery(false);
@@ -182,11 +182,11 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       }
     } catch (error: any) {
       console.error('Password recovery error:', error);
-      
+
       // Show generic success message for security (don't reveal if email exists)
       toast.success('Si el correo existe en nuestro sistema, recibirás un enlace de recuperación');
       setRecoveryEmail('');
-      
+
       setTimeout(() => {
         setShowPasswordRecovery(false);
       }, 1500);
@@ -198,25 +198,25 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   // Password Recovery View
   if (showPasswordRecovery) {
     return (
-      <div 
+      <div
         className="min-h-screen flex items-center justify-center p-3 sm:p-4 md:p-6 relative overflow-hidden"
-        style={{ 
+        style={{
           background: 'linear-gradient(135deg, #0047BA 0%, #0078FF 100%)'
         }}
       >
         {/* Decorative elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <motion.div 
+          <motion.div
             className="absolute -top-24 -right-24 w-64 h-64 sm:w-96 sm:h-96 bg-white/5 rounded-full blur-3xl"
-            animate={{ 
+            animate={{
               scale: [1, 1.2, 1],
               opacity: [0.3, 0.5, 0.3]
             }}
             transition={{ duration: 8, repeat: Infinity }}
           />
-          <motion.div 
+          <motion.div
             className="absolute -bottom-24 -left-24 w-64 h-64 sm:w-96 sm:h-96 bg-yellow-400/10 rounded-full blur-3xl"
-            animate={{ 
+            animate={{
               scale: [1.2, 1, 1.2],
               opacity: [0.2, 0.4, 0.2]
             }}
@@ -230,21 +230,21 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="w-full max-w-md relative z-10"
         >
-          <Card 
+          <Card
             className="w-full shadow-2xl border border-[#E0EDFF] backdrop-blur-sm"
-            style={{ 
+            style={{
               borderRadius: '16px',
               boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)'
             }}
           >
             <CardHeader className="text-center space-y-3 sm:space-y-4 pb-4 sm:pb-6 pt-6 sm:pt-8 px-4 sm:px-6">
-              <motion.div 
+              <motion.div
                 className="flex flex-col items-center justify-center gap-3 sm:gap-4"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.2, duration: 0.3 }}
               >
-                <div 
+                <div
                   className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center relative"
                   style={{
                     background: 'linear-gradient(135deg, #0059FF 0%, #0047BA 100%)',
@@ -264,7 +264,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 </div>
               </motion.div>
             </CardHeader>
-            
+
             <CardContent className="px-4 sm:px-8 pb-6 sm:pb-8">
               <form onSubmit={handlePasswordRecovery} className="space-y-4 sm:space-y-5">
                 <div className="space-y-2">
@@ -291,11 +291,11 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 </div>
 
                 <motion.div whileTap={{ scale: 0.98 }}>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="w-full h-11 sm:h-12 text-white relative overflow-hidden group text-sm sm:text-[15px]"
                     disabled={isLoading}
-                    style={{ 
+                    style={{
                       background: 'linear-gradient(90deg, #0059FF 0%, #004BCE 100%)',
                       borderRadius: '9999px',
                       boxShadow: '0 4px 14px rgba(0, 89, 255, 0.4)',
@@ -313,11 +313,11 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               {/* Info box */}
               <div className="mt-4 sm:mt-5 p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200/50">
                 <p className="text-xs text-blue-900">
-                  💡 <strong>Nota:</strong> El enlace de recuperación será válido por 1 hora. 
+                  💡 <strong>Nota:</strong> El enlace de recuperación será válido por 1 hora.
                   Revisa tu bandeja de spam si no ves el correo en unos minutos.
                 </p>
               </div>
-              
+
               <div className="mt-5 sm:mt-6 text-center">
                 <motion.button
                   onClick={() => setShowPasswordRecovery(false)}
@@ -341,25 +341,25 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
 
   // Main Login View
   return (
-    <div 
+    <div
       className="min-h-screen flex items-center justify-center p-3 sm:p-4 md:p-6 relative overflow-hidden"
-      style={{ 
+      style={{
         background: 'linear-gradient(135deg, #0047BA 0%, #0078FF 100%)'
       }}
     >
       {/* Decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div 
+        <motion.div
           className="absolute -top-24 -right-24 w-64 h-64 sm:w-96 sm:h-96 bg-white/5 rounded-full blur-3xl"
-          animate={{ 
+          animate={{
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.5, 0.3]
           }}
           transition={{ duration: 8, repeat: Infinity }}
         />
-        <motion.div 
+        <motion.div
           className="absolute -bottom-24 -left-24 w-64 h-64 sm:w-96 sm:h-96 bg-yellow-400/10 rounded-full blur-3xl"
-          animate={{ 
+          animate={{
             scale: [1.2, 1, 1.2],
             opacity: [0.2, 0.4, 0.2]
           }}
@@ -373,48 +373,48 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="w-full max-w-md relative z-10"
       >
-        <Card 
+        <Card
           className="w-full shadow-2xl border border-[#E0EDFF] backdrop-blur-sm"
-          style={{ 
+          style={{
             borderRadius: '16px',
             boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)'
           }}
         >
           <CardHeader className="text-center space-y-4 pb-6 pt-8">
-            <motion.div 
+            <motion.div
               className="flex flex-col items-center justify-center gap-4"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.3 }}
             >
               {/* Logo with glow */}
-              <motion.div 
+              <motion.div
                 className="relative"
                 whileHover={{ scale: 1.05 }}
                 transition={{ duration: 0.2 }}
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-400/30 to-yellow-400/30 blur-xl rounded-full" />
-                <img 
-                  src={logo} 
-                  alt="La Oca Logo" 
-                  className="w-28 h-28 object-contain relative z-10" 
-                  style={{ imageRendering: 'crisp-edges' }} 
+                <img
+                  src={logo}
+                  alt="La Oca Logo"
+                  className="w-28 h-28 object-contain relative z-10"
+                  style={{ imageRendering: 'crisp-edges' }}
                 />
               </motion.div>
-              
+
               {/* Title with accent */}
               <div className="space-y-2 relative">
                 <div className="absolute -top-2 -right-8">
                   <Sparkles className="w-5 h-5 text-[#FFD43B]" />
                 </div>
-                <CardTitle 
+                <CardTitle
                   className="text-[#0047BA] tracking-tight"
                   style={{ fontSize: '32px', fontWeight: 600 }}
                 >
                   CONECTOCA
                 </CardTitle>
                 <div className="h-1 w-24 mx-auto rounded-full bg-gradient-to-r from-[#0059FF] to-[#FFD43B]" />
-                <CardDescription 
+                <CardDescription
                   className="text-[#4B5563] mt-3"
                   style={{ fontSize: '15px' }}
                 >
@@ -423,12 +423,12 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               </div>
             </motion.div>
           </CardHeader>
-          
+
           <CardContent className="px-8 pb-8">
             <form onSubmit={handleSubmit} className="space-y-5">
               {isCreatingAccount && (
                 <>
-                  <motion.div 
+                  <motion.div
                     className="space-y-2"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
@@ -455,7 +455,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
 
                   {/* Role Selector - Only show when joining a business */}
                   {businessAction === 'join' && (
-                    <motion.div 
+                    <motion.div
                       className="space-y-2"
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
@@ -466,7 +466,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                         Rol
                       </Label>
                       <Select value={role} onValueChange={(value: 'local' | 'admin' | 'production' | 'dispatch' | 'worker' | 'user') => setRole(value)}>
-                        <SelectTrigger 
+                        <SelectTrigger
                           className="h-12 bg-white border-[#CBD5E1] focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
                           style={{ borderRadius: '10px' }}
                         >
@@ -523,7 +523,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                   )}
 
                   {/* Business Selection */}
-                  <motion.div 
+                  <motion.div
                     className="space-y-2"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
@@ -537,11 +537,10 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       <Button
                         type="button"
                         onClick={() => setBusinessAction('create')}
-                        className={`flex-1 h-12 transition-all ${
-                          businessAction === 'create'
-                            ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
-                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-                        }`}
+                        className={`flex-1 h-12 transition-all ${businessAction === 'create'
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
+                          : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                          }`}
                         style={{ borderRadius: '10px' }}
                       >
                         <span className="relative z-10">Crear Nuevo</span>
@@ -549,11 +548,10 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       <Button
                         type="button"
                         onClick={() => setBusinessAction('join')}
-                        className={`flex-1 h-12 transition-all ${
-                          businessAction === 'join'
-                            ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
-                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-                        }`}
+                        className={`flex-1 h-12 transition-all ${businessAction === 'join'
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
+                          : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                          }`}
                         style={{ borderRadius: '10px' }}
                       >
                         <span className="relative z-10">Unirme a Uno</span>
@@ -563,7 +561,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
 
                   {/* Business Name (if creating) */}
                   {businessAction === 'create' && (
-                    <motion.div 
+                    <motion.div
                       className="space-y-2"
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
@@ -594,7 +592,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
 
                   {/* Business Code (if joining) */}
                   {businessAction === 'join' && (
-                    <motion.div 
+                    <motion.div
                       className="space-y-2"
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
@@ -686,13 +684,13 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
 
               {/* Remember Me Checkbox - Only show when logging in */}
               {!isCreatingAccount && (
-                <motion.div 
+                <motion.div
                   className="flex items-center gap-2 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/50"
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <Checkbox 
+                  <Checkbox
                     id="remember-me"
                     checked={rememberMe}
                     onCheckedChange={(checked) => setRememberMe(checked as boolean)}
@@ -715,15 +713,15 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 </motion.div>
               )}
 
-              <motion.div 
+              <motion.div
                 whileTap={{ scale: 0.98 }}
                 className="pt-2"
               >
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="w-full h-12 text-white relative overflow-hidden group"
                   disabled={isLoading}
-                  style={{ 
+                  style={{
                     background: 'linear-gradient(90deg, #0059FF 0%, #004BCE 100%)',
                     borderRadius: '9999px',
                     boxShadow: '0 4px 14px rgba(0, 89, 255, 0.4)',
@@ -745,7 +743,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 </Button>
               </motion.div>
             </form>
-            
+
             <div className="mt-6 text-center">
               <motion.button
                 onClick={handleToggleMode}
@@ -764,7 +762,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
 
             {/* Frase motivacional - Modo Crear Cuenta */}
             {isCreatingAccount && (
-              <motion.div 
+              <motion.div
                 className="mt-6"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -777,7 +775,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                     transition={{ duration: 0.6, delay: 0.3 }}
                     className="text-center"
                   >
-                    <p 
+                    <p
                       className="flex items-center justify-center gap-2"
                       style={{
                         fontSize: '15px',
@@ -796,7 +794,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             )}
 
             {!isCreatingAccount && (
-              <motion.div 
+              <motion.div
                 className="mt-6"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -810,7 +808,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                     transition={{ duration: 0.6, delay: 0.3 }}
                     className="text-center"
                   >
-                    <p 
+                    <p
                       className="flex items-center justify-center gap-2"
                       style={{
                         fontSize: '15px',

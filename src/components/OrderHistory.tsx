@@ -9,10 +9,10 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Separator } from './ui/separator';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatCLP } from '../utils/format';
-import { 
-  ArrowLeft, 
-  Package, 
-  Clock, 
+import {
+  ArrowLeft,
+  Package,
+  Clock,
   CheckCircle2,
   Truck,
   Search,
@@ -31,7 +31,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { PaginationControls } from './PaginationControls';
-import logo from 'figma:asset/57300e671c33792006605871a879c67257646bdd.png';
+import logo from '../assets/logo.png';
 
 interface OrderHistoryProps {
   orders: Order[];
@@ -45,29 +45,29 @@ type ViewMode = 'grid' | 'list';
 type SortOption = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc';
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string; icon: any }> = {
-  pending: { 
-    label: 'Pendiente', 
+  pending: {
+    label: 'Pendiente',
     color: 'text-amber-700',
     bgColor: 'bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200',
-    icon: Clock 
+    icon: Clock
   },
-  in_progress: { 
-    label: 'En Preparación', 
+  in_progress: {
+    label: 'En Preparación',
     color: 'text-blue-700',
     bgColor: 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200',
-    icon: Package 
+    icon: Package
   },
-  completed: { 
-    label: 'Listo para Despacho', 
+  completed: {
+    label: 'Listo para Despacho',
     color: 'text-green-700',
     bgColor: 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200',
-    icon: CheckCircle2 
+    icon: CheckCircle2
   },
-  cancelled: { 
-    label: 'Despachado', 
+  cancelled: {
+    label: 'Despachado',
     color: 'text-gray-700',
     bgColor: 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200',
-    icon: Truck 
+    icon: Truck
   }
 };
 
@@ -95,7 +95,7 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(order => 
+      filtered = filtered.filter(order =>
         order.productName.toLowerCase().includes(query) ||
         order.customerName.toLowerCase().includes(query) ||
         order.id.toLowerCase().includes(query)
@@ -104,12 +104,12 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
 
     // Filter by date range
     if (dateFrom) {
-      filtered = filtered.filter(order => 
+      filtered = filtered.filter(order =>
         new Date(order.createdAt || order.date) >= new Date(dateFrom)
       );
     }
     if (dateTo) {
-      filtered = filtered.filter(order => 
+      filtered = filtered.filter(order =>
         new Date(order.createdAt || order.date) <= new Date(dateTo)
       );
     }
@@ -169,23 +169,23 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
   const hasActiveFilters = searchQuery || filterStatus !== 'all' || dateFrom || dateTo || sortBy !== 'date-desc';
 
   return (
-    <div 
+    <div
       className="min-h-screen relative overflow-hidden"
       style={{ background: 'linear-gradient(135deg, #EAF2FF 0%, #CFE0FF 100%)' }}
     >
       {/* Decorative background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div 
+        <motion.div
           className="absolute top-0 right-0 w-96 h-96 bg-blue-200/20 rounded-full blur-3xl"
-          animate={{ 
+          animate={{
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.5, 0.3]
           }}
           transition={{ duration: 8, repeat: Infinity }}
         />
-        <motion.div 
+        <motion.div
           className="absolute bottom-0 left-0 w-96 h-96 bg-yellow-200/20 rounded-full blur-3xl"
-          animate={{ 
+          animate={{
             scale: [1.2, 1, 1.2],
             opacity: [0.2, 0.4, 0.2]
           }}
@@ -194,7 +194,7 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
       </div>
 
       {/* Header */}
-      <div 
+      <div
         className="relative z-10 shadow-2xl"
         style={{
           background: 'linear-gradient(135deg, #0047BA 0%, #0078FF 100%)',
@@ -204,7 +204,7 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <motion.button 
+              <motion.button
                 onClick={onBack}
                 whileHover={{ scale: 1.1, x: -4 }}
                 whileTap={{ scale: 0.95 }}
@@ -217,17 +217,17 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
               >
                 <ArrowLeft className="w-5 h-5 text-white" />
               </motion.button>
-              
+
               <div className="flex items-center gap-3">
                 <motion.div
                   whileHover={{ rotate: [0, -10, 10, -10, 0] }}
                   transition={{ duration: 0.5 }}
                 >
                   <div className="absolute w-12 h-12 bg-yellow-400/30 rounded-full blur-lg" />
-                  <img 
-                    src={logo} 
-                    alt="La Oca Logo" 
-                    className="w-12 h-12 object-contain relative z-10" 
+                  <img
+                    src={logo}
+                    alt="La Oca Logo"
+                    className="w-12 h-12 object-contain relative z-10"
                     style={{ imageRendering: 'crisp-edges' }}
                   />
                 </motion.div>
@@ -249,11 +249,10 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
                 onClick={() => setViewMode('list')}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-                  viewMode === 'list' 
-                    ? 'bg-white text-[#0047BA]' 
-                    : 'bg-white/20 text-white hover:bg-white/30'
-                }`}
+                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${viewMode === 'list'
+                  ? 'bg-white text-[#0047BA]'
+                  : 'bg-white/20 text-white hover:bg-white/30'
+                  }`}
               >
                 <List className="w-5 h-5" />
               </motion.button>
@@ -261,11 +260,10 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
                 onClick={() => setViewMode('grid')}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-                  viewMode === 'grid' 
-                    ? 'bg-white text-[#0047BA]' 
-                    : 'bg-white/20 text-white hover:bg-white/30'
-                }`}
+                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${viewMode === 'grid'
+                  ? 'bg-white text-[#0047BA]'
+                  : 'bg-white/20 text-white hover:bg-white/30'
+                  }`}
               >
                 <Grid3x3 className="w-5 h-5" />
               </motion.button>
@@ -274,7 +272,7 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
 
           {/* Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            <motion.div 
+            <motion.div
               className="p-4 rounded-xl backdrop-blur-md"
               style={{
                 background: 'rgba(255, 255, 255, 0.15)',
@@ -293,7 +291,7 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
               </p>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="p-4 rounded-xl backdrop-blur-md"
               style={{
                 background: 'rgba(255, 212, 59, 0.2)',
@@ -312,7 +310,7 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
               </p>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="p-4 rounded-xl backdrop-blur-md"
               style={{
                 background: 'rgba(255, 255, 255, 0.15)',
@@ -331,7 +329,7 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
               </p>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="p-4 rounded-xl backdrop-blur-md"
               style={{
                 background: 'rgba(16, 185, 129, 0.2)',
@@ -350,7 +348,7 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
               </p>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="p-4 rounded-xl backdrop-blur-md"
               style={{
                 background: 'rgba(255, 255, 255, 0.15)',
@@ -369,7 +367,7 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
               </p>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="p-4 rounded-xl backdrop-blur-md"
               style={{
                 background: 'rgba(255, 212, 59, 0.2)',
@@ -398,7 +396,7 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card 
+          <Card
             className="border-2 shadow-lg"
             style={{ borderRadius: '16px', borderColor: '#E0EDFF' }}
           >
@@ -430,7 +428,7 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
 
                   {/* Status Filter */}
                   <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as FilterStatus)}>
-                    <SelectTrigger 
+                    <SelectTrigger
                       className="w-full md:w-48 h-11 bg-white border-[#CBD5E1]"
                       style={{ borderRadius: '10px' }}
                     >
@@ -447,7 +445,7 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
 
                   {/* Sort */}
                   <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-                    <SelectTrigger 
+                    <SelectTrigger
                       className="w-full md:w-48 h-11 bg-white border-[#CBD5E1]"
                       style={{ borderRadius: '10px' }}
                     >
@@ -568,12 +566,12 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
           >
-            <Card 
+            <Card
               className="border-2 border-dashed"
               style={{ borderRadius: '16px', borderColor: '#CBD5E1' }}
             >
               <CardContent className="p-16 text-center">
-                <div 
+                <div
                   className="w-20 h-20 mx-auto mb-5 rounded-full flex items-center justify-center"
                   style={{ background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)' }}
                 >
@@ -594,7 +592,7 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
             {paginatedOrders.map((order, index) => {
               const config = statusConfig[order.status] || statusConfig.pending;
               const StatusIcon = config.icon;
-              
+
               return (
                 <motion.div
                   key={order.id}
@@ -602,15 +600,15 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 + (index * 0.05) }}
                 >
-                  <Card 
+                  <Card
                     className="cursor-pointer hover:shadow-xl transition-all duration-300 border-2 group"
                     onClick={() => onViewOrder(order)}
-                    style={{ 
+                    style={{
                       borderRadius: '16px',
                       borderLeftWidth: '4px',
-                      borderLeftColor: order.status === 'pending' ? '#F59E0B' : 
-                                      order.status === 'in_progress' ? '#0059FF' : 
-                                      order.status === 'completed' ? '#10B981' : '#6B7280',
+                      borderLeftColor: order.status === 'pending' ? '#F59E0B' :
+                        order.status === 'in_progress' ? '#0059FF' :
+                          order.status === 'completed' ? '#10B981' : '#6B7280',
                       borderTopColor: '#E0EDFF',
                       borderRightColor: '#E0EDFF',
                       borderBottomColor: '#E0EDFF'
@@ -619,20 +617,20 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
                     <CardContent className="p-5">
                       <div className="flex items-center gap-4">
                         {/* Icon */}
-                        <div 
+                        <div
                           className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0"
                           style={{
                             background: order.status === 'pending' ? 'rgba(245, 158, 11, 0.1)' :
-                                       order.status === 'in_progress' ? 'rgba(0, 89, 255, 0.1)' :
-                                       order.status === 'completed' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(107, 114, 128, 0.1)'
+                              order.status === 'in_progress' ? 'rgba(0, 89, 255, 0.1)' :
+                                order.status === 'completed' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(107, 114, 128, 0.1)'
                           }}
                         >
-                          <StatusIcon 
+                          <StatusIcon
                             className="w-7 h-7"
                             style={{
                               color: order.status === 'pending' ? '#F59E0B' :
-                                     order.status === 'in_progress' ? '#0059FF' :
-                                     order.status === 'completed' ? '#10B981' : '#6B7280'
+                                order.status === 'in_progress' ? '#0059FF' :
+                                  order.status === 'completed' ? '#10B981' : '#6B7280'
                             }}
                           />
                         </div>
@@ -640,13 +638,13 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
                         {/* Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-3 mb-2">
-                            <h3 
+                            <h3
                               className="text-[#0047BA] group-hover:text-[#0059FF] transition-colors"
                               style={{ fontSize: '16px', fontWeight: 600 }}
                             >
                               {order.productName}
                             </h3>
-                            <Badge 
+                            <Badge
                               className={`${config.bgColor} ${config.color} border px-2.5 py-1 flex items-center gap-1.5`}
                               style={{ fontSize: '11px', fontWeight: 500 }}
                             >
@@ -676,18 +674,18 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
 
                           {/* Progress */}
                           <div className="mt-3">
-                            <div 
+                            <div
                               className="w-full rounded-full h-1.5 overflow-hidden"
                               style={{ background: 'rgba(0, 71, 186, 0.1)' }}
                             >
-                              <div 
+                              <div
                                 className="h-1.5 rounded-full transition-all duration-500"
-                                style={{ 
+                                style={{
                                   background: order.status === 'completed' || order.status === 'cancelled'
                                     ? 'linear-gradient(90deg, #10B981 0%, #059669 100%)'
                                     : order.status === 'in_progress'
-                                    ? 'linear-gradient(90deg, #0059FF 0%, #004BCE 100%)'
-                                    : 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)',
+                                      ? 'linear-gradient(90deg, #0059FF 0%, #004BCE 100%)'
+                                      : 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)',
                                   width: `${order.progress}%`
                                 }}
                               />
@@ -710,7 +708,7 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
             {paginatedOrders.map((order, index) => {
               const config = statusConfig[order.status] || statusConfig.pending;
               const StatusIcon = config.icon;
-              
+
               return (
                 <motion.div
                   key={order.id}
@@ -718,15 +716,15 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3 + (index * 0.05) }}
                 >
-                  <Card 
+                  <Card
                     className="cursor-pointer hover:shadow-xl transition-all duration-300 border-2 group h-full"
                     onClick={() => onViewOrder(order)}
-                    style={{ 
+                    style={{
                       borderRadius: '16px',
                       borderTopWidth: '4px',
-                      borderTopColor: order.status === 'pending' ? '#F59E0B' : 
-                                     order.status === 'in_progress' ? '#0059FF' : 
-                                     order.status === 'completed' ? '#10B981' : '#6B7280',
+                      borderTopColor: order.status === 'pending' ? '#F59E0B' :
+                        order.status === 'in_progress' ? '#0059FF' :
+                          order.status === 'completed' ? '#10B981' : '#6B7280',
                       borderLeftColor: '#E0EDFF',
                       borderRightColor: '#E0EDFF',
                       borderBottomColor: '#E0EDFF'
@@ -734,24 +732,24 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
                   >
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between mb-4">
-                        <div 
+                        <div
                           className="w-12 h-12 rounded-xl flex items-center justify-center"
                           style={{
                             background: order.status === 'pending' ? 'rgba(245, 158, 11, 0.1)' :
-                                       order.status === 'in_progress' ? 'rgba(0, 89, 255, 0.1)' :
-                                       order.status === 'completed' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(107, 114, 128, 0.1)'
+                              order.status === 'in_progress' ? 'rgba(0, 89, 255, 0.1)' :
+                                order.status === 'completed' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(107, 114, 128, 0.1)'
                           }}
                         >
-                          <StatusIcon 
+                          <StatusIcon
                             className="w-6 h-6"
                             style={{
                               color: order.status === 'pending' ? '#F59E0B' :
-                                     order.status === 'in_progress' ? '#0059FF' :
-                                     order.status === 'completed' ? '#10B981' : '#6B7280'
+                                order.status === 'in_progress' ? '#0059FF' :
+                                  order.status === 'completed' ? '#10B981' : '#6B7280'
                             }}
                           />
                         </div>
-                        <Badge 
+                        <Badge
                           className={`${config.bgColor} ${config.color} border px-2 py-1`}
                           style={{ fontSize: '10px', fontWeight: 500 }}
                         >
@@ -759,7 +757,7 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
                         </Badge>
                       </div>
 
-                      <h3 
+                      <h3
                         className="text-[#0047BA] group-hover:text-[#0059FF] transition-colors mb-3 line-clamp-2"
                         style={{ fontSize: '15px', fontWeight: 600 }}
                       >
@@ -783,24 +781,24 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
                         </div>
                       </div>
 
-                      <div 
+                      <div
                         className="w-full rounded-full h-1.5 overflow-hidden mb-3"
                         style={{ background: 'rgba(0, 71, 186, 0.1)' }}
                       >
-                        <div 
+                        <div
                           className="h-1.5 rounded-full transition-all duration-500"
-                          style={{ 
+                          style={{
                             background: order.status === 'completed' || order.status === 'cancelled'
                               ? 'linear-gradient(90deg, #10B981 0%, #059669 100%)'
                               : order.status === 'in_progress'
-                              ? 'linear-gradient(90deg, #0059FF 0%, #004BCE 100%)'
-                              : 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)',
+                                ? 'linear-gradient(90deg, #0059FF 0%, #004BCE 100%)'
+                                : 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)',
                             width: `${order.progress}%`
                           }}
                         />
                       </div>
 
-                      <div 
+                      <div
                         className="flex items-center justify-between p-3 rounded-xl"
                         style={{ background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)' }}
                       >

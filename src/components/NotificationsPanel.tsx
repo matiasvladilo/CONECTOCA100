@@ -1,34 +1,23 @@
-import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Bell, 
-  X, 
-  Check, 
-  Trash2, 
-  Package, 
-  Clock, 
-  CheckCircle2, 
+import {
+  Bell,
+  X,
+  Check,
+  Trash2,
+  Package,
+  Clock,
+  CheckCircle2,
   XCircle,
   AlertCircle,
   ChevronRight,
   Sparkles
 } from 'lucide-react';
-import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
-export interface Notification {
-  id: string;
-  userId: string;
-  title: string;
-  message: string;
-  type: 'order_created' | 'order_updated' | 'order_completed' | 'order_cancelled' | 'info' | 'warning' | 'error' | 'attendance_check_in' | 'attendance_check_out';
-  orderId?: string;
-  read: boolean;
-  createdAt: string;
-}
+import { Notification } from '../utils/api';
 
 interface NotificationsPanelProps {
   notifications: Notification[];
@@ -40,14 +29,14 @@ interface NotificationsPanelProps {
   onNotificationClick?: (notification: Notification) => void;
 }
 
-export function NotificationsPanel({ 
-  notifications, 
-  isOpen, 
-  onClose, 
-  onMarkAsRead, 
+export function NotificationsPanel({
+  notifications,
+  isOpen,
+  onClose,
+  onMarkAsRead,
   onMarkAllAsRead,
   onDelete,
-  onNotificationClick 
+  onNotificationClick
 }: NotificationsPanelProps) {
   // Ensure notifications is always an array
   const safeNotifications = Array.isArray(notifications) ? notifications : [];
@@ -115,7 +104,7 @@ export function NotificationsPanel({
     if (diffMins < 60) return `Hace ${diffMins} min`;
     if (diffHours < 24) return `Hace ${diffHours}h`;
     if (diffDays < 7) return `Hace ${diffDays}d`;
-    
+
     return date.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' });
   };
 
@@ -160,7 +149,7 @@ export function NotificationsPanel({
             className="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-white shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
-            <div 
+            <div
               className="p-6"
               style={{
                 background: 'linear-gradient(135deg, #0047BA 0%, #0078FF 100%)',
@@ -169,7 +158,7 @@ export function NotificationsPanel({
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div 
+                  <div
                     className="w-12 h-12 rounded-full flex items-center justify-center"
                     style={{
                       background: 'rgba(255, 255, 255, 0.15)',
@@ -202,10 +191,10 @@ export function NotificationsPanel({
                   <X className="w-5 h-5 text-white" />
                 </motion.button>
               </div>
-              
+
               {unreadCount > 0 && (
                 <div className="flex items-center justify-between">
-                  <Badge 
+                  <Badge
                     className="border px-3 py-1.5"
                     style={{
                       background: 'linear-gradient(90deg, #FFD43B 0%, #FFC700 100%)',
@@ -236,7 +225,7 @@ export function NotificationsPanel({
               <div className="p-5 space-y-3">
                 {safeNotifications.length === 0 ? (
                   <div className="text-center py-24">
-                    <div 
+                    <div
                       className="w-20 h-20 mx-auto mb-5 rounded-full flex items-center justify-center"
                       style={{ background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)' }}
                     >
@@ -268,28 +257,28 @@ export function NotificationsPanel({
                         style={{ borderRadius: '12px' }}
                       >
                         <div className="flex items-start gap-3">
-                          <div 
+                          <div
                             className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
                             style={{
                               background: notification.type === 'order_created' ? 'rgba(0, 89, 255, 0.1)' :
-                                        notification.type === 'order_updated' ? 'rgba(245, 158, 11, 0.1)' :
-                                        notification.type === 'order_completed' ? 'rgba(16, 185, 129, 0.1)' :
-                                        notification.type === 'order_cancelled' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(107, 114, 128, 0.1)'
+                                notification.type === 'order_updated' ? 'rgba(245, 158, 11, 0.1)' :
+                                  notification.type === 'order_completed' ? 'rgba(16, 185, 129, 0.1)' :
+                                    notification.type === 'order_cancelled' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(107, 114, 128, 0.1)'
                             }}
                           >
                             {getNotificationIcon(notification.type)}
                           </div>
-                          
+
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
-                              <h3 
+                              <h3
                                 className={`text-sm ${notification.read ? 'text-gray-700' : 'text-gray-900'}`}
                                 style={{ fontWeight: notification.read ? 500 : 600 }}
                               >
                                 {notification.title}
                               </h3>
                               {!notification.read && (
-                                <div 
+                                <div
                                   className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1"
                                   style={{
                                     background: 'linear-gradient(135deg, #0059FF 0%, #0047BA 100%)',
@@ -298,13 +287,13 @@ export function NotificationsPanel({
                                 />
                               )}
                             </div>
-                            
+
                             <p className="text-xs text-gray-600 mt-1.5 line-clamp-2">
                               {notification.message}
                             </p>
-                            
+
                             <div className="flex items-center justify-between mt-3">
-                              <span 
+                              <span
                                 className="text-xs px-2 py-1 rounded-full"
                                 style={{
                                   background: 'rgba(0, 71, 186, 0.1)',
@@ -314,7 +303,7 @@ export function NotificationsPanel({
                               >
                                 {formatTime(notification.createdAt)}
                               </span>
-                              
+
                               <div className="flex items-center gap-1">
                                 {notification.orderId && (
                                   <ChevronRight className="w-4 h-4 text-gray-400" />
@@ -342,7 +331,7 @@ export function NotificationsPanel({
             {safeNotifications.length > 0 && (
               <>
                 <Separator />
-                <div 
+                <div
                   className="p-4"
                   style={{ background: 'linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%)' }}
                 >
