@@ -642,6 +642,7 @@ export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfil
             )}
           </div>
         </div>
-      </div >
-      );
+      </div>
+    </div>
+  );
 }
