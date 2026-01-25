@@ -49,7 +49,7 @@ interface ProductFormData {
   imageUrl: string;
   productionAreaId: string;
   unlimitedStock: boolean;
-  ingredients: ProductIngredient[];
+  ingredients: (ProductIngredient & { inputUnit?: string })[];
 }
 
 const emptyForm: ProductFormData = {
@@ -196,10 +196,18 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
         categoryId: formData.categoryId || undefined,
         imageUrl: formData.imageUrl.trim() || undefined,
         productionAreaId: formData.productionAreaId || undefined,
-        ingredients: formData.ingredients.map(pi => ({
-          ingredientId: pi.ingredientId,
-          quantity: pi.quantity
-        }))
+        ingredients: formData.ingredients.map(pi => {
+          // Convert back to base unit if necessary before saving
+          let quantityToSave = pi.quantity;
+          const unit = pi.inputUnit;
+          if (unit === 'g' || unit === 'ml') {
+            quantityToSave = quantityToSave / 1000;
+          }
+          return {
+            ingredientId: pi.ingredientId,
+            quantity: quantityToSave
+          };
+        })
       };
 
       if (editingProduct) {
@@ -895,7 +903,8 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                                   ingredientId: value,
                                   ingredientName: ingredientData.name,
                                   quantity: 1,
-                                  unit: ingredientData.unit
+                                  unit: ingredientData.unit,
+                                  inputUnit: ingredientData.unit // Default to base unit
                                 }
                               ]
                             });
@@ -973,9 +982,65 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                                   className="w-20 h-8 text-center"
                                   placeholder="Cant."
                                 />
-                                <span className="text-xs text-gray-600 w-12">
-                                  {ingredientData?.unit}
-                                </span>
+                                <div className="w-20">
+                                  <Select
+                                    value={ingredient.inputUnit || ingredientData?.unit || 'unidades'}
+                                    onValueChange={(val) => {
+                                      const newIngredients = [...formData.ingredients];
+                                      // Store the input type (unit)
+                                      // If changing unit, we might want to adjust quantity? Or just interpret quantity differently?
+                                      // The requirement "meter el ingrediente en gramos y que haga la transformación" means the input value is in 'val', 
+                                      // but we need to store it as base unit eventually? 
+                                      // Or we store the input unit and convert on Save. The user said "haga la transformacion automatica".
+                                      // Let's store inputUnit and rawInputQuantity if we want to preserve what user sees.
+                                      // But here we are iterating formData.ingredients which is ProductIngredient[].
+                                      // Let's augment the state to handle this UI logic or do it on the fly.
+                                      // Easier: Use a local unit state per row? But rows are dynamic.
+                                      // Let's add an optional 'inputUnit' property to the ingredient object in formData for UI purposes.
+                                      // We need to update the interface in the component or just cast it.
+                                      newIngredients[index] = { ...newIngredients[index], inputUnit: val };
+
+                                      // If switching from kg to g, multiply by 1000? Or just keep number and let user change it?
+                                      // Usually better to keep number or convert. If I have 1 kg and switch to g, it should be 1000 g.
+                                      const currentQty = newIngredients[index].quantity;
+                                      const currentUnit = ingredient.inputUnit || ingredientData?.unit;
+
+                                      // Simple conversion logic for display
+                                      if (currentUnit === 'kg' && val === 'g') newIngredients[index].quantity = currentQty * 1000;
+                                      if (currentUnit === 'g' && val === 'kg') newIngredients[index].quantity = currentQty / 1000;
+                                      if (currentUnit === 'l' && val === 'ml') newIngredients[index].quantity = currentQty * 1000;
+                                      if (currentUnit === 'ml' && val === 'l') newIngredients[index].quantity = currentQty / 1000;
+
+                                      setFormData({ ...formData, ingredients: newIngredients });
+                                    }}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {(() => {
+                                        const baseUnit = ingredientData?.unit?.toLowerCase();
+                                        if (baseUnit === 'kg' || baseUnit === 'kilos') {
+                                          return (
+                                            <>
+                                              <SelectItem value="kg">kg</SelectItem>
+                                              <SelectItem value="g">g</SelectItem>
+                                            </>
+                                          );
+                                        } else if (baseUnit === 'l' || baseUnit === 'litros') {
+                                          return (
+                                            <>
+                                              <SelectItem value="l">l</SelectItem>
+                                              <SelectItem value="ml">ml</SelectItem>
+                                            </>
+                                          );
+                                        } else {
+                                          return <SelectItem value={baseUnit || 'unidades'}>{baseUnit || 'unidades'}</SelectItem>;
+                                        }
+                                      })()}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
                                 <Button
                                   type="button"
                                   variant="ghost"

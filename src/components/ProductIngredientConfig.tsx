@@ -30,6 +30,7 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
     ingredientId: "",
     quantity: 0,
   });
+  const [inputUnit, setInputUnit] = useState<string>("");
 
   useEffect(() => {
     console.log("ProductIngredientConfig: Component mounted");
@@ -86,16 +87,22 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
 
     try {
       setSaving(true);
+      let quantityToSave = newIngredient.quantity;
+      if (inputUnit === 'g' || inputUnit === 'ml') {
+        quantityToSave = quantityToSave / 1000;
+      }
+
       await productIngredientsAPI.addIngredient(
         accessToken,
         selectedProduct.id,
         newIngredient.ingredientId,
-        newIngredient.quantity
+        quantityToSave
       );
 
       toast.success("Ingrediente agregado al producto");
       setShowAddForm(false);
       setNewIngredient({ ingredientId: "", quantity: 0 });
+      setInputUnit("");
       loadProductIngredients(selectedProduct.id);
     } catch (error: any) {
       console.error("Error adding ingredient:", error);
@@ -310,7 +317,20 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
                                 <label className="block text-sm mb-2">Ingrediente</label>
                                 <select
                                   value={newIngredient.ingredientId}
-                                  onChange={(e) => setNewIngredient({ ...newIngredient, ingredientId: e.target.value })}
+                                  onChange={(e) => {
+                                    const id = e.target.value;
+                                    setNewIngredient({ ...newIngredient, ingredientId: id });
+                                    const ing = ingredients.find(i => i.id === id);
+                                    if (ing) {
+                                      // Normalize unit to lower case for comparison just in case, or use exact string
+                                      // If it's kilogram/liters, default to the base unit
+                                      // We can store the unit directly
+                                      const u = ing.unit.toLowerCase();
+                                      if (u === 'kilos') setInputUnit('kg');
+                                      else if (u === 'litros') setInputUnit('l');
+                                      else setInputUnit(ing.unit);
+                                    }
+                                  }}
                                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 >
                                   <option value="">Seleccione un ingrediente</option>
@@ -336,9 +356,43 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
                                     placeholder="0.00"
                                   />
                                   {newIngredient.ingredientId && (
-                                    <span className="px-4 py-2 bg-gray-100 rounded-lg text-gray-700">
-                                      {getIngredientDetails(newIngredient.ingredientId)?.unit}
-                                    </span>
+                                    (() => {
+                                      const ing = getIngredientDetails(newIngredient.ingredientId);
+                                      if (!ing) return null;
+
+                                      const isKg = ing.unit.toLowerCase() === 'kg' || ing.unit.toLowerCase() === 'kilos';
+                                      const isL = ing.unit.toLowerCase() === 'l' || ing.unit.toLowerCase() === 'litros';
+
+                                      if (isKg) {
+                                        return (
+                                          <select
+                                            value={inputUnit}
+                                            onChange={(e) => setInputUnit(e.target.value)}
+                                            className="px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700"
+                                          >
+                                            <option value="kg">kg</option>
+                                            <option value="g">gramos</option>
+                                          </select>
+                                        );
+                                      } else if (isL) {
+                                        return (
+                                          <select
+                                            value={inputUnit}
+                                            onChange={(e) => setInputUnit(e.target.value)}
+                                            className="px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700"
+                                          >
+                                            <option value="l">litros</option>
+                                            <option value="ml">ml</option>
+                                          </select>
+                                        );
+                                      } else {
+                                        return (
+                                          <span className="px-4 py-2 bg-gray-100 rounded-lg text-gray-700 flex items-center">
+                                            {ing.unit}
+                                          </span>
+                                        );
+                                      }
+                                    })()
                                   )}
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">
@@ -360,6 +414,7 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
                                   onClick={() => {
                                     setShowAddForm(false);
                                     setNewIngredient({ ingredientId: "", quantity: 0 });
+                                    setInputUnit("");
                                   }}
                                   className="flex-1"
                                 >

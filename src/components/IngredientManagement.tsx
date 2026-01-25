@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { ArrowLeft, Plus, Save, Trash2, Package, AlertTriangle, TrendingDown, TrendingUp, Edit2, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ArrowLeft, Plus, Save, Trash2, Package, AlertTriangle, TrendingDown, TrendingUp, Edit2, X, Search, Filter } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { ingredientsAPI, type Ingredient as APIIngredient } from "../utils/api";
@@ -16,6 +16,7 @@ export function IngredientManagement({ onBack, accessToken }: IngredientManageme
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
 
   // Usamos strings para los campos numéricos durante la edición
   const [formData, setFormData] = useState<{
@@ -35,6 +36,9 @@ export function IngredientManagement({ onBack, accessToken }: IngredientManageme
     costPerUnit: "",
     supplier: "",
   });
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [supplierFilter, setSupplierFilter] = useState<string>("ALL");
 
   useEffect(() => {
     console.log("IngredientManagement: Component mounted");
@@ -64,13 +68,24 @@ export function IngredientManagement({ onBack, accessToken }: IngredientManageme
         return;
       }
 
+      // Helper to parse CLP currency string to number
+      const parseCurrency = (value: string): number | undefined => {
+        if (!value) return undefined;
+        // Remove dots and replace comma with dot (if consistent with previous numeric logic, 
+        // though CLP usually doesn't use decimals for prices, but let's be robust)
+        // However, standard CLP is integer. Let's assume user inputs 1.200 as 1200.
+        // User request: "1.200 or 1200 sea el mismo monto" -> 1200.
+        const cleanValue = value.replace(/\./g, '').replace(',', '.');
+        return parseFloat(cleanValue);
+      };
+
       const numericFormData = {
         name: formData.name,
         unit: formData.unit,
         currentStock: parseFloat(formData.currentStock),
         minStock: parseFloat(formData.minStock),
         maxStock: formData.maxStock ? parseFloat(formData.maxStock) : undefined,
-        costPerUnit: formData.costPerUnit ? parseFloat(formData.costPerUnit) : undefined,
+        costPerUnit: parseCurrency(formData.costPerUnit),
         supplier: formData.supplier,
       };
 
@@ -113,6 +128,15 @@ export function IngredientManagement({ onBack, accessToken }: IngredientManageme
     }
   };
 
+  const formatCurrency = (value: number | string) => {
+    if (!value) return "";
+    // Format number to CLP with thousand separators (dots)
+    // If it's a string, try to parse it first if it's raw number
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num)) return value.toString();
+    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(num);
+  };
+
   const handleEdit = (ingredient: APIIngredient) => {
     setFormData({
       name: ingredient.name,
@@ -120,11 +144,18 @@ export function IngredientManagement({ onBack, accessToken }: IngredientManageme
       currentStock: ingredient.currentStock.toString(),
       minStock: ingredient.minStock.toString(),
       maxStock: ingredient.maxStock ? ingredient.maxStock.toString() : "",
+      // Maintain as string, but maybe unformatted for editing or formatted? 
+      // User likely wants to see formatted value. Let's provide raw value first or allow both.
+      // But for "text" input handling we might want to just show the raw number initially or handle formatting.
+      // To strictly follow "1.200 or 1200", let's load it as normal string.
       costPerUnit: ingredient.costPerUnit ? ingredient.costPerUnit.toString() : "",
       supplier: ingredient.supplier || "",
     });
     setEditingId(ingredient.id);
     setShowNewForm(false);
+
+    // Auto-scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCancel = () => {
@@ -154,6 +185,17 @@ export function IngredientManagement({ onBack, accessToken }: IngredientManageme
       return { status: "normal", label: "Normal", color: "bg-green-500" };
     }
   };
+
+
+
+  // Filter logic
+  const uniqueSuppliers = Array.from(new Set(ingredients.map(i => i.supplier).filter(Boolean)));
+
+  const filteredIngredients = ingredients.filter(ingredient => {
+    const matchesSearch = ingredient.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSupplier = supplierFilter === "ALL" || ingredient.supplier === supplierFilter;
+    return matchesSearch && matchesSupplier;
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 pb-20">
@@ -239,13 +281,45 @@ export function IngredientManagement({ onBack, accessToken }: IngredientManageme
           </Card>
         </div>
 
+        {/* Filters */}
+        <Card className="mb-6 bg-white p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar materia prima..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 md:w-1/3">
+              <Filter className="w-5 h-5 text-gray-500 shrink-0" />
+              <select
+                value={supplierFilter}
+                onChange={(e) => setSupplierFilter(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="ALL">Todos los proveedores</option>
+                {uniqueSuppliers.map(supplier => (
+                  <option key={supplier} value={supplier as string}>{supplier}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </Card>
+
         {/* New/Edit Form */}
         <AnimatePresence>
           {(showNewForm || editingId) && (
             <motion.div
+              ref={formRef}
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
+              className="scroll-mt-40"
             >
               <Card className="p-6 bg-white shadow-lg border-2 border-blue-500">
                 <div className="flex items-center justify-between mb-4">
@@ -339,15 +413,37 @@ export function IngredientManagement({ onBack, accessToken }: IngredientManageme
 
                   <div>
                     <label className="block text-sm mb-2">
-                      Costo por Unidad (Opcional)
+                      Costo por Unidad (CLP) (Opcional)
                     </label>
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text"
                       value={formData.costPerUnit}
-                      onChange={(e) => setFormData({ ...formData, costPerUnit: e.target.value })}
+                      onChange={(e) => {
+                        // Allow only numbers, dots and commas
+                        const val = e.target.value;
+                        if (/^[\d.,]*$/.test(val)) {
+                          setFormData({ ...formData, costPerUnit: val });
+                        }
+                      }}
+                      onBlur={(e) => {
+                        // Format on blur: 1200 -> 1.200
+                        const val = e.target.value;
+                        if (val) {
+                          const cleanVal = val.replace(/\./g, '').replace(',', '.');
+                          const num = parseFloat(cleanVal);
+                          if (!isNaN(num)) {
+                            // Simple format: add dots for thousands. 
+                            // We can use Intl but might need to strip the '$' symbol if we just want the number part formatted.
+                            // Or we keep it simple.
+                            // Let's use Intl and strip symbol for input field
+                            const formatted = new Intl.NumberFormat('es-CL').format(num);
+                            setFormData({ ...formData, costPerUnit: formatted });
+                          }
+                        }
+                      }}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="0.00"
+                      placeholder="Ej: 1.200 o 1200"
+
                     />
                   </div>
 
@@ -409,7 +505,7 @@ export function IngredientManagement({ onBack, accessToken }: IngredientManageme
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {ingredients.map((ingredient) => {
+            {filteredIngredients.map((ingredient) => {
               const stockStatus = getStockStatus(ingredient);
               return (
                 <motion.div
@@ -476,7 +572,7 @@ export function IngredientManagement({ onBack, accessToken }: IngredientManageme
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">Costo/Unidad:</span>
                           <span className="text-gray-900">
-                            ${ingredient.costPerUnit.toFixed(2)}
+                            {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(ingredient.costPerUnit)}
                           </span>
                         </div>
                       )}
