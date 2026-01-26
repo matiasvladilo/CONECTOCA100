@@ -26,12 +26,30 @@ import {
   Image as ImageIcon,
   Folder,
   Factory,
-  AlertTriangle
+  AlertTriangle,
+  Check,
+  ChevronsUpDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import logo from '../assets/logo.png';
 import { formatCLP, parseCLP, formatCLPInput } from '../utils/format';
 import { ImageUpload } from './ImageUpload';
+import { cn } from './ui/utils';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "./ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "./ui/popover";
+
+
 
 interface ProductManagementProps {
   accessToken: string;
@@ -78,6 +96,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
   const [isDeleting, setIsDeleting] = useState<Product | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isIngredientSearchOpen, setIsIngredientSearchOpen] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -283,7 +302,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
     total: products.length,
     lowStock: products.filter(p => p.stock < 10 && p.stock !== -1).length,
     outOfStock: products.filter(p => p.stock === 0).length,
-    totalValue: products.reduce((sum, p) => sum + (p.price * p.stock), 0)
+    totalValue: products.reduce((sum, p) => sum + (p.price * (p.stock === -1 ? 0 : p.stock)), 0)
   };
 
   return (
@@ -756,10 +775,10 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                   <Checkbox
                     id="unlimited-stock"
                     checked={formData.unlimitedStock}
-                    onCheckedChange={(checked) => setFormData({
+                    onCheckedChange={(checked: boolean | "indeterminate") => setFormData({
                       ...formData,
-                      unlimitedStock: checked as boolean,
-                      stock: checked ? '0' : formData.stock
+                      unlimitedStock: checked === true,
+                      stock: checked === true ? '0' : formData.stock
                     })}
                     className="border-blue-400 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                   />
@@ -783,7 +802,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                 <Label htmlFor="categoryId">Categoría</Label>
                 <Select
                   value={formData.categoryId || "none"}
-                  onValueChange={(value) => {
+                  onValueChange={(value: string) => {
                     if (value === "none") {
                       setFormData({
                         ...formData,
@@ -823,7 +842,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                 <Label htmlFor="productionAreaId">Área de Producción</Label>
                 <Select
                   value={formData.productionAreaId || "none"}
-                  onValueChange={(value) => {
+                  onValueChange={(value: string) => {
                     if (value === "none") {
                       setFormData({
                         ...formData,
@@ -881,58 +900,102 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                     Define qué materias primas se necesitan para fabricar este producto. El stock se descontará automáticamente al crear órdenes de producción.
                   </p>
 
-                  {/* Add Ingredient Selector */}
+                  {/* Add Ingredient Selector - Searchable Combobox */}
                   <div className="mb-4">
                     <Label className="text-xs mb-2 block">Agregar Ingrediente</Label>
-                    <Select
-                      value="none"
-                      onValueChange={(value) => {
-                        if (value !== "none") {
-                          // Check if ingredient is already added
-                          if (formData.ingredients.some(i => i.ingredientId === value)) {
-                            toast.error('Este ingrediente ya está agregado');
-                            return;
-                          }
-                          const ingredientData = ingredients.find(i => i.id === value);
-                          if (ingredientData) {
-                            setFormData({
-                              ...formData,
-                              ingredients: [
-                                ...formData.ingredients,
-                                {
-                                  ingredientId: value,
-                                  ingredientName: ingredientData.name,
-                                  quantity: 1,
-                                  unit: ingredientData.unit,
-                                  inputUnit: ingredientData.unit // Default to base unit
-                                }
-                              ]
-                            });
-                            toast.success(`${ingredientData.name} agregado a la receta`);
-                          }
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="w-full bg-white">
-                        <SelectValue placeholder="+ Seleccionar ingrediente para agregar..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none" disabled>Seleccionar ingrediente</SelectItem>
-                        {ingredients.length === 0 ? (
-                          <SelectItem value="no-ingredients" disabled>
-                            No hay materias primas disponibles
-                          </SelectItem>
-                        ) : (
-                          ingredients
-                            .filter(ing => !formData.ingredients.some(i => i.ingredientId === ing.id))
-                            .map((ing) => (
-                              <SelectItem key={ing.id} value={ing.id}>
-                                {ing.name} - Stock: {ing.currentStock} {ing.unit}
-                              </SelectItem>
-                            ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={isIngredientSearchOpen} onOpenChange={setIsIngredientSearchOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={isIngredientSearchOpen}
+                          className="w-full justify-between bg-white border-input"
+                        >
+                          <span className="truncate text-gray-600 font-normal">
+                            + Seleccionar ingrediente para agregar...
+                          </span>
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-[450px] p-0 shadow-xl border border-slate-200 bg-white rounded-lg overflow-hidden"
+                        align="start"
+                        style={{ height: '300px' }} // Hard limit on height
+                      >
+                        <Command className="w-full h-full flex flex-col bg-white">
+                          {/* Header */}
+                          <div className="flex items-center border-b border-slate-100 bg-slate-50 px-3 shrink-0 h-12">
+                            <Search className="w-4 h-4 mr-2 text-slate-400" />
+                            <CommandInput
+                              placeholder="Buscar..."
+                              className="flex-1 h-full bg-transparent border-none focus:ring-0 text-sm"
+                              style={{ boxShadow: 'none' }}
+                            />
+                          </div>
+
+                          {/* Bounded List */}
+                          <CommandList
+                            className="flex-1 overflow-y-auto custom-scrollbar p-1"
+                            style={{
+                              maxHeight: 'calc(300px - 48px)', // Explicit math: Total - Header
+                              height: '100%',
+                              overscrollBehavior: 'contain',   // Prevents scrolling parent when list end is reached
+                              touchAction: 'pan-y',            // Enables finger scrolling
+                              WebkitOverflowScrolling: 'touch' // iOS Momentum scrolling
+                            }}
+                          >
+                            <CommandEmpty className="py-6 text-center text-xs text-slate-500">
+                              No se encontró nada.
+                            </CommandEmpty>
+
+                            <CommandGroup heading="Ingredientes" className="px-1">
+                              {ingredients.length === 0 ? (
+                                <div className="p-4 text-center text-sm text-gray-500">
+                                  No hay materias primas creadas
+                                </div>
+                              ) : (
+                                ingredients
+                                  .filter(ing => !formData.ingredients.some(i => i.ingredientId === ing.id))
+                                  .map((ing) => (
+                                    <CommandItem
+                                      key={ing.id}
+                                      value={ing.name}
+                                      onSelect={() => {
+                                        setFormData({
+                                          ...formData,
+                                          ingredients: [
+                                            ...formData.ingredients,
+                                            {
+                                              ingredientId: ing.id,
+                                              ingredientName: ing.name,
+                                              quantity: 1,
+                                              unit: ing.unit,
+                                              inputUnit: ing.unit
+                                            }
+                                          ]
+                                        });
+                                        toast.success(`${ing.name} agregado a la receta`);
+                                        setIsIngredientSearchOpen(false);
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4 opacity-0"
+                                        )}
+                                      />
+                                      <div className="flex flex-col">
+                                        <span className="font-medium">{ing.name}</span>
+                                        <span className="text-xs text-gray-500">Stock actual: {ing.currentStock} {ing.unit}</span>
+                                      </div>
+                                    </CommandItem>
+                                  ))
+                              )}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+
                     {ingredients.length === 0 && (
                       <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" />
@@ -985,7 +1048,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                                 <div className="w-20">
                                   <Select
                                     value={ingredient.inputUnit || ingredientData?.unit || 'unidades'}
-                                    onValueChange={(val) => {
+                                    onValueChange={(val: string) => {
                                       const newIngredients = [...formData.ingredients];
                                       // Store the input type (unit)
                                       // If changing unit, we might want to adjust quantity? Or just interpret quantity differently?
@@ -1094,8 +1157,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                   </>
                 ) : (
                   <>
-                    {editingProduct ? <Edit className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                    {editingProduct ? 'Actualizar' : 'Crear Producto'}
+                    {editingProduct ? 'Guardar Cambios' : 'Guardar Producto'}
                   </>
                 )}
               </Button>

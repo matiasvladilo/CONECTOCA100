@@ -5266,7 +5266,7 @@
   --border: #1e3a8a26;
   --input: transparent;
   --input-background: #f1f5f9;
-  --switch-background: #cbd5e1;
+  --switch-background: #94A3B8;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
   --ring: #3b82f6;
@@ -6236,3 +6236,4 @@ button, span, p, h1, h2, h3, h4, h5, h6, div {
     transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0) scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), var(--tw-exit-scale, 1)) rotate(var(--tw-exit-rotate, 0));
   }
 }
+@layer utilities { .custom-scrollbar::-webkit-scrollbar { width: 6px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #94A3B8; border-radius: 10px; } .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94A3B8; } }

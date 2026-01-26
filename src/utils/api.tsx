@@ -240,6 +240,8 @@ export const ordersAPI = {
       deadline: string;
       total: number;
       notes?: string;
+      deliveryAddress?: string;
+      customerName?: string;
     }
   ): Promise<Order> => {
     const response = await fetchAPI(
@@ -405,6 +407,8 @@ export const productsAPI = {
     category?: string;
     categoryId?: string;
     imageUrl?: string;
+    productionAreaId?: string;
+    ingredients?: Array<{ ingredientId: string; quantity: number }>;
   }): Promise<Product> => {
     const response = await fetchAPI('/products', {
       method: 'POST',
@@ -413,7 +417,7 @@ export const productsAPI = {
     return response?.data || response;
   },
 
-  update: async (token: string, productId: string, updates: Partial<Product>): Promise<Product> => {
+  update: async (token: string, productId: string, updates: Partial<Product> & { ingredients?: Array<{ ingredientId: string; quantity: number }> }): Promise<Product> => {
     const response = await fetchAPI(`/products/${productId}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
@@ -448,9 +452,9 @@ export interface ProductIngredient {
   productId?: string;
   productName?: string;
   ingredientId: string;
-  ingredientName: string;
+  ingredientName?: string;
   quantity: number;
-  unit: string;
+  unit?: string;
   costPerUnit?: number;
 }
 
