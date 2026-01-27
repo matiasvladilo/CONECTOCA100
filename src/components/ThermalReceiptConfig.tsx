@@ -434,25 +434,38 @@ export function ThermalReceiptConfig({
       {isPrinting && (
         <style>{`
           @media print {
+            @page {
+              size: ${paperWidth} auto;
+              margin: 0mm;
+            }
+            
+            body {
+              margin: 0;
+              padding: 0;
+              width: ${paperWidth};
+              min-width: ${paperWidth};
+            }
+
             body * {
               visibility: hidden;
+              height: 0;
             }
             
             .thermal-print-container,
             .thermal-print-container * {
               visibility: visible;
+              height: auto;
             }
             
             .thermal-print-container {
               position: absolute;
               left: 0;
               top: 0;
-              width: 100%;
-            }
-            
-            @page {
-              size: ${paperWidth} auto;
+              width: ${paperWidth} !important;
               margin: 0;
+              padding: 0;
+              background-color: white;
+              z-index: 9999;
             }
           }
         `}</style>
