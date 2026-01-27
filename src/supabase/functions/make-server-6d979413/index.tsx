@@ -72,12 +72,12 @@ async function verifyAuth(authHeader: string | null) {
     // IMPORTANT: Use supabaseAuth (with ANON_KEY) to verify user tokens, not supabaseAdmin
     console.log(`🔍 Verifying token (length: ${token.length}, first 20 chars: ${token.substring(0, 20)}...)`);
     const { data: { user }, error } = await supabaseAuth.auth.getUser(token);
-    
+
     if (error) {
       console.log(`❌ Auth failed: ${error.message}`, error);
       return { error: `Invalid JWT: ${error.message}`, userId: null };
     }
-    
+
     if (!user) {
       console.log('❌ Auth failed: No user found');
       return { error: 'User not found', userId: null };
@@ -116,27 +116,27 @@ app.post("/make-server-6d979413/auth/reset-password", async (c) => {
 
     if (error) {
       console.log(`❌ Error sending password reset email: ${error.message}`);
-      
+
       // Don't reveal if email exists or not for security
       // Return success message anyway
-      return c.json({ 
+      return c.json({
         success: true,
         message: 'Si el correo existe en nuestro sistema, recibirás un enlace de recuperación'
       });
     }
 
     console.log(`✅ Password reset email sent successfully to: ${email}`);
-    
-    return c.json({ 
+
+    return c.json({
       success: true,
       message: 'Se ha enviado un enlace de recuperación a tu correo'
     });
 
   } catch (err: any) {
     console.error('❌ Password reset exception:', err);
-    
+
     // Return generic success message for security
-    return c.json({ 
+    return c.json({
       success: true,
       message: 'Si el correo existe en nuestro sistema, recibirás un enlace de recuperación'
     });
@@ -176,7 +176,7 @@ app.post("/make-server-6d979413/signup", async (c) => {
       if (inviteCode === 'DEMOCODE') {
         const allBusinesses = await kv.getByPrefix('business:');
         const existingDemoBusiness = allBusinesses.find((b: any) => b.inviteCode === 'DEMOCODE');
-        
+
         if (existingDemoBusiness) {
           // Demo business already exists, reuse it
           business = existingDemoBusiness;
@@ -193,7 +193,7 @@ app.post("/make-server-6d979413/signup", async (c) => {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           };
-          
+
           // Save business immediately so other users can join
           await kv.set(`business:${businessId}`, business);
           console.log(`📝 Demo business saved immediately: ${businessName} (ID: ${businessId}, Code: ${inviteCode})`);
@@ -211,7 +211,7 @@ app.post("/make-server-6d979413/signup", async (c) => {
         };
         console.log(`📝 Creating new business: ${businessName} (ID: ${businessId}, Code: ${inviteCode})`);
       }
-      
+
     } else if (businessAction === 'join') {
       // Join existing business
       if (!businessCode || businessCode.trim().length === 0) {
@@ -232,7 +232,7 @@ app.post("/make-server-6d979413/signup", async (c) => {
 
     // Determine user role: admin if creating business, otherwise use provided role or default to 'user'
     const userRole = businessAction === 'create' ? 'admin' : (role || 'user');
-    
+
     if (businessAction === 'create') {
       console.log(`👑 Creating business owner with admin role for: ${email}`);
     }
@@ -250,12 +250,12 @@ app.post("/make-server-6d979413/signup", async (c) => {
 
     if (error) {
       console.log(`Error creating user during signup: ${error.message}`);
-      
+
       // Handle specific errors
       if (error.message.includes('already registered') || error.message.includes('already been registered')) {
         return c.json({ error: 'Este email ya está registrado. Por favor inicia sesión.' }, 400);
       }
-      
+
       return c.json({ error: error.message }, 400);
     }
 
@@ -295,8 +295,8 @@ app.post("/make-server-6d979413/signup", async (c) => {
     console.log(`✓ User ${email} created and associated with business ${businessId}`)
     console.log(`📋 User profile saved:`, JSON.stringify(userProfile, null, 2));
 
-    return c.json({ 
-      success: true, 
+    return c.json({
+      success: true,
       user: {
         id: data.user.id,
         email,
@@ -329,9 +329,9 @@ app.get("/make-server-6d979413/profile", async (c) => {
 
   try {
     let profile = await kv.get(`user:${userId}`);
-    
+
     console.log(`👤 GET /profile - User: ${userId}`);
-    
+
     // If profile doesn't exist, create it from user metadata
     if (!profile && user) {
       console.log(`⚠️ Profile not found, creating from metadata for user ${userId}`);
@@ -347,13 +347,13 @@ app.get("/make-server-6d979413/profile", async (c) => {
         },
         createdAt: new Date().toISOString()
       };
-      
+
       await kv.set(`user:${userId}`, profile);
       console.log(`✓ Profile created for user ${userId} with role: ${profile.role}, businessId: ${profile.businessId}`);
     } else if (profile) {
       console.log(`✓ Profile found - Role: ${profile.role}, BusinessId: ${profile.businessId}`);
     }
-    
+
     if (!profile) {
       console.log(`❌ No se pudo crear el perfil para user ${userId}`);
       return c.json({ error: 'No se pudo crear el perfil' }, 500);
@@ -414,7 +414,7 @@ app.get("/make-server-6d979413/business", async (c) => {
 
   try {
     const userProfile = await kv.get(`user:${userId}`);
-    
+
     if (!userProfile || !userProfile.businessId) {
       return c.json({ error: 'Usuario no asociado a ningún negocio' }, 404);
     }
@@ -453,7 +453,7 @@ app.post("/make-server-6d979413/business/regenerate-code", async (c) => {
 
   try {
     const userProfile = await kv.get(`user:${userId}`);
-    
+
     if (!userProfile || !userProfile.businessId) {
       return c.json({ error: 'Usuario no asociado a ningún negocio' }, 404);
     }
@@ -471,7 +471,7 @@ app.post("/make-server-6d979413/business/regenerate-code", async (c) => {
 
     // Generate new invite code
     const newInviteCode = Math.random().toString(36).substring(2, 10).toUpperCase();
-    
+
     business.inviteCode = newInviteCode;
     business.updatedAt = new Date().toISOString();
 
@@ -479,10 +479,10 @@ app.post("/make-server-6d979413/business/regenerate-code", async (c) => {
 
     console.log(`✓ Invite code regenerated for business ${business.name}: ${newInviteCode}`);
 
-    return c.json({ 
-      data: { 
-        inviteCode: newInviteCode 
-      } 
+    return c.json({
+      data: {
+        inviteCode: newInviteCode
+      }
     });
   } catch (error) {
     console.error('Error regenerating invite code:', error);
@@ -501,7 +501,7 @@ app.get("/make-server-6d979413/business/members", async (c) => {
 
   try {
     const userProfile = await kv.get(`user:${userId}`);
-    
+
     if (!userProfile || !userProfile.businessId) {
       return c.json({ error: 'Usuario no asociado a ningún negocio' }, 404);
     }
@@ -524,7 +524,7 @@ app.get("/make-server-6d979413/business/members", async (c) => {
         createdAt: u.createdAt
       }));
 
-    return c.json({ 
+    return c.json({
       data: {
         business: {
           id: business.id,
@@ -532,7 +532,7 @@ app.get("/make-server-6d979413/business/members", async (c) => {
         },
         members: businessMembers,
         totalMembers: businessMembers.length
-      } 
+      }
     });
   } catch (error) {
     console.error('Error getting business members:', error);
@@ -554,41 +554,41 @@ app.get("/make-server-6d979413/products", async (c) => {
   try {
     // Get user's businessId
     const userProfile = await kv.get(`user:${userId}`);
-    
+
     console.log(`📦 GET /products - User: ${userId}, Role: ${userProfile?.role}, BusinessId: ${userProfile?.businessId}`);
-    
+
     if (!userProfile || !userProfile.businessId) {
       console.log(`❌ User not associated with business`);
       return c.json({ error: 'Usuario no asociado a ningún negocio' }, 404);
     }
 
     const page = parseInt(c.req.query('page') || '1');
-    const limit = parseInt(c.req.query('limit') || '20');
+    const limit = parseInt(c.req.query('limit') || '1000');
     const offset = (page - 1) * limit;
 
     const allProducts = await kv.getByPrefix('product:');
     console.log(`📦 Total products in database: ${allProducts.length}`);
-    
+
     // Filter by businessId
     const businessProducts = (allProducts || []).filter((p: any) => p.businessId === userProfile.businessId);
     console.log(`📦 Products for business ${userProfile.businessId}: ${businessProducts.length}`);
-    
+
     // Log sample of products for debugging
     if (businessProducts.length > 0) {
       console.log(`📦 Sample product:`, JSON.stringify(businessProducts[0], null, 2));
     }
-    
+
     // Sort by creation date (newest first)
     businessProducts.sort((a: any, b: any) => {
       const dateA = new Date(a.createdAt || 0).getTime();
       const dateB = new Date(b.createdAt || 0).getTime();
       return dateB - dateA;
     });
-    
+
     // Apply pagination
     const paginatedProducts = businessProducts.slice(offset, offset + limit);
     console.log(`📦 Returning ${paginatedProducts.length} products (page ${page}, limit ${limit})`);
-    
+
     return c.json({
       data: paginatedProducts,
       pagination: {
@@ -618,15 +618,27 @@ app.post("/make-server-6d979413/products", async (c) => {
   try {
     // Get user's businessId
     const userProfile = await kv.get(`user:${userId}`);
-    
+
     console.log(`➕ POST /products - User: ${userId}, Role: ${userProfile?.role}, BusinessId: ${userProfile?.businessId}`);
-    
+
     if (!userProfile || !userProfile.businessId) {
       console.log(`❌ User not associated with business`);
       return c.json({ error: 'Usuario no asociado a ningún negocio' }, 404);
     }
 
-    const { name, description, price, image, imageUrl, stock, category, categoryId } = await c.req.json();
+    const body = await c.req.json();
+    const {
+      name,
+      description,
+      price,
+      image,
+      imageUrl,
+      stock,
+      category,
+      categoryId,
+      productionAreaId,
+      ingredients
+    } = body;
 
     if (!name || price === undefined || price === null) {
       return c.json({ error: 'Nombre y precio son requeridos' }, 400);
@@ -638,31 +650,41 @@ app.post("/make-server-6d979413/products", async (c) => {
       name,
       description: description || '',
       price: parseFloat(price),
-      image: image || imageUrl || '', // Support both 'image' and 'imageUrl'
-      imageUrl: imageUrl || image || '', // Store imageUrl as well for consistency
-      stock: stock !== undefined ? parseInt(stock) : 100, // default stock of 100
+      image: image || imageUrl || '',
+      imageUrl: imageUrl || image || '',
+      stock: stock !== undefined ? parseInt(stock) : 100,
       category: category || 'General',
       categoryId: categoryId || null,
-      businessId: userProfile.businessId, // Associate with business
+      productionAreaId: productionAreaId || null,
+      ingredients: ingredients !== undefined ? ingredients : [],
+      businessId: userProfile.businessId,
       createdBy: userId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
 
-    console.log(`➕ Creating product with data:`, JSON.stringify({
-      id: productId,
-      name,
-      businessId: userProfile.businessId,
-      createdBy: userId,
-      category: category || 'General'
-    }, null, 2));
+    console.log(`➕ Creating product "${name}" with ${product.ingredients.length} ingredients`);
 
     await kv.set(`product:${productId}`, product);
 
+    // Also save product-ingredient relationships for backend consistency
+    if (ingredients && Array.isArray(ingredients)) {
+      for (const ingredient of ingredients) {
+        const relationId = crypto.randomUUID();
+        await kv.set(`product-ingredient:${productId}:${ingredient.ingredientId}`, {
+          id: relationId,
+          productId,
+          ingredientId: ingredient.ingredientId,
+          quantity: ingredient.quantity,
+          createdAt: new Date().toISOString()
+        });
+      }
+    }
+
     // Verify it was saved correctly
     const savedProduct = await kv.get(`product:${productId}`);
-    console.log(`✓ Product saved and verified: ${name} (${category || 'General'}) for business ${userProfile.businessId}`);
-    console.log(`✓ Saved product businessId: ${savedProduct?.businessId}`);
+    console.log(`✓ Product saved and verified: ${name} for business ${userProfile.businessId}`);
+    console.log(`✓ Ingredients in saved product: ${savedProduct?.ingredients?.length || 0}`);
 
     return c.json({ data: product });
   } catch (error) {
@@ -683,13 +705,13 @@ app.put("/make-server-6d979413/products/:id", async (c) => {
   try {
     const productId = c.req.param('id');
     const updates = await c.req.json();
-    
+
     // Get user's businessId to verify access
     const userProfile = await kv.get(`user:${userId}`);
     if (!userProfile || !userProfile.businessId) {
       return c.json({ error: 'Usuario no asociado a ningún negocio' }, 404);
     }
-    
+
     const currentProduct = await kv.get(`product:${productId}`);
 
     if (!currentProduct) {
@@ -706,6 +728,8 @@ app.put("/make-server-6d979413/products/:id", async (c) => {
       updates.image = updates.imageUrl;
     }
 
+    const { ingredients } = updates;
+
     const updatedProduct = {
       ...currentProduct,
       ...updates,
@@ -713,12 +737,34 @@ app.put("/make-server-6d979413/products/:id", async (c) => {
       businessId: currentProduct.businessId, // ensure businessId doesn't change
       createdBy: currentProduct.createdBy, // ensure createdBy doesn't change
       createdAt: currentProduct.createdAt, // ensure createdAt doesn't change
+      ingredients: ingredients !== undefined ? ingredients : (currentProduct.ingredients || []),
       updatedAt: new Date().toISOString()
     };
 
     await kv.set(`product:${productId}`, updatedProduct);
 
-    console.log(`✓ Product updated: ${updatedProduct.name} for business ${userProfile.businessId}`);
+    // Update product-ingredient relationships for backend consistency
+    if (ingredients !== undefined && Array.isArray(ingredients)) {
+      // Delete existing relationships first
+      const existingRelations = await kv.getByPrefix(`product-ingredient:${productId}:`);
+      for (const relation of existingRelations) {
+        await kv.del(`product-ingredient:${productId}:${relation.ingredientId}`);
+      }
+
+      // Create new ones
+      for (const ingredient of ingredients) {
+        const relationId = crypto.randomUUID();
+        await kv.set(`product-ingredient:${productId}:${ingredient.ingredientId}`, {
+          id: relationId,
+          productId,
+          ingredientId: ingredient.ingredientId,
+          quantity: ingredient.quantity,
+          createdAt: new Date().toISOString()
+        });
+      }
+    }
+
+    console.log(`✓ Product updated: ${updatedProduct.name} for business ${userProfile.businessId} with ${ingredients?.length || 0} ingredients`);
 
     return c.json({ data: updatedProduct });
   } catch (error) {
@@ -738,24 +784,24 @@ app.delete("/make-server-6d979413/products/:id", async (c) => {
 
   try {
     const productId = c.req.param('id');
-    
+
     // Get user's businessId to verify access
     const userProfile = await kv.get(`user:${userId}`);
     if (!userProfile || !userProfile.businessId) {
       return c.json({ error: 'Usuario no asociado a ningún negocio' }, 404);
     }
-    
+
     const currentProduct = await kv.get(`product:${productId}`);
-    
+
     if (!currentProduct) {
       return c.json({ error: 'Producto no encontrado' }, 404);
     }
-    
+
     // Verify product belongs to user's business
     if (currentProduct.businessId !== userProfile.businessId) {
       return c.json({ error: 'No tienes permiso para eliminar este producto' }, 403);
     }
-    
+
     await kv.del(`product:${productId}`);
 
     console.log(`✓ Product deleted: ${currentProduct.name} from business ${userProfile.businessId}`);
@@ -782,7 +828,7 @@ app.get('/make-server-6d979413/products/:id/ingredients', async (c) => {
 
   try {
     const productId = c.req.param('id');
-    
+
     // Get product to verify it exists
     const product = await kv.get(`product:${productId}`);
     if (!product) {
@@ -790,8 +836,20 @@ app.get('/make-server-6d979413/products/:id/ingredients', async (c) => {
     }
 
     // Get ingredients from product-ingredient relationships
-    const relations = await kv.getByPrefix(`product-ingredient:${productId}:`);
-    
+    let relations = await kv.getByPrefix(`product-ingredient:${productId}:`);
+
+    // Fallback: If no relations found, check if product has ingredients array (legacy support)
+    if ((!relations || relations.length === 0) && product.ingredients && Array.isArray(product.ingredients) && product.ingredients.length > 0) {
+      console.log(`⚠️ No product-ingredient relations found for ${productId}, using legacy 'ingredients' array with ${product.ingredients.length} items`);
+      relations = product.ingredients.map((pi: any) => ({
+        id: pi.id || crypto.randomUUID(),
+        productId: productId,
+        ingredientId: pi.ingredientId,
+        quantity: pi.quantity,
+        createdAt: product.createdAt
+      }));
+    }
+
     // Get ingredient details
     const productIngredients = await Promise.all(
       relations.map(async (relation: any) => {
@@ -861,9 +919,9 @@ app.put('/make-server-6d979413/products/:id/ingredients', async (c) => {
           quantity: ingredient.quantity,
           createdAt: new Date().toISOString()
         };
-        
+
         await kv.set(`product-ingredient:${productId}:${ingredient.ingredientId}`, relation);
-        
+
         // Get ingredient details for response
         const ingredientData = await kv.get(`ingredient:${ingredient.ingredientId}`);
         productIngredients.push({
@@ -932,7 +990,7 @@ app.post('/make-server-6d979413/products/:id/ingredients', async (c) => {
       quantity,
       createdAt: new Date().toISOString()
     };
-    
+
     await kv.set(`product-ingredient:${productId}:${ingredientId}`, relation);
 
     const productIngredient = {
@@ -1001,9 +1059,9 @@ app.post("/make-server-6d979413/upload-product-image", async (c) => {
 
   try {
     console.log('📸 Starting product image upload...');
-    
+
     const userProfile = await kv.get(`user:${userId}`);
-    
+
     if (!userProfile || !userProfile.businessId) {
       return c.json({ error: 'Usuario no asociado a ningún negocio' }, 404);
     }
@@ -1034,14 +1092,14 @@ app.post("/make-server-6d979413/upload-product-image", async (c) => {
     // Check if bucket exists, create if not
     const { data: buckets } = await supabaseAdmin.storage.listBuckets();
     const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
-    
+
     if (!bucketExists) {
       console.log(`📦 Creating storage bucket: ${bucketName}`);
       const { error: createError } = await supabaseAdmin.storage.createBucket(bucketName, {
         public: false,
         fileSizeLimit: 5242880 // 5MB
       });
-      
+
       if (createError) {
         console.error('❌ Error creating bucket:', createError);
         return c.json({ error: 'Error al crear el bucket de almacenamiento' }, 500);
@@ -1085,9 +1143,9 @@ app.post("/make-server-6d979413/upload-product-image", async (c) => {
 
     console.log(`✓ Signed URL created successfully`);
 
-    return c.json({ 
+    return c.json({
       url: signedUrlData.signedUrl,
-      path: uploadData.path 
+      path: uploadData.path
     });
   } catch (error) {
     console.error('❌ Error in upload-product-image:', error);
@@ -1111,30 +1169,30 @@ app.get("/make-server-6d979413/orders", async (c) => {
     const page = parseInt(c.req.query('page') || '1');
     const limit = parseInt(c.req.query('limit') || '10');
     const offset = (page - 1) * limit;
-    
+
     const userProfile = await kv.get(`user:${userId}`);
     console.log(`👤 User profile:`, userProfile ? `${userProfile.name} (${userProfile.role})` : 'Not found');
-    
+
     if (!userProfile || !userProfile.businessId) {
       console.error(`❌ User ${userId} not associated with any business`);
       return c.json({ error: 'Usuario no asociado a ningún negocio' }, 404);
     }
-    
+
     // If user is production, dispatch, or admin role, get all orders FROM THEIR BUSINESS
     if (userProfile?.role === 'production' || userProfile?.role === 'dispatch' || userProfile?.role === 'admin') {
       console.log(`🏭 Loading all orders for business: ${userProfile.businessId}`);
       const allOrders = await kv.getByPrefix('order:');
       console.log(`📋 Total orders in system: ${allOrders?.length || 0}`);
-      
+
       // Filter by businessId
       const businessOrders = (allOrders || []).filter((order: any) => order.businessId === userProfile.businessId);
       console.log(`📋 Orders for this business: ${businessOrders.length}`);
-      
+
       // Enrich orders with customer data
       const enrichedOrders = await Promise.all(businessOrders.map(async (order: any) => {
         try {
           const customerProfile = await kv.get(`user:${order.userId}`);
-          
+
           // Enrich products with production area data
           let enrichedProducts = order.products;
           if (order.products && Array.isArray(order.products)) {
@@ -1144,7 +1202,7 @@ app.get("/make-server-6d979413/orders", async (c) => {
                 if (product.productionAreaId) {
                   return product;
                 }
-                
+
                 // Get product details to find production area
                 const productDetails = await kv.get(`product:${product.productId}`);
                 if (productDetails?.productionAreaId) {
@@ -1158,7 +1216,7 @@ app.get("/make-server-6d979413/orders", async (c) => {
                     productionAreaIcon: productionArea?.icon || 'Package'
                   };
                 }
-                
+
                 return product;
               } catch (productError) {
                 console.error(`Error enriching product ${product.productId}:`, productError);
@@ -1166,7 +1224,7 @@ app.get("/make-server-6d979413/orders", async (c) => {
               }
             }));
           }
-          
+
           return {
             ...order,
             deliveryAddress: customerProfile?.address || order.deliveryAddress || 'Sin dirección registrada',
@@ -1183,17 +1241,17 @@ app.get("/make-server-6d979413/orders", async (c) => {
           };
         }
       }));
-      
+
       // Sort by creation date (newest first)
       enrichedOrders.sort((a: any, b: any) => {
         const dateA = new Date(a.createdAt || 0).getTime();
         const dateB = new Date(b.createdAt || 0).getTime();
         return dateB - dateA;
       });
-      
+
       // Apply pagination
       const paginatedOrders = enrichedOrders.slice(offset, offset + limit);
-      
+
       return c.json({
         data: paginatedOrders,
         pagination: {
@@ -1210,11 +1268,11 @@ app.get("/make-server-6d979413/orders", async (c) => {
     // Otherwise, get only user's orders FROM THEIR BUSINESS
     console.log(`👤 Loading orders for user: ${userId}`);
     const allOrders = await kv.getByPrefix('order:');
-    const userOrders = (allOrders || []).filter((order: any) => 
+    const userOrders = (allOrders || []).filter((order: any) =>
       order.userId === userId && order.businessId === userProfile.businessId
     );
     console.log(`📋 Orders for this user: ${userOrders.length}`);
-    
+
     // Enrich with current user's data and production area data
     const enrichedOrders = await Promise.all(userOrders.map(async (order: any) => {
       try {
@@ -1230,7 +1288,7 @@ app.get("/make-server-6d979413/orders", async (c) => {
                   id: product.productId || product.id // Ensure id is set
                 };
               }
-              
+
               // Get product details to find production area
               const productDetails = await kv.get(`product:${product.productId}`);
               if (productDetails?.productionAreaId) {
@@ -1245,7 +1303,7 @@ app.get("/make-server-6d979413/orders", async (c) => {
                   productionAreaIcon: productionArea?.icon || 'Package'
                 };
               }
-              
+
               return {
                 ...product,
                 id: product.productId || product.id // Ensure id is set even if no area
@@ -1259,7 +1317,7 @@ app.get("/make-server-6d979413/orders", async (c) => {
             }
           }));
         }
-        
+
         return {
           ...order,
           deliveryAddress: userProfile?.address || order.deliveryAddress || 'Sin dirección registrada',
@@ -1276,17 +1334,17 @@ app.get("/make-server-6d979413/orders", async (c) => {
         };
       }
     }));
-    
+
     // Sort by creation date (newest first)
     enrichedOrders.sort((a: any, b: any) => {
       const dateA = new Date(a.createdAt || 0).getTime();
       const dateB = new Date(b.createdAt || 0).getTime();
       return dateB - dateA;
     });
-    
+
     // Apply pagination
     const paginatedOrders = enrichedOrders.slice(offset, offset + limit);
-    
+
     return c.json({
       data: paginatedOrders,
       pagination: {
@@ -1331,27 +1389,27 @@ app.post("/make-server-6d979413/orders", async (c) => {
     // Validate and update stock for each product
     for (const item of products) {
       const product = await kv.get(`product:${item.productId}`);
-      
+
       if (!product) {
         console.log(`Product not found: ${item.productId} - ${item.name}`);
-        return c.json({ 
-          error: `Producto "${item.name}" no encontrado` 
+        return c.json({
+          error: `Producto "${item.name}" no encontrado`
         }, 404);
       }
 
       // Verify product belongs to same business
       if (product.businessId !== userProfile.businessId) {
-        return c.json({ 
-          error: `Producto "${item.name}" no pertenece a tu negocio` 
+        return c.json({
+          error: `Producto "${item.name}" no pertenece a tu negocio`
         }, 403);
       }
 
       const currentStock = product.stock ?? 0;
-      
+
       if (currentStock < item.quantity) {
         console.log(`Insufficient stock for ${item.name}: Available ${currentStock}, Requested ${item.quantity}`);
-        return c.json({ 
-          error: `Stock insuficiente para "${item.name}". Disponible: ${currentStock}, Solicitado: ${item.quantity}` 
+        return c.json({
+          error: `Stock insuficiente para "${item.name}". Disponible: ${currentStock}, Solicitado: ${item.quantity}`
         }, 400);
       }
 
@@ -1368,7 +1426,7 @@ app.post("/make-server-6d979413/orders", async (c) => {
     }
 
     const orderId = crypto.randomUUID();
-    
+
     // Enrich products with production area information
     const enrichedProducts = await Promise.all(
       products.map(async (item: any) => {
@@ -1392,7 +1450,7 @@ app.post("/make-server-6d979413/orders", async (c) => {
         }
       }
     });
-    
+
     const order = {
       id: orderId,
       userId,
@@ -1432,14 +1490,14 @@ app.put("/make-server-6d979413/orders/:id/status", async (c) => {
 
   try {
     const userProfile = await kv.get(`user:${userId}`);
-    
+
     if (userProfile?.role !== 'production' && userProfile?.role !== 'dispatch' && userProfile?.role !== 'admin') {
       return c.json({ error: 'No autorizado' }, 403);
     }
 
     const orderId = c.req.param('id');
     const { status, progress } = await c.req.json();
-    
+
     const currentOrder = await kv.get(`order:${orderId}`);
 
     if (!currentOrder) {
@@ -1473,14 +1531,14 @@ app.put("/make-server-6d979413/orders/:id/area-status", async (c) => {
 
   try {
     const userProfile = await kv.get(`user:${userId}`);
-    
+
     if (userProfile?.role !== 'production' && userProfile?.role !== 'dispatch' && userProfile?.role !== 'admin') {
       return c.json({ error: 'No autorizado' }, 403);
     }
 
     const orderId = c.req.param('id');
     const { areaId, status } = await c.req.json();
-    
+
     if (!areaId || !status) {
       return c.json({ error: 'areaId y status son requeridos' }, 400);
     }
@@ -1514,7 +1572,7 @@ app.put("/make-server-6d979413/orders/:id/area-status", async (c) => {
     if (allAreaStatuses.length > 0 && allAreaStatuses.every((s: any) => s === 'completed')) {
       overallStatus = 'completed';
       overallProgress = 100;
-    } 
+    }
     // If any area is in progress, mark order as in_progress
     else if (allAreaStatuses.some((s: any) => s === 'in_progress')) {
       overallStatus = 'in_progress';
@@ -1560,7 +1618,7 @@ app.delete("/make-server-6d979413/orders/:id", async (c) => {
     }
 
     const userProfile = await kv.get(`user:${userId}`);
-    
+
     // Verify user has permission to delete this order (same business)
     if (!userProfile || !userProfile.businessId) {
       return c.json({ error: 'Usuario no asociado a ningún negocio' }, 404);
@@ -1574,11 +1632,11 @@ app.delete("/make-server-6d979413/orders/:id", async (c) => {
     if (order.products && Array.isArray(order.products)) {
       for (const item of order.products) {
         const product = await kv.get(`product:${item.productId}`);
-        
+
         if (product) {
           const currentStock = product.stock ?? 0;
           const restoredStock = currentStock + item.quantity;
-          
+
           const updatedProduct = {
             ...product,
             stock: restoredStock,
@@ -1596,9 +1654,9 @@ app.delete("/make-server-6d979413/orders/:id", async (c) => {
 
     console.log(`🗑️ Order deleted: ${orderId} by user ${userId} (${userProfile.role})`);
 
-    return c.json({ 
+    return c.json({
       success: true,
-      message: 'Pedido eliminado correctamente' 
+      message: 'Pedido eliminado correctamente'
     });
   } catch (error) {
     console.error(`Error deleting order: ${error}`);
@@ -1624,7 +1682,7 @@ app.get("/make-server-6d979413/orders/:id", async (c) => {
     }
 
     const userProfile = await kv.get(`user:${userId}`);
-    
+
     // Check if user has permission to view this order
     if (order.userId !== userId && userProfile?.role !== 'production' && userProfile?.role !== 'dispatch' && userProfile?.role !== 'admin') {
       return c.json({ error: 'No autorizado' }, 403);
@@ -1656,7 +1714,7 @@ app.get('/make-server-6d979413/notifications', async (c) => {
 
   try {
     const notifications = await kv.getByPrefix(`notification:${userId}:`);
-    
+
     // Sort by createdAt DESC (most recent first)
     const sortedNotifications = notifications.sort((a: any, b: any) => {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -1692,7 +1750,7 @@ app.post('/make-server-6d979413/notifications', async (c) => {
 
     const notificationId = crypto.randomUUID();
     const userId = targetUserId || authUserId; // Allow creating for other users (admin/production)
-    
+
     const notification = {
       id: notificationId,
       userId,
@@ -1728,7 +1786,7 @@ app.patch('/make-server-6d979413/notifications/read-all', async (c) => {
 
   try {
     const notifications = await kv.getByPrefix(`notification:${userId}:`);
-    
+
     const updatePromises = notifications.map((notification: any) => {
       const updatedNotification = { ...notification, read: true };
       return kv.set(`notification:${userId}:${notification.id}`, updatedNotification);
@@ -1759,7 +1817,7 @@ app.patch('/make-server-6d979413/notifications/:id/read', async (c) => {
   try {
     const notificationId = c.req.param('id');
     const key = `notification:${userId}:${notificationId}`;
-    
+
     const notification = await kv.get(key);
     if (!notification) {
       return c.json({ error: 'Notification not found' }, 404);
@@ -1795,7 +1853,7 @@ app.delete('/make-server-6d979413/notifications/:id', async (c) => {
   try {
     const notificationId = c.req.param('id');
     const key = `notification:${userId}:${notificationId}`;
-    
+
     const notification = await kv.get(key);
     if (!notification) {
       return c.json({ error: 'Notification not found' }, 404);
@@ -1830,10 +1888,10 @@ app.get('/make-server-6d979413/categories', async (c) => {
     }
 
     const allCategories = await kv.getByPrefix('category:');
-    
+
     // Filter by businessId
     const businessCategories = (allCategories || []).filter((cat: any) => cat.businessId === userProfile.businessId);
-    
+
     // Sort by creation date (newest first)
     businessCategories.sort((a: any, b: any) => {
       const dateA = new Date(a.createdAt || 0).getTime();
@@ -1988,13 +2046,13 @@ app.delete('/make-server-6d979413/categories/:id', async (c) => {
 
     // Check if category is being used by any product in the same business
     const allProducts = await kv.getByPrefix('product:');
-    const productsInCategory = allProducts.filter((p: any) => 
+    const productsInCategory = allProducts.filter((p: any) =>
       p.categoryId === categoryId && p.businessId === userProfile.businessId
     );
 
     if (productsInCategory.length > 0) {
-      return c.json({ 
-        error: `No se puede eliminar la categoría porque tiene ${productsInCategory.length} producto(s) asociado(s)` 
+      return c.json({
+        error: `No se puede eliminar la categoría porque tiene ${productsInCategory.length} producto(s) asociado(s)`
       }, 400);
     }
 
@@ -2008,218 +2066,9 @@ app.delete('/make-server-6d979413/categories/:id', async (c) => {
   }
 });
 
-// ==================== PRODUCTS ENDPOINTS ====================
-
-// Get all products (public - all authenticated users can see)
-app.get('/make-server-6d979413/products', async (c) => {
-  const authHeader = c.req.header('Authorization');
-  const { error, userId } = await verifyAuth(authHeader);
-
-  if (error) {
-    console.error('Auth error in GET products:', error);
-    return c.json({ error }, 401);
-  }
-
-  try {
-    const products = await kv.getByPrefix('product:');
-    
-    // Sort by creation date (newest first)
-    products.sort((a: any, b: any) => {
-      const dateA = new Date(a.createdAt || 0).getTime();
-      const dateB = new Date(b.createdAt || 0).getTime();
-      return dateB - dateA;
-    });
-
-    return c.json({ data: products });
-  } catch (error) {
-    console.error('Error fetching products:', error);
-    return c.json({ error: 'Failed to fetch products' }, 500);
-  }
-});
-
-// Create product (admin only)
-app.post('/make-server-6d979413/products', async (c) => {
-  const authHeader = c.req.header('Authorization');
-  const { error, userId } = await verifyAuth(authHeader);
-
-  if (error) {
-    console.error('Auth error in POST product:', error);
-    return c.json({ error }, 401);
-  }
-
-  try {
-    // Verify user is admin
-    const userProfile = await kv.get(`user:${userId}`);
-    if (userProfile?.role !== 'admin') {
-      return c.json({ error: 'Unauthorized: Admin access required' }, 403);
-    }
-
-    const body = await c.req.json();
-    const { name, description, price, stock, category, categoryId, imageUrl, productionAreaId, ingredients } = body;
-
-    // Validation
-    if (!name || !price || stock === undefined) {
-      return c.json({ error: 'Missing required fields: name, price, stock' }, 400);
-    }
-
-    if (price < 0 || stock < 0) {
-      return c.json({ error: 'Price and stock must be positive numbers' }, 400);
-    }
-
-    const productId = crypto.randomUUID();
-    const product = {
-      id: productId,
-      name,
-      description: description || '',
-      price: Number(price),
-      stock: Number(stock),
-      category: category || 'General',
-      categoryId: categoryId || null,
-      imageUrl: imageUrl || null,
-      productionAreaId: productionAreaId || null,
-      ingredients: ingredients || [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    await kv.set(`product:${productId}`, product);
-
-    // Save product-ingredient relationships
-    if (ingredients && Array.isArray(ingredients) && ingredients.length > 0) {
-      for (const ingredient of ingredients) {
-        const relationId = crypto.randomUUID();
-        await kv.set(`product-ingredient:${productId}:${ingredient.ingredientId}`, {
-          id: relationId,
-          productId,
-          ingredientId: ingredient.ingredientId,
-          quantity: ingredient.quantity,
-          createdAt: new Date().toISOString()
-        });
-      }
-    }
-
-    console.log(`✓ Product created: ${name} (ID: ${productId}) with ${ingredients?.length || 0} ingredients`);
-    return c.json({ data: product }, 201);
-  } catch (error) {
-    console.error('Error creating product:', error);
-    return c.json({ error: 'Failed to create product' }, 500);
-  }
-});
-
-// Update product (admin only)
-app.put('/make-server-6d979413/products/:id', async (c) => {
-  const authHeader = c.req.header('Authorization');
-  const { error, userId } = await verifyAuth(authHeader);
-
-  if (error) {
-    console.error('Auth error in PUT product:', error);
-    return c.json({ error }, 401);
-  }
-
-  try {
-    // Verify user is admin
-    const userProfile = await kv.get(`user:${userId}`);
-    if (userProfile?.role !== 'admin') {
-      return c.json({ error: 'Unauthorized: Admin access required' }, 403);
-    }
-
-    const productId = c.req.param('id');
-    const existingProduct = await kv.get(`product:${productId}`);
-
-    if (!existingProduct) {
-      return c.json({ error: 'Product not found' }, 404);
-    }
-
-    const body = await c.req.json();
-    const { name, description, price, stock, category, imageUrl, productionAreaId, ingredients } = body;
-
-    // Validation
-    if (price !== undefined && price < 0) {
-      return c.json({ error: 'Price must be a positive number' }, 400);
-    }
-    if (stock !== undefined && stock < 0) {
-      return c.json({ error: 'Stock must be a positive number' }, 400);
-    }
-
-    const updatedProduct = {
-      ...existingProduct,
-      name: name !== undefined ? name : existingProduct.name,
-      description: description !== undefined ? description : existingProduct.description,
-      price: price !== undefined ? Number(price) : existingProduct.price,
-      stock: stock !== undefined ? Number(stock) : existingProduct.stock,
-      category: category !== undefined ? category : existingProduct.category,
-      imageUrl: imageUrl !== undefined ? imageUrl : existingProduct.imageUrl,
-      productionAreaId: productionAreaId !== undefined ? productionAreaId : existingProduct.productionAreaId,
-      ingredients: ingredients !== undefined ? ingredients : (existingProduct.ingredients || []),
-      updatedAt: new Date().toISOString()
-    };
-
-    await kv.set(`product:${productId}`, updatedProduct);
-
-    // Update product-ingredient relationships
-    if (ingredients !== undefined && Array.isArray(ingredients)) {
-      // Delete existing relationships
-      const existingRelations = await kv.getByPrefix(`product-ingredient:${productId}:`);
-      for (const relation of existingRelations) {
-        await kv.del(`product-ingredient:${productId}:${relation.ingredientId}`);
-      }
-
-      // Create new relationships
-      for (const ingredient of ingredients) {
-        const relationId = crypto.randomUUID();
-        await kv.set(`product-ingredient:${productId}:${ingredient.ingredientId}`, {
-          id: relationId,
-          productId,
-          ingredientId: ingredient.ingredientId,
-          quantity: ingredient.quantity,
-          createdAt: new Date().toISOString()
-        });
-      }
-    }
-
-    console.log(`✓ Product updated: ${updatedProduct.name} (ID: ${productId}) with ${updatedProduct.ingredients?.length || 0} ingredients`);
-    return c.json({ data: updatedProduct });
-  } catch (error) {
-    console.error('Error updating product:', error);
-    return c.json({ error: 'Failed to update product' }, 500);
-  }
-});
-
-// Delete product (admin only)
-app.delete('/make-server-6d979413/products/:id', async (c) => {
-  const authHeader = c.req.header('Authorization');
-  const { error, userId } = await verifyAuth(authHeader);
-
-  if (error) {
-    console.error('Auth error in DELETE product:', error);
-    return c.json({ error }, 401);
-  }
-
-  try {
-    // Verify user is admin
-    const userProfile = await kv.get(`user:${userId}`);
-    if (userProfile?.role !== 'admin') {
-      return c.json({ error: 'Unauthorized: Admin access required' }, 403);
-    }
-
-    const productId = c.req.param('id');
-    const product = await kv.get(`product:${productId}`);
-
-    if (!product) {
-      return c.json({ error: 'Product not found' }, 404);
-    }
-
-    await kv.del(`product:${productId}`);
-
-    console.log(`✓ Product deleted: ${product.name} (ID: ${productId})`);
-    return c.json({ data: { deleted: true } });
-  } catch (error) {
-    console.error('Error deleting product:', error);
-    return c.json({ error: 'Failed to delete product' }, 500);
-  }
-});
 
 // ==================== PRODUCTION AREAS ENDPOINTS ====================
+
 
 // Get all production areas (filtered by business)
 app.get('/make-server-6d979413/production-areas', async (c) => {
@@ -2240,10 +2089,10 @@ app.get('/make-server-6d979413/production-areas', async (c) => {
 
     // Get all production areas
     const allAreas = await kv.getByPrefix('production_area:');
-    
+
     // Filter by business
     const businessAreas = allAreas.filter((area: any) => area.businessId === userProfile.businessId);
-    
+
     // Sort by creation date (newest first)
     businessAreas.sort((a: any, b: any) => {
       const dateA = new Date(a.createdAt || 0).getTime();
@@ -2290,8 +2139,8 @@ app.post('/make-server-6d979413/production-areas', async (c) => {
 
     // Check if area with same name exists in this business
     const allAreas = await kv.getByPrefix('production_area:');
-    const existingArea = allAreas.find((area: any) => 
-      area.businessId === userProfile.businessId && 
+    const existingArea = allAreas.find((area: any) =>
+      area.businessId === userProfile.businessId &&
       area.name.toLowerCase() === name.trim().toLowerCase()
     );
 
@@ -2356,9 +2205,9 @@ app.put('/make-server-6d979413/production-areas/:id', async (c) => {
     // If name is being changed, check for duplicates
     if (name && name.trim() !== existingArea.name) {
       const allAreas = await kv.getByPrefix('production_area:');
-      const duplicateArea = allAreas.find((area: any) => 
+      const duplicateArea = allAreas.find((area: any) =>
         area.id !== areaId &&
-        area.businessId === userProfile.businessId && 
+        area.businessId === userProfile.businessId &&
         area.name.toLowerCase() === name.trim().toLowerCase()
       );
 
@@ -2420,8 +2269,8 @@ app.delete('/make-server-6d979413/production-areas/:id', async (c) => {
     const productsInArea = allProducts.filter((product: any) => product.productionAreaId === areaId);
 
     if (productsInArea.length > 0) {
-      return c.json({ 
-        error: `Cannot delete production area because it has ${productsInArea.length} product(s) assigned to it. Please reassign or delete those products first.` 
+      return c.json({
+        error: `Cannot delete production area because it has ${productsInArea.length} product(s) assigned to it. Please reassign or delete those products first.`
       }, 400);
     }
 
@@ -2491,6 +2340,18 @@ app.post('/make-server-6d979413/ingredients', async (c) => {
     const userProfile = await kv.get(`user:${userId}`);
     if (!userProfile || !userProfile.businessId) {
       return c.json({ error: 'Usuario no asociado a ningún negocio' }, 404);
+    }
+
+    // Check if ingredient with same name already exists in this business
+    const allIngredients = await kv.getByPrefix('ingredient:');
+    const existingIngredient = allIngredients.find((ing: any) =>
+      ing.businessId === userProfile.businessId &&
+      ing.name.toLowerCase().trim() === name.toLowerCase().trim()
+    );
+
+    if (existingIngredient) {
+      console.warn(`Duplicate ingredient creation attempt: ${name} in business ${userProfile.businessId}`);
+      return c.json({ error: `La materia prima "${name}" ya existe en este negocio` }, 400);
     }
 
     // Create new ingredient
@@ -2566,24 +2427,24 @@ app.put('/make-server-6d979413/ingredients/:id', async (c) => {
     const currentStock = updatedIngredient.currentStock;
     const minStock = updatedIngredient.minStock;
     const previousStock = ingredient.currentStock;
-    
+
     // Only create notification if stock crossed the threshold (was above minimum, now at or below)
     if (currentStock <= minStock && previousStock > minStock) {
       console.log(`⚠️ Stock reached minimum for ${updatedIngredient.name}: ${currentStock} ${updatedIngredient.unit} (min: ${minStock})`);
-      
+
       // Get all users with admin or production role to notify them
       const allUsersKeys = await kv.getByPrefix('user_profile:');
-      const adminAndProductionUsers = allUsersKeys.filter((profile: any) => 
+      const adminAndProductionUsers = allUsersKeys.filter((profile: any) =>
         profile.role === 'admin' || profile.role === 'production'
       );
-      
-      const notificationTitle = currentStock === 0 
+
+      const notificationTitle = currentStock === 0
         ? '🚨 Stock Agotado de Materia Prima'
         : '⚠️ Stock Bajo de Materia Prima';
       const notificationMessage = currentStock === 0
         ? `El ingrediente "${updatedIngredient.name}" se ha agotado completamente. Stock actual: 0 ${updatedIngredient.unit}. Se requiere reabastecimiento urgente.`
         : `El ingrediente "${updatedIngredient.name}" está por debajo del stock mínimo. Stock actual: ${currentStock} ${updatedIngredient.unit}, mínimo requerido: ${minStock} ${updatedIngredient.unit}.`;
-      
+
       for (const user of adminAndProductionUsers) {
         const notificationId = crypto.randomUUID();
         const notification = {
@@ -2596,7 +2457,7 @@ app.put('/make-server-6d979413/ingredients/:id', async (c) => {
           read: false,
           createdAt: new Date().toISOString(),
         };
-        
+
         await kv.set(`notification:${notificationId}`, notification);
         console.log(`    ✅ Low stock notification created for user ${user.userId}`);
       }
@@ -2647,8 +2508,8 @@ app.delete('/make-server-6d979413/ingredients/:id', async (c) => {
     );
 
     if (usedInProducts.length > 0) {
-      return c.json({ 
-        error: `No se puede eliminar esta materia prima porque está siendo usada en ${usedInProducts.length} receta(s). Por favor, elimina primero las recetas que la usan.` 
+      return c.json({
+        error: `No se puede eliminar esta materia prima porque está siendo usada en ${usedInProducts.length} receta(s). Por favor, elimina primero las recetas que la usan.`
       }, 400);
     }
 
@@ -2847,11 +2708,11 @@ app.get('/make-server-6d979413/attendance/locals', async (c) => {
 
     // Get all users
     const allUsers = await kv.getByPrefix('user:');
-    
+
     // Filter users with role 'local', same business, and exclude demo accounts
     const locals = allUsers
-      .filter((u: any) => 
-        u.role === 'local' && 
+      .filter((u: any) =>
+        u.role === 'local' &&
         u.businessId === userProfile.businessId &&
         !u.email?.includes('@demo.com') // Exclude demo local accounts
       )
@@ -2911,17 +2772,17 @@ app.post('/make-server-6d979413/attendance/check-in', async (c) => {
 
     // Check if user already has an ACTIVE check-in (any local, any date) IN THEIR BUSINESS
     const allRecords = await kv.getByPrefix(`attendance:`);
-    const activeRecord = allRecords.find((r: any) => 
-      r.userId === userId && 
+    const activeRecord = allRecords.find((r: any) =>
+      r.userId === userId &&
       r.businessId === userProfile.businessId &&
-      r.status === 'active' && 
+      r.status === 'active' &&
       (r.checkOut === null || r.checkOut === undefined)
     );
 
     if (activeRecord) {
       console.log(`❌ User ${userId} already has active check-in at local ${activeRecord.localName}`);
-      return c.json({ 
-        error: `Ya tienes una asistencia activa en ${activeRecord.localName}. Debes marcar salida primero.` 
+      return c.json({
+        error: `Ya tienes una asistencia activa en ${activeRecord.localName}. Debes marcar salida primero.`
       }, 400);
     }
 
@@ -2944,9 +2805,9 @@ app.post('/make-server-6d979413/attendance/check-in', async (c) => {
 
     // Create notification for the user
     const notificationId = crypto.randomUUID();
-    const checkInTime = new Date(now).toLocaleTimeString('es-ES', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    const checkInTime = new Date(now).toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit'
     });
     const notification = {
       id: notificationId,
@@ -3001,19 +2862,19 @@ app.put('/make-server-6d979413/attendance/check-out/:recordId', async (c) => {
 
     // Create notification for the user
     const notificationId = crypto.randomUUID();
-    const checkOutTime = new Date(now).toLocaleTimeString('es-ES', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    const checkOutTime = new Date(now).toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit'
     });
-    
+
     // Calculate total time worked
     const checkInDate = new Date(record.checkIn);
     const checkOutDate = new Date(now);
     const diffMs = checkOutDate.getTime() - checkInDate.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    const timeWorked = diffHours > 0 
-      ? `${diffHours}h ${diffMinutes}min` 
+    const timeWorked = diffHours > 0
+      ? `${diffHours}h ${diffMinutes}min`
       : `${diffMinutes} minutos`;
 
     const notification = {
@@ -3047,7 +2908,7 @@ app.get('/make-server-6d979413/attendance/my-records', async (c) => {
 
   try {
     const records = await kv.getByPrefix(`attendance:${userId}`);
-    
+
     // Sort by date descending (newest first)
     const sortedRecords = records.sort((a: any, b: any) => {
       return new Date(b.checkIn).getTime() - new Date(a.checkIn).getTime();
@@ -3082,10 +2943,10 @@ app.get('/make-server-6d979413/attendance/all-records', async (c) => {
     }
 
     const allRecords = await kv.getByPrefix('attendance:');
-    
+
     // Filter by businessId
     const businessRecords = allRecords.filter((r: any) => r.businessId === userProfile.businessId);
-    
+
     // Sort by date descending (newest first)
     const sortedRecords = businessRecords.sort((a: any, b: any) => {
       return new Date(b.checkIn).getTime() - new Date(a.checkIn).getTime();
@@ -3111,15 +2972,15 @@ app.get('/make-server-6d979413/attendance/records/:date', async (c) => {
   try {
     const date = c.req.param('date');
     const allRecords = await kv.getByPrefix('attendance:');
-    
+
     // Filter by date
     const dateRecords = allRecords.filter((r: any) => r.date === date);
-    
+
     // Filter by user if not admin
     const userProfile = await kv.get(`user:${userId}`);
     if (userProfile?.role !== 'admin' && userProfile?.role !== 'production') {
-      return c.json({ 
-        data: dateRecords.filter((r: any) => r.userId === userId) 
+      return c.json({
+        data: dateRecords.filter((r: any) => r.userId === userId)
       });
     }
 
@@ -3219,7 +3080,7 @@ app.get('/make-server-6d979413/notifications', async (c) => {
   try {
     // Get all notifications from KV store
     const allNotifications = await kv.getByPrefix('notification:');
-    
+
     // Filter notifications for current user and sort by date (newest first)
     const userNotifications = allNotifications
       .filter((n: any) => n.userId === userId)
@@ -3545,7 +3406,7 @@ app.patch('/make-server-6d979413/production-orders/:orderId/status', async (c) =
     if (status === 'EN_PROCESO' && productionOrder.status === 'BORRADOR') {
       console.log(`🔧 Starting production order ${orderId} - deducting ingredients from stock...`);
       console.log(`   Order has ${productionOrder.products.length} products`);
-      
+
       // PHASE 1: Collect all required ingredients and validate stock
       const insufficientStockErrors: string[] = [];
       const ingredientsToDeduct: Array<{
@@ -3554,10 +3415,10 @@ app.patch('/make-server-6d979413/production-orders/:orderId/status', async (c) =
         totalNeeded: number;
         newStock: number;
       }> = [];
-      
+
       for (const item of productionOrder.products) {
         console.log(`  🔍 Processing product: ${item.name} (ID: ${item.productId})`);
-        
+
         const product = await kv.get(`product:${item.productId}`);
         if (!product) {
           console.log(`  ⚠️ Product ${item.productId} not found in KV store`);
@@ -3568,15 +3429,25 @@ app.patch('/make-server-6d979413/production-orders/:orderId/status', async (c) =
         // Get product ingredients
         const prefix = `product-ingredient:${item.productId}:`;
         console.log(`  🔍 Looking for ingredients with prefix: ${prefix}`);
-        const ingredientRelations = await kv.getByPrefix(prefix);
+        let ingredientRelations = await kv.getByPrefix(prefix);
+
+        // Fallback: Use legacy ingredients array if no relations found
+        if ((!ingredientRelations || ingredientRelations.length === 0) && product.ingredients && Array.isArray(product.ingredients) && product.ingredients.length > 0) {
+          console.log(`⚠️ No product-ingredient relations found for ${item.productId}, using legacy 'ingredients' array for stock deduction`);
+          ingredientRelations = product.ingredients.map((pi: any) => ({
+            ingredientId: pi.ingredientId,
+            quantity: pi.quantity
+          }));
+        }
+
         console.log(`  📊 Found ${ingredientRelations?.length || 0} ingredient relations`);
-        
+
         if (ingredientRelations && ingredientRelations.length > 0) {
           console.log(`  📝 Product ${item.name} has ${ingredientRelations.length} ingredients`);
-          
+
           for (const relation of ingredientRelations) {
             console.log(`    🔍 Processing ingredient relation:`, JSON.stringify(relation));
-            
+
             const ingredient = await kv.get(`ingredient:${relation.ingredientId}`);
             if (!ingredient) {
               console.log(`    ⚠️ Ingredient ${relation.ingredientId} not found in KV store`);
@@ -3614,16 +3485,16 @@ app.patch('/make-server-6d979413/production-orders/:orderId/status', async (c) =
       // If there were insufficient stock errors, return error WITHOUT deducting anything
       if (insufficientStockErrors.length > 0) {
         console.log(`❌ Returning error due to insufficient stock:`, insufficientStockErrors);
-        return c.json({ 
-          error: 'Stock insuficiente de materias primas', 
-          details: insufficientStockErrors 
+        return c.json({
+          error: 'Stock insuficiente de materias primas',
+          details: insufficientStockErrors
         }, 400);
       }
 
       // PHASE 2: All validations passed - now deduct stock
       console.log(`✅ All stock validations passed. Deducting ${ingredientsToDeduct.length} ingredients...`);
       const lowStockIngredients: Array<{ name: string; currentStock: number; minStock: number; unit: string }> = [];
-      
+
       for (const item of ingredientsToDeduct) {
         const updatedIngredient = {
           ...item.ingredient,
@@ -3632,7 +3503,7 @@ app.patch('/make-server-6d979413/production-orders/:orderId/status', async (c) =
         };
         await kv.set(`ingredient:${item.ingredientId}`, updatedIngredient);
         console.log(`    ✅ STOCK UPDATED - ${item.ingredient.name}: ${item.ingredient.currentStock} → ${item.newStock} (-${item.totalNeeded} ${item.ingredient.unit})`);
-        
+
         // Check if stock is at or below minimum
         if (item.newStock <= item.ingredient.minStock) {
           console.log(`    ⚠️ LOW STOCK ALERT - ${item.ingredient.name}: ${item.newStock} ${item.ingredient.unit} (mínimo: ${item.ingredient.minStock} ${item.ingredient.unit})`);
@@ -3644,27 +3515,27 @@ app.patch('/make-server-6d979413/production-orders/:orderId/status', async (c) =
           });
         }
       }
-      
+
       // Create low stock notifications for admin and production users
       if (lowStockIngredients.length > 0) {
         console.log(`📢 Creating low stock notifications for ${lowStockIngredients.length} ingredients...`);
-        
+
         // Get all users with admin or production role to notify them
         const allUsersKeys = await kv.getByPrefix('user_profile:');
-        const adminAndProductionUsers = allUsersKeys.filter((profile: any) => 
+        const adminAndProductionUsers = allUsersKeys.filter((profile: any) =>
           profile.role === 'admin' || profile.role === 'production'
         );
-        
+
         // Create notifications for each low stock ingredient for each admin/production user
         for (const ingredient of lowStockIngredients) {
           const stockStatus = ingredient.currentStock === 0 ? 'agotado' : 'bajo mínimo';
-          const notificationTitle = ingredient.currentStock === 0 
+          const notificationTitle = ingredient.currentStock === 0
             ? '🚨 Stock Agotado de Materia Prima'
             : '⚠️ Stock Bajo de Materia Prima';
           const notificationMessage = ingredient.currentStock === 0
             ? `El ingrediente "${ingredient.name}" se ha agotado completamente. Stock actual: 0 ${ingredient.unit}. Se requiere reabastecimiento urgente.`
             : `El ingrediente "${ingredient.name}" está por debajo del stock mínimo. Stock actual: ${ingredient.currentStock} ${ingredient.unit}, mínimo requerido: ${ingredient.minStock} ${ingredient.unit}.`;
-          
+
           for (const user of adminAndProductionUsers) {
             const notificationId = crypto.randomUUID();
             const notification = {
@@ -3677,22 +3548,22 @@ app.patch('/make-server-6d979413/production-orders/:orderId/status', async (c) =
               read: false,
               createdAt: now,
             };
-            
+
             await kv.set(`notification:${notificationId}`, notification);
             console.log(`    ✅ Notification created for user ${user.userId}: ${notificationTitle}`);
           }
         }
-        
+
         console.log(`✅ Created low stock notifications for ${adminAndProductionUsers.length} users`);
       }
-      
+
       console.log(`✅ All ingredients deducted successfully!`);
     }
 
     // If completing the order, increase stock for all products
     if (status === 'TERMINADA' && productionOrder.status !== 'TERMINADA') {
       console.log(`📦 Completing production order ${orderId} - updating stock...`);
-      
+
       for (const item of productionOrder.products) {
         const product = await kv.get(`product:${item.productId}`);
         if (product) {

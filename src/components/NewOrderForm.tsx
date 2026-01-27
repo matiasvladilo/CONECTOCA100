@@ -592,8 +592,8 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                 <button
                   onClick={() => setSelectedCategoryFilter('all')}
                   className={`px-3 py-1 rounded-lg text-sm transition-colors ${selectedCategoryFilter === 'all'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                     }`}
                 >
                   Todas
@@ -603,8 +603,8 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                     key={cat.id}
                     onClick={() => setSelectedCategoryFilter(cat.id)}
                     className={`px-3 py-1 rounded-lg text-sm flex items-center gap-1.5 transition-colors ${selectedCategoryFilter === cat.id
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                       }`}
                   >
                     <div
@@ -617,8 +617,8 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                 <button
                   onClick={() => setSelectedCategoryFilter('uncategorized')}
                   className={`px-3 py-1 rounded-lg text-sm transition-colors ${selectedCategoryFilter === 'uncategorized'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                     }`}
                 >
                   Sin categoría
@@ -644,8 +644,8 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                   <Card
                     key={product.id}
                     className={`overflow-hidden transition-all ${isOutOfStock
-                        ? 'opacity-60 cursor-not-allowed'
-                        : 'hover:shadow-lg hover:scale-[1.02] cursor-pointer'
+                      ? 'opacity-60 cursor-not-allowed'
+                      : 'hover:shadow-lg hover:scale-[1.02] cursor-pointer'
                       }`}
                   >
                     {/* Clickable area - entire card except edit button */}
@@ -678,6 +678,9 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                             <ShoppingCart className="w-4 h-4 text-blue-900" />
                           </div>
                         )}
+                        {/* Only show edit button if we are in management mode or authorized context - currently NewOrderForm is for creating orders, maybe shouldn't edit?
+                            Actually NewOrderForm has handleEditProduct, so we keep it. 
+                         */}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -708,6 +711,40 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                             {product.trackStock === false ? '∞ Ilimitado' : (isOutOfStock ? 'Sin stock' : `Stock: ${productStock}`)}
                           </Badge>
                         </div>
+
+                        {/* Cost Display - Added for consistency with ProductManagement if needed, but maybe not relevant for OrderForm? 
+                            The user asked to "implementalo" (implement it), referring to the fix for missing ingredients/cost.
+                            Wait, NewOrderForm is DIFFERENT from ProductManagement. 
+                            The user prompt context was "ingredients not saved on product creation".
+                            I am editing NewOrderForm.tsx. Is this correct? 
+                            The error might be in NewOrderForm if it uses products that have missing ingredients.
+                            But the fix for saving ingredients was in backend.
+                            Frontend fix for displaying cost was in ProductManagement.tsx.
+                            
+                            Let's verify NewOrderForm usage. 
+                            It seems NewOrderForm displays products to add to an order.
+                            It does NOT show cost of ingredients usually.
+                            
+                            Wait, I viewed NewOrderForm.tsx in step 1063.
+                            And ProductManagement.tsx in step 1045.
+                            
+                            The user said "implementalo" after I corrected backend. 
+                            And I was looking at ProductManagement.tsx cost calculation in step 1050.
+                            
+                            Ah, I selected NewOrderForm.tsx by mistake in my thought process or regex?
+                            No, I am viewing NewOrderForm.tsx NOW.
+                            
+                            The user wants me to implement the fix.
+                            I already applied the fix to ProductManagement.tsx in step 1050.
+                            
+                            Let's check if I need to apply similar fix to NewOrderForm.tsx?
+                            NewOrderForm does not seem to display ingredient cost.
+                            
+                            Wait, step 1050 FAILED with "improper format stop reason".
+                            So the fix to ProductManagement.tsx was NOT applied?
+                            Let me re-apply the fix to ProductManagement.tsx.
+                        */}
+
 
                         <div className="space-y-2 quantity-controls" onClick={(e) => e.stopPropagation()}>
                           <Label htmlFor={`qty-${product.id}`} className="text-xs text-gray-600">
@@ -857,8 +894,8 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                                 onClick={() => handleUpdateCartQuantity(item.id, 1)}
                                 disabled={atLimit}
                                 className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${atLimit
-                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                    : 'bg-gray-200 hover:bg-gray-300'
+                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  : 'bg-gray-200 hover:bg-gray-300'
                                   }`}
                               >
                                 <Plus className="w-3 h-3" />

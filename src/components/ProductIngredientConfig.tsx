@@ -80,6 +80,7 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
   };
 
   const handleAddIngredient = async () => {
+    if (saving) return;
     if (!selectedProduct || !newIngredient.ingredientId || newIngredient.quantity <= 0) {
       toast.error("Complete todos los campos");
       return;
@@ -112,8 +113,16 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
     }
   };
 
-  const handleUpdateQuantity = async (ingredientId: string, newQuantity: number) => {
-    if (!selectedProduct || newQuantity <= 0) {
+  const handleUpdateQuantity = async (ingredientId: string, value: number, unit: string) => {
+    if (!selectedProduct) return;
+
+    // Convert to base unit (kg/l) if needed
+    let quantityToSave = value;
+    if (unit === 'g' || unit === 'ml') {
+      quantityToSave = value / 1000;
+    }
+
+    if (quantityToSave <= 0) {
       toast.error("La cantidad debe ser mayor a 0");
       return;
     }
@@ -122,7 +131,7 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
       // Get all current ingredients
       const updatedIngredients = productIngredients.map(pi => ({
         ingredientId: pi.ingredientId,
-        quantity: pi.ingredientId === ingredientId ? newQuantity : pi.quantity
+        quantity: pi.ingredientId === ingredientId ? quantityToSave : pi.quantity
       }));
 
       // Use setIngredients to update all at once
@@ -138,6 +147,19 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
       console.error("Error updating quantity:", error);
       toast.error(error.message || "Error al actualizar cantidad");
     }
+  };
+
+  const formatQuantity = (qty: number, unit: string) => {
+    const lowerUnit = unit.toLowerCase();
+    if (lowerUnit === 'kg' || lowerUnit === 'kilos') {
+      if (qty < 1) return { value: (qty * 1000).toFixed(0), unit: 'g' };
+      return { value: qty.toString(), unit: 'kg' };
+    }
+    if (lowerUnit === 'l' || lowerUnit === 'litros') {
+      if (qty < 1) return { value: (qty * 1000).toFixed(0), unit: 'ml' };
+      return { value: qty.toString(), unit: 'l' };
+    }
+    return { value: qty.toString(), unit };
   };
 
   const handleRemoveIngredient = async (ingredientId: string) => {
@@ -494,18 +516,41 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
                                   </div>
 
                                   <div className="flex items-center gap-2">
-                                    <input
-                                      type="number"
-                                      step="0.01"
-                                      value={pi.quantity}
-                                      onChange={(e) => {
-                                        const newQty = parseFloat(e.target.value);
-                                        if (newQty > 0) {
-                                          handleUpdateQuantity(pi.ingredientId, newQty);
-                                        }
-                                      }}
-                                      className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
+                                    <div className="flex flex-col items-end gap-1">
+                                      <div className="flex items-center gap-1">
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          defaultValue={formatQuantity(pi.quantity, ingredient.unit).value}
+                                          onBlur={(e) => {
+                                            const newVal = parseFloat(e.target.value);
+                                            const currentFormatted = formatQuantity(pi.quantity, ingredient.unit);
+                                            // Only update if value actually changed
+                                            if (newVal > 0 && newVal.toString() !== currentFormatted.value) {
+                                              handleUpdateQuantity(pi.ingredientId, newVal, currentFormatted.unit);
+                                            }
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              const target = e.target as HTMLInputElement;
+                                              const newVal = parseFloat(target.value);
+                                              const currentFormatted = formatQuantity(pi.quantity, ingredient.unit);
+                                              if (newVal > 0) {
+                                                handleUpdateQuantity(pi.ingredientId, newVal, currentFormatted.unit);
+                                                target.blur();
+                                              }
+                                            }
+                                          }}
+                                          className="w-20 px-2 py-1 border border-gray-300 rounded-lg text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        />
+                                        <span className="text-xs font-medium text-gray-500 w-8">
+                                          {formatQuantity(pi.quantity, ingredient.unit).unit}
+                                        </span>
+                                      </div>
+                                      <span className="text-[10px] text-gray-400">
+                                        Presiona Enter para guardar
+                                      </span>
+                                    </div>
                                     <Button
                                       variant="ghost"
                                       size="icon"

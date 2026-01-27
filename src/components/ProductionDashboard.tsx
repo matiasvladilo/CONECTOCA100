@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Badge } from './ui/badge';
-import { 
-  ArrowLeft, 
+import {
+  ArrowLeft,
   TrendingUp,
   Package,
   Package2,
@@ -50,6 +50,7 @@ interface Ingredient {
   currentStock: number;
   minStock: number;
   maxStock?: number;
+  costPerUnit?: number;
 }
 
 interface Order {
@@ -75,9 +76,9 @@ interface ProductStats {
 
 const API_BASE_URL = `https://${projectId}.supabase.co/functions/v1/make-server-6d979413`;
 
-export function ProductionDashboard({ 
-  onBack, 
-  accessToken, 
+export function ProductionDashboard({
+  onBack,
+  accessToken,
   userName,
   onNavigateToOrders,
   onNavigateToIngredients,
@@ -185,7 +186,7 @@ export function ProductionDashboard({
     const thisWeek = new Date();
     thisWeek.setDate(thisWeek.getDate() - 7);
 
-    const weekOrders = orders.filter(o => 
+    const weekOrders = orders.filter(o =>
       new Date(o.createdAt) >= thisWeek
     );
 
@@ -195,6 +196,19 @@ export function ProductionDashboard({
 
     const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
     const todayRevenue = todayOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+
+    // Calculate Inventory Value & Cost
+    const totalInventoryValue = products.reduce((sum, p) => sum + (p.price * p.stock), 0);
+    const totalInventoryCost = products.reduce((sum, p) => {
+      // Safe check for ingredients
+      const productIngredients = (p as any).ingredients || [];
+      const productUnitCost = productIngredients.reduce((c: number, pi: any) => {
+        const ing = ingredients.find(i => i.id === pi.ingredientId);
+        const cost = ing?.costPerUnit || pi.costPerUnit || 0;
+        return c + (cost * pi.quantity);
+      }, 0);
+      return sum + (productUnitCost * p.stock);
+    }, 0);
 
     return {
       totalProducts: products.length,
@@ -208,7 +222,9 @@ export function ProductionDashboard({
       lowStockAlerts: lowStockProducts.length + lowStockIngredients.length,
       outOfStockAlerts: outOfStockProducts.length,
       totalRevenue,
-      todayRevenue
+      todayRevenue,
+      totalInventoryCost,
+      totalInventoryValue
     };
   }, [products, ingredients, orders, lowStockProducts, lowStockIngredients, outOfStockProducts]);
 
@@ -229,8 +245,8 @@ export function ProductionDashboard({
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="icon"
               onClick={onBack}
               className="hover:bg-white/50"
@@ -245,10 +261,10 @@ export function ProductionDashboard({
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="bg-white/50">
               <Clock className="w-3 h-3 mr-1" />
-              {new Date().toLocaleDateString('es-CL', { 
-                weekday: 'short', 
-                day: 'numeric', 
-                month: 'short' 
+              {new Date().toLocaleDateString('es-CL', {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short'
               })}
             </Badge>
           </div>
@@ -413,11 +429,10 @@ export function ProductionDashboard({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
-            <Card className={`bg-gradient-to-br ${
-              stats.lowStockAlerts > 0 
-                ? 'from-red-500 to-red-600' 
-                : 'from-gray-500 to-gray-600'
-            } text-white border-0 shadow-lg`}>
+            <Card className={`bg-gradient-to-br ${stats.lowStockAlerts > 0
+              ? 'from-red-500 to-red-600'
+              : 'from-gray-500 to-gray-600'
+              } text-white border-0 shadow-lg`}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-red-100">
                   Alertas de Stock
@@ -436,6 +451,81 @@ export function ProductionDashboard({
               </CardContent>
             </Card>
           </motion.div>
+        </div>
+
+        {/* Financial Analysis */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Inventory Value */}
+          <Card className="bg-gradient-to-br from-slate-50 to-white shadow-lg border-l-4 border-indigo-500">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-indigo-900">
+                <DollarSign className="w-5 h-5 text-indigo-600" />
+                Valorización de Inventario
+              </CardTitle>
+              <CardDescription>Costo de productos terminados en stock</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-slate-100 shadow-sm">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Costo de Producción</p>
+                    <p className="text-xs text-slate-400">Materia prima acumulada</p>
+                  </div>
+                  <p className="text-lg font-bold text-slate-700">{formatCLP(stats.totalInventoryCost)}</p>
+                </div>
+
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-slate-100 shadow-sm">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Valor de Venta</p>
+                    <p className="text-xs text-slate-400">Ingreso potencial total</p>
+                  </div>
+                  <p className="text-lg font-bold text-indigo-600">{formatCLP(stats.totalInventoryValue)}</p>
+                </div>
+
+                <div className="pt-3 border-t border-indigo-100 flex justify-between items-center">
+                  <p className="text-sm font-bold text-indigo-900">Margen Potencial</p>
+                  <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 px-3 py-1 text-sm">
+                    {formatCLP(stats.totalInventoryValue - stats.totalInventoryCost)}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Revenue Stats (derived from orders) */}
+          <Card className="bg-gradient-to-br from-emerald-50 to-white shadow-lg border-l-4 border-emerald-500">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-emerald-900">
+                <TrendingUp className="w-5 h-5 text-emerald-600" />
+                Ingresos por Ventas
+              </CardTitle>
+              <CardDescription>Resumen de ventas realizadas</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-emerald-100 shadow-sm">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Ventas Totales</p>
+                    <p className="text-xs text-slate-400">Todas las órdenes</p>
+                  </div>
+                  <p className="text-lg font-bold text-emerald-600">{formatCLP(stats.totalRevenue)}</p>
+                </div>
+
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-emerald-100 shadow-sm">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Ventas Hoy</p>
+                    <p className="text-xs text-slate-400">{stats.todayOrders} órdenes</p>
+                  </div>
+                  <p className="text-lg font-bold text-emerald-600">{formatCLP(stats.todayRevenue)}</p>
+                </div>
+
+                <div className="pt-3 border-t border-emerald-100 flex justify-between items-center">
+                  <p className="text-sm font-bold text-emerald-900">Ticket Promedio</p>
+                  <span className="text-emerald-700 font-semibold">{formatCLP(stats.totalOrders > 0 ? stats.totalRevenue / stats.totalOrders : 0)}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Productos Más Pedidos */}
@@ -470,7 +560,7 @@ export function ProductionDashboard({
                 {topProducts.map((product, index) => {
                   const maxQuantity = topProducts[0].totalOrdered;
                   const percentage = (product.totalOrdered / maxQuantity) * 100;
-                  
+
                   return (
                     <motion.div
                       key={product.productId}
@@ -481,12 +571,11 @@ export function ProductionDashboard({
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3">
-                          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                            index === 0 ? 'bg-yellow-100 text-yellow-700' :
+                          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${index === 0 ? 'bg-yellow-100 text-yellow-700' :
                             index === 1 ? 'bg-gray-100 text-gray-700' :
-                            index === 2 ? 'bg-orange-100 text-orange-700' :
-                            'bg-blue-100 text-blue-700'
-                          }`}>
+                              index === 2 ? 'bg-orange-100 text-orange-700' :
+                                'bg-blue-100 text-blue-700'
+                            }`}>
                             {index === 0 && <Award className="w-4 h-4" />}
                             {index > 0 && <span className="text-xs font-bold">#{index + 1}</span>}
                           </div>
@@ -509,12 +598,11 @@ export function ProductionDashboard({
                           initial={{ width: 0 }}
                           animate={{ width: `${percentage}%` }}
                           transition={{ duration: 0.5, delay: index * 0.1 }}
-                          className={`h-full rounded-full ${
-                            index === 0 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
+                          className={`h-full rounded-full ${index === 0 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
                             index === 1 ? 'bg-gradient-to-r from-gray-400 to-gray-500' :
-                            index === 2 ? 'bg-gradient-to-r from-orange-400 to-orange-500' :
-                            'bg-gradient-to-r from-blue-400 to-blue-500'
-                          }`}
+                              index === 2 ? 'bg-gradient-to-r from-orange-400 to-orange-500' :
+                                'bg-gradient-to-r from-blue-400 to-blue-500'
+                            }`}
                         />
                       </div>
                     </motion.div>
@@ -630,25 +718,23 @@ export function ProductionDashboard({
                     {lowStockIngredients.slice(0, 5).map(ingredient => {
                       const percentage = (ingredient.currentStock / ingredient.minStock) * 100;
                       const isVeryLow = percentage < 50;
-                      
+
                       return (
                         <div key={ingredient.id} className="space-y-1">
                           <div className="flex items-center justify-between text-sm">
                             <span className="font-medium text-gray-900">{ingredient.name}</span>
-                            <span className={`font-semibold ${
-                              isVeryLow ? 'text-red-600' : 'text-amber-600'
-                            }`}>
+                            <span className={`font-semibold ${isVeryLow ? 'text-red-600' : 'text-amber-600'
+                              }`}>
                               {ingredient.currentStock} {ingredient.unit}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
                               <div
-                                className={`h-full rounded-full transition-all ${
-                                  isVeryLow 
-                                    ? 'bg-gradient-to-r from-red-500 to-red-600' 
-                                    : 'bg-gradient-to-r from-amber-500 to-amber-600'
-                                }`}
+                                className={`h-full rounded-full transition-all ${isVeryLow
+                                  ? 'bg-gradient-to-r from-red-500 to-red-600'
+                                  : 'bg-gradient-to-r from-amber-500 to-amber-600'
+                                  }`}
                                 style={{ width: `${Math.min(percentage, 100)}%` }}
                               />
                             </div>

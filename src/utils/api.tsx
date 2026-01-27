@@ -395,7 +395,9 @@ export const categoriesAPI = {
 // Products API
 export const productsAPI = {
   getAll: async (token: string): Promise<Product[]> => {
-    const response = await fetchAPI('/products', {}, token);
+    // Explicitly set limit to 1000 to ensure we get all products
+    // (Backend defaults to 20 if not specified)
+    const response = await fetchAPI('/products?limit=1000', {}, token);
     return response?.data || [];
   },
 

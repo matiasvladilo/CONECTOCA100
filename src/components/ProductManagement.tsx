@@ -158,17 +158,43 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
   const handleOpenDialog = (product?: Product) => {
     if (product) {
       setEditingProduct(product);
+
+      // Transform ingredients for display
+      const displayIngredients = (product.ingredients || []).map(pi => {
+        // Enforce the use of ingredients state which is already loaded
+        const ingData = ingredients.find(i => i.id === pi.ingredientId);
+        const baseUnit = ingData?.unit?.toLowerCase() || 'kg';
+
+        let displayQty = pi.quantity;
+        let displayUnit = baseUnit;
+
+        // Auto-convert small amounts to sub-units for better UX
+        if (baseUnit === 'kg' && pi.quantity < 1) {
+          displayQty = pi.quantity * 1000;
+          displayUnit = 'g';
+        } else if (baseUnit === 'l' && pi.quantity < 1) {
+          displayQty = pi.quantity * 1000;
+          displayUnit = 'ml';
+        }
+
+        return {
+          ...pi,
+          quantity: parseFloat(displayQty.toFixed(3)),
+          inputUnit: displayUnit
+        };
+      });
+
       setFormData({
         name: product.name,
         description: product.description || '',
-        price: formatCLP(product.price, false), // Format without $ symbol for editing
+        price: formatCLP(product.price, false),
         stock: product.stock.toString(),
         category: product.category || 'General',
         categoryId: product.categoryId || '',
         imageUrl: product.imageUrl || '',
         productionAreaId: product.productionAreaId || '',
         unlimitedStock: product.stock === -1,
-        ingredients: product.ingredients || []
+        ingredients: displayIngredients
       });
     } else {
       setEditingProduct(null);
@@ -206,11 +232,13 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
     try {
       setSubmitting(true);
 
+      console.log('📝 [DEBUG] Form Ingredients:', formData.ingredients);
+
       const productData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
         price: priceValue,
-        stock: formData.unlimitedStock ? -1 : parseInt(formData.stock),
+        stock: formData.unlimitedStock ? -1 : (parseInt(formData.stock) || 0),
         category: formData.category.trim() || 'General',
         categoryId: formData.categoryId || undefined,
         imageUrl: formData.imageUrl.trim() || undefined,
@@ -228,6 +256,8 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
           };
         })
       };
+
+      console.log('📦 [DEBUG] Sending Product Data:', JSON.stringify(productData, null, 2));
 
       if (editingProduct) {
         // Update existing product
@@ -270,6 +300,8 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
       }
 
       handleCloseDialog();
+      // Reload everything to ensure local state matches server exactly (including ingredients)
+      loadProducts();
     } catch (error: any) {
       console.error('Error saving product:', error);
       toast.error(error.message || 'Error al guardar producto');
@@ -662,6 +694,28 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                       </div>
                     </div>
 
+                    {/* Cost & Margin */}
+                    <div className="flex items-center justify-between mb-4 pt-2 border-t border-gray-100">
+                      <div>
+                        <p className="text-xs text-gray-400">Costo</p>
+                        <p className="text-gray-600 font-semibold" style={{ fontSize: '14px' }}>
+                          {formatCLP((product.ingredients || []).reduce((sum, pi) => {
+                            const ing = ingredients.find(i => i.id === pi.ingredientId);
+                            // Auto-detect if quantity is in sub-units based on magnitude or usage pattern in form
+                            // But here we rely on the saved data which is normalized to base unit in DB??
+                            // Wait, in handleSubmit we divide by 1000 if inputUnit is g/ml.
+                            // So stored quantity IS in base unit (kg/l).
+                            // So we just multiply by costPerUnit directly.
+                            return sum + ((ing?.costPerUnit || 0) * pi.quantity);
+                          }, 0))}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        {/* Optional: Margin calculation could go here */}
+                      </div>
+                    </div>
+
+
                     {/* Actions */}
                     <div className="flex gap-2">
                       <Button
@@ -735,12 +789,10 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                   <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <Input
                     id="price"
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
                     value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    placeholder="0.00"
+                    onChange={(e) => setFormData({ ...formData, price: formatCLPInput(e.target.value) })}
+                    placeholder="0"
                     className="pl-9"
                     required
                   />
@@ -985,7 +1037,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                                       />
                                       <div className="flex flex-col">
                                         <span className="font-medium">{ing.name}</span>
-                                        <span className="text-xs text-gray-500">Stock actual: {ing.currentStock} {ing.unit}</span>
+                                        <span className="text-xs text-gray-500">Stock actual: {ing.currentStock} {ing.unit || 'unidades'}</span>
                                       </div>
                                     </CommandItem>
                                   ))
@@ -1030,16 +1082,25 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                                 <p className="text-xs text-gray-500">
                                   Stock disponible: {ingredientData?.currentStock || 0} {ingredientData?.unit}
                                 </p>
+                                {ingredientData?.costPerUnit && (
+                                  <p className="text-[10px] font-bold text-blue-600 mt-0.5">
+                                    Costo: {formatCLP((() => {
+                                      let finalQty = ingredient.quantity;
+                                      if (ingredient.inputUnit === 'g' || ingredient.inputUnit === 'ml') finalQty = ingredient.quantity / 1000;
+                                      return (ingredientData.costPerUnit || 0) * finalQty;
+                                    })())}
+                                  </p>
+                                )}
                               </div>
                               <div className="flex items-center gap-2">
                                 <Input
                                   type="number"
-                                  step="0.01"
-                                  min="0.01"
+                                  step="any"
+                                  min="0"
                                   value={ingredient.quantity}
                                   onChange={(e) => {
                                     const newIngredients = [...formData.ingredients];
-                                    newIngredients[index].quantity = parseFloat(e.target.value) || 0.01;
+                                    newIngredients[index].quantity = parseFloat(e.target.value) || 0;
                                     setFormData({ ...formData, ingredients: newIngredients });
                                   }}
                                   className="w-20 h-8 text-center"
@@ -1121,9 +1182,67 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                             </div>
                           );
                         })}
+
+                        {/* Cost Summary in Form */}
+                        <div className="mt-4 p-4 rounded-xl border border-blue-200 bg-white shadow-sm">
+                          <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="w-5 h-5 text-[#0059FF]" />
+                              <span className="font-bold text-gray-900">Análisis Financiero</span>
+                            </div>
+                            <Badge variant="outline" className="text-[10px] uppercase tracking-wider text-blue-600 bg-blue-50 border-blue-200">
+                              Tiempo Real
+                            </Badge>
+                          </div>
+
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="text-gray-500">Costo de Producción:</span>
+                              <span className="font-bold text-slate-800">
+                                {formatCLP(formData.ingredients.reduce((sum, pi) => {
+                                  const ing = ingredients.find(i => i.id === pi.ingredientId);
+                                  // Base conversion: if in 'g' or 'ml', calculate based on costPerUnit (assumed to be per kg/l)
+                                  let finalQty = pi.quantity;
+                                  if (pi.inputUnit === 'g' || pi.inputUnit === 'ml') finalQty = pi.quantity / 1000;
+
+                                  return sum + ((ing?.costPerUnit || pi.costPerUnit || 0) * finalQty);
+                                }, 0))}
+                              </span>
+                            </div>
+
+                            {formData.price && (
+                              <div className="flex justify-between items-center pt-2 text-sm">
+                                <span className="text-gray-500">Margen Bruto Receta:</span>
+                                {(() => {
+                                  const totalCost = formData.ingredients.reduce((sum, pi) => {
+                                    const ing = ingredients.find(i => i.id === pi.ingredientId);
+                                    let finalQty = pi.quantity;
+                                    if (pi.inputUnit === 'g' || pi.inputUnit === 'ml') finalQty = pi.quantity / 1000;
+                                    return sum + ((ing?.costPerUnit || pi.costPerUnit || 0) * finalQty);
+                                  }, 0);
+                                  const margin = parseCLP(formData.price) - totalCost;
+                                  const marginPercent = parseCLP(formData.price) > 0 ? (margin / parseCLP(formData.price)) * 100 : 0;
+
+                                  return (
+                                    <div className="text-right">
+                                      <p className={`font-bold ${margin > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        {formatCLP(margin)}
+                                      </p>
+                                      <p className="text-[10px] text-gray-400">
+                                        {marginPercent.toFixed(1)}% de margen
+                                      </p>
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
                         <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                          <p className="text-xs text-green-800">
-                            ✓ Esta receta tiene {formData.ingredients.length} ingrediente{formData.ingredients.length !== 1 ? 's' : ''} configurado{formData.ingredients.length !== 1 ? 's' : ''}
+                          <p className="text-xs text-green-800 flex items-center gap-2">
+                            <Check className="w-3 h-3" />
+                            Esta receta tiene {formData.ingredients.length} ingrediente{formData.ingredients.length !== 1 ? 's' : ''} configurado{formData.ingredients.length !== 1 ? 's' : ''}
                           </p>
                         </div>
                       </>
@@ -1191,6 +1310,6 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </div >
   );
 }

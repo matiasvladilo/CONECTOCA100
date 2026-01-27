@@ -14,6 +14,7 @@ interface IngredientManagementProps {
 export function IngredientManagement({ onBack, accessToken }: IngredientManagementProps) {
   const [ingredients, setIngredients] = useState<APIIngredient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
@@ -62,12 +63,15 @@ export function IngredientManagement({ onBack, accessToken }: IngredientManageme
   };
 
   const handleSave = async () => {
+    if (isSaving) return;
+
     try {
       if (!formData.name || !formData.unit || !formData.currentStock || !formData.minStock) {
         toast.error("Complete los campos obligatorios");
         return;
       }
 
+      setIsSaving(true);
       // Helper to parse CLP currency string to number
       const parseCurrency = (value: string): number | undefined => {
         if (!value) return undefined;
@@ -112,6 +116,8 @@ export function IngredientManagement({ onBack, accessToken }: IngredientManageme
     } catch (error: any) {
       console.error("Error saving ingredient:", error);
       toast.error(error.message || "Error al guardar materia prima");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -464,10 +470,15 @@ export function IngredientManagement({ onBack, accessToken }: IngredientManageme
                 <div className="flex gap-3 mt-6">
                   <Button
                     onClick={handleSave}
+                    disabled={isSaving}
                     className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    <Save className="w-4 h-4 mr-2" />
-                    Guardar
+                    {isSaving ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    {isSaving ? "Guardando..." : "Guardar"}
                   </Button>
                   <Button
                     variant="outline"
