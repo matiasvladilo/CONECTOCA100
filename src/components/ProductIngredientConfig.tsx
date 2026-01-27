@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Plus, Save, Trash2, Package, ChefHat, AlertCircle } from "lucide-react";
+import { ArrowLeft, Plus, Save, Trash2, Package, ChefHat, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import {
@@ -180,6 +180,60 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
     return ingredients.find(i => i.id === ingredientId);
   };
 
+  const handleSyncRecipes = async () => {
+    if (confirm("Esto sincronizará las recetas desde la configuración antigua de productos a este nuevo sistema. ¿Desea continuar?")) {
+      try {
+        setLoading(true);
+        let productsUpdated = 0;
+
+        for (const product of products) {
+          // Check if product has legacy ingredients but no new structure?
+          // Actually, we can just force update if legacy ingredients exist.
+          // But checking if sync is needed is better.
+          // Let's just iterate and set ingredients if they exist on the product object.
+
+          // Note: The product object from productsAPI.getAll() contains the 'ingredients' array
+          // which comes from the JSON column or the enriched response.
+          // If the backend GET /products is enriched properly, it includes the ingredients.
+          // But we know GET /products returns the JSON column primarily if not enriched.
+
+          // ACTUALLY, checking index.tsx, GET /products just returns kv.getByPrefix('product:')
+          // So product.ingredients IS the JSON column. This is exactly what we want to source from.
+
+          if (product.ingredients && product.ingredients.length > 0) {
+            // Prepare ingredients for setIngredients
+            const ingredientsToSet = product.ingredients.map(pi => ({
+              ingredientId: pi.ingredientId,
+              quantity: pi.quantity
+            }));
+
+            // We filter out invalid ingredients (e.g. if ingredient deleted)
+            const validIngredients = ingredientsToSet.filter(pi =>
+              ingredients.some(i => i.id === pi.ingredientId)
+            );
+
+            if (validIngredients.length > 0) {
+              await productIngredientsAPI.setIngredients(
+                accessToken,
+                product.id,
+                validIngredients
+              );
+              productsUpdated++;
+            }
+          }
+        }
+
+        toast.success(`Sincronización completada. ${productsUpdated} productos actualizados.`);
+        loadInitialData(); // Reload to see changes
+      } catch (error: any) {
+        console.error("Error syncing recipes:", error);
+        toast.error("Error al sincronizar recetas");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const calculateTotalCost = () => {
     return productIngredients.reduce((total, pi) => {
       const ingredient = getIngredientDetails(pi.ingredientId);
@@ -218,398 +272,408 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
               </p>
             </div>
           </div>
+          <Button
+            onClick={handleSyncRecipes}
+            variant="outline"
+            className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Sincronizar Recetas
+          </Button>
         </div>
       </div>
 
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Cargando datos...</p>
-        </div>
-      ) : (
-        <div className="max-w-7xl mx-auto p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Products List */}
-            <div className="lg:col-span-1">
-              <Card className="p-4 bg-white">
-                <h2 className="mb-4 flex items-center gap-2">
-                  <Package className="w-5 h-5 text-blue-600" />
-                  Productos
-                </h2>
-                <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                  {products.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <Package className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                      <p className="text-sm">No hay productos disponibles</p>
-                    </div>
-                  ) : (
-                    products.map((product) => (
-                      <button
-                        key={product.id}
-                        onClick={() => setSelectedProduct(product)}
-                        className={`w-full text-left p-3 rounded-lg transition-all ${selectedProduct?.id === product.id
-                          ? "bg-blue-600 text-white shadow-md"
-                          : "bg-gray-50 hover:bg-gray-100 text-gray-900"
-                          }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          {product.imageUrl && (
-                            <img
-                              src={product.imageUrl}
-                              alt={product.name}
-                              className="w-10 h-10 rounded object-cover"
-                            />
-                          )}
-                          <div className="flex-1">
-                            <p className={selectedProduct?.id === product.id ? "text-white" : "text-gray-900"}>
-                              {product.name}
-                            </p>
-                            <p className={`text-xs ${selectedProduct?.id === product.id ? "text-blue-100" : "text-gray-500"}`}>
-                              {product.category || "Sin categoría"}
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </Card>
-            </div>
-
-            {/* Product Ingredients Configuration */}
-            <div className="lg:col-span-2">
-              {selectedProduct ? (
-                <div className="space-y-4">
-                  {/* Product Info Header */}
-                  <Card className="p-6 bg-white border-l-4 border-blue-500">
-                    <div className="flex items-start gap-4">
-                      {selectedProduct.imageUrl && (
-                        <img
-                          src={selectedProduct.imageUrl}
-                          alt={selectedProduct.name}
-                          className="w-20 h-20 rounded-lg object-cover"
-                        />
-                      )}
-                      <div className="flex-1">
-                        <h2 className="text-gray-900 mb-1">{selectedProduct.name}</h2>
-                        <p className="text-sm text-gray-600 mb-2">{selectedProduct.description}</p>
-                        <div className="flex items-center gap-4 text-sm">
-                          <span className="text-gray-600">
-                            Precio: <span className="text-gray-900">${selectedProduct.price}</span>
-                          </span>
-                          {productIngredients.length > 0 && (
-                            <span className="text-gray-600">
-                              Costo Materias Primas: <span className="text-green-600">${calculateTotalCost().toFixed(2)}</span>
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <Button
-                        onClick={() => setShowAddForm(true)}
-                        className="bg-yellow-500 hover:bg-yellow-600 text-gray-900"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Agregar Ingrediente
-                      </Button>
-                    </div>
-                  </Card>
-
-                  {/* Add Ingredient Form */}
-                  <AnimatePresence>
-                    {showAddForm && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                      >
-                        <Card className="p-6 bg-white border-2 border-yellow-500">
-                          <h3 className="mb-4">Agregar Ingrediente</h3>
-
-                          {availableIngredients.length === 0 ? (
-                            <div className="text-center py-8">
-                              <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                              <p className="text-gray-600 mb-2">No hay ingredientes disponibles</p>
-                              <p className="text-sm text-gray-500">
-                                Todos los ingredientes ya están agregados o no hay ingredientes creados
-                              </p>
-                            </div>
-                          ) : (
-                            <div className="space-y-4">
-                              <div>
-                                <label className="block text-sm mb-2">Ingrediente</label>
-                                <select
-                                  value={newIngredient.ingredientId}
-                                  onChange={(e) => {
-                                    const id = e.target.value;
-                                    setNewIngredient({ ...newIngredient, ingredientId: id });
-                                    const ing = ingredients.find(i => i.id === id);
-                                    if (ing) {
-                                      // Normalize unit to lower case for comparison just in case, or use exact string
-                                      // If it's kilogram/liters, default to the base unit
-                                      // We can store the unit directly
-                                      const u = ing.unit.toLowerCase();
-                                      if (u === 'kilos') setInputUnit('kg');
-                                      else if (u === 'litros') setInputUnit('l');
-                                      else setInputUnit(ing.unit);
-                                    }
-                                  }}
-                                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                >
-                                  <option value="">Seleccione un ingrediente</option>
-                                  {availableIngredients.map((ingredient) => (
-                                    <option key={ingredient.id} value={ingredient.id}>
-                                      {ingredient.name} ({ingredient.currentStock} {ingredient.unit} disponibles)
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-
-                              <div>
-                                <label className="block text-sm mb-2">
-                                  Cantidad por Unidad de Producto
-                                </label>
-                                <div className="flex gap-2">
-                                  <input
-                                    type="number"
-                                    step="0.01"
-                                    value={newIngredient.quantity}
-                                    onChange={(e) => setNewIngredient({ ...newIngredient, quantity: parseFloat(e.target.value) || 0 })}
-                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    placeholder="0.00"
-                                  />
-                                  {newIngredient.ingredientId && (
-                                    (() => {
-                                      const ing = getIngredientDetails(newIngredient.ingredientId);
-                                      if (!ing) return null;
-
-                                      const isKg = ing.unit.toLowerCase() === 'kg' || ing.unit.toLowerCase() === 'kilos';
-                                      const isL = ing.unit.toLowerCase() === 'l' || ing.unit.toLowerCase() === 'litros';
-
-                                      if (isKg) {
-                                        return (
-                                          <select
-                                            value={inputUnit}
-                                            onChange={(e) => setInputUnit(e.target.value)}
-                                            className="px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700"
-                                          >
-                                            <option value="kg">kg</option>
-                                            <option value="g">gramos</option>
-                                          </select>
-                                        );
-                                      } else if (isL) {
-                                        return (
-                                          <select
-                                            value={inputUnit}
-                                            onChange={(e) => setInputUnit(e.target.value)}
-                                            className="px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700"
-                                          >
-                                            <option value="l">litros</option>
-                                            <option value="ml">ml</option>
-                                          </select>
-                                        );
-                                      } else {
-                                        return (
-                                          <span className="px-4 py-2 bg-gray-100 rounded-lg text-gray-700 flex items-center">
-                                            {ing.unit}
-                                          </span>
-                                        );
-                                      }
-                                    })()
-                                  )}
-                                </div>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Cantidad de este ingrediente necesaria para fabricar 1 unidad del producto
-                                </p>
-                              </div>
-
-                              <div className="flex gap-3">
-                                <Button
-                                  onClick={handleAddIngredient}
-                                  disabled={saving}
-                                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                                >
-                                  <Save className="w-4 h-4 mr-2" />
-                                  {saving ? "Guardando..." : "Guardar"}
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  onClick={() => {
-                                    setShowAddForm(false);
-                                    setNewIngredient({ ingredientId: "", quantity: 0 });
-                                    setInputUnit("");
-                                  }}
-                                  className="flex-1"
-                                >
-                                  Cancelar
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-                        </Card>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Ingredients List */}
-                  <Card className="p-6 bg-white">
-                    <h3 className="mb-4">
-                      Ingredientes Configurados ({productIngredients.length})
-                    </h3>
-
-                    {productIngredients.length === 0 ? (
-                      <div className="text-center py-12">
-                        <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-gray-600 mb-2">
-                          No hay ingredientes configurados
-                        </h3>
-                        <p className="text-gray-500 text-sm mb-6">
-                          Este producto aún no tiene ingredientes asignados
-                        </p>
-                        <Button
-                          onClick={() => setShowAddForm(true)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Agregar Primer Ingrediente
-                        </Button>
+      {
+        loading ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p className="mt-4 text-gray-600">Cargando datos...</p>
+          </div>
+        ) : (
+          <div className="max-w-7xl mx-auto p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Products List */}
+              <div className="lg:col-span-1">
+                <Card className="p-4 bg-white">
+                  <h2 className="mb-4 flex items-center gap-2">
+                    <Package className="w-5 h-5 text-blue-600" />
+                    Productos
+                  </h2>
+                  <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                    {products.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <Package className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                        <p className="text-sm">No hay productos disponibles</p>
                       </div>
                     ) : (
-                      <div className="space-y-3">
-                        {productIngredients.map((pi) => {
-                          const ingredient = getIngredientDetails(pi.ingredientId);
-                          if (!ingredient) return null;
-
-                          const canProduce = Math.floor(ingredient.currentStock / pi.quantity);
-
-                          return (
-                            <motion.div
-                              key={pi.ingredientId}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: -20 }}
-                            >
-                              <Card className="p-4 bg-gray-50 hover:bg-gray-100 transition-colors">
-                                <div className="flex items-center gap-4">
-                                  <div className="flex-1">
-                                    <h4 className="text-gray-900 mb-1">{ingredient.name}</h4>
-                                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                                      <span>
-                                        Cantidad: {pi.quantity} {ingredient.unit}
-                                      </span>
-                                      <span className="text-gray-400">•</span>
-                                      <span>
-                                        Stock: {ingredient.currentStock} {ingredient.unit}
-                                      </span>
-                                      <span className="text-gray-400">•</span>
-                                      <span className={canProduce < 10 ? "text-yellow-600" : "text-green-600"}>
-                                        Puede producir: {canProduce} unidades
-                                      </span>
-                                      {ingredient.costPerUnit && (
-                                        <>
-                                          <span className="text-gray-400">•</span>
-                                          <span>
-                                            Costo: ${(pi.quantity * ingredient.costPerUnit).toFixed(2)}
-                                          </span>
-                                        </>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center gap-2">
-                                    <div className="flex flex-col items-end gap-1">
-                                      <div className="flex items-center gap-1">
-                                        <input
-                                          type="number"
-                                          step="0.01"
-                                          defaultValue={formatQuantity(pi.quantity, ingredient.unit).value}
-                                          onBlur={(e) => {
-                                            const newVal = parseFloat(e.target.value);
-                                            const currentFormatted = formatQuantity(pi.quantity, ingredient.unit);
-                                            // Only update if value actually changed
-                                            if (newVal > 0 && newVal.toString() !== currentFormatted.value) {
-                                              handleUpdateQuantity(pi.ingredientId, newVal, currentFormatted.unit);
-                                            }
-                                          }}
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                              const target = e.target as HTMLInputElement;
-                                              const newVal = parseFloat(target.value);
-                                              const currentFormatted = formatQuantity(pi.quantity, ingredient.unit);
-                                              if (newVal > 0) {
-                                                handleUpdateQuantity(pi.ingredientId, newVal, currentFormatted.unit);
-                                                target.blur();
-                                              }
-                                            }
-                                          }}
-                                          className="w-20 px-2 py-1 border border-gray-300 rounded-lg text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        />
-                                        <span className="text-xs font-medium text-gray-500 w-8">
-                                          {formatQuantity(pi.quantity, ingredient.unit).unit}
-                                        </span>
-                                      </div>
-                                      <span className="text-[10px] text-gray-400">
-                                        Presiona Enter para guardar
-                                      </span>
-                                    </div>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleRemoveIngredient(pi.ingredientId)}
-                                      className="text-red-600 hover:bg-red-50"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              </Card>
-                            </motion.div>
-                          );
-                        })}
-
-                        {/* Summary */}
-                        {productIngredients.length > 0 && (
-                          <Card className="p-4 bg-blue-50 border-2 border-blue-200 mt-4">
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-700">
-                                Costo Total de Materias Primas por Unidad:
-                              </span>
-                              <span className="text-blue-900">
-                                ${calculateTotalCost().toFixed(2)}
-                              </span>
+                      products.map((product) => (
+                        <button
+                          key={product.id}
+                          onClick={() => setSelectedProduct(product)}
+                          className={`w-full text-left p-3 rounded-lg transition-all ${selectedProduct?.id === product.id
+                            ? "bg-blue-600 text-white shadow-md"
+                            : "bg-gray-50 hover:bg-gray-100 text-gray-900"
+                            }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {product.imageUrl && (
+                              <img
+                                src={product.imageUrl}
+                                alt={product.name}
+                                className="w-10 h-10 rounded object-cover"
+                              />
+                            )}
+                            <div className="flex-1">
+                              <p className={selectedProduct?.id === product.id ? "text-white" : "text-gray-900"}>
+                                {product.name}
+                              </p>
+                              <p className={`text-xs ${selectedProduct?.id === product.id ? "text-blue-100" : "text-gray-500"}`}>
+                                {product.category || "Sin categoría"}
+                              </p>
                             </div>
-                            {selectedProduct.price && (
-                              <div className="flex justify-between items-center mt-2 pt-2 border-t border-blue-300">
-                                <span className="text-gray-700">Margen de Ganancia:</span>
-                                <span className={`${selectedProduct.price - calculateTotalCost() > 0
-                                  ? "text-green-600"
-                                  : "text-red-600"
-                                  }`}>
-                                  ${(selectedProduct.price - calculateTotalCost()).toFixed(2)}
-                                  ({((((selectedProduct.price - calculateTotalCost()) / selectedProduct.price) * 100) || 0).toFixed(1)}%)
-                                </span>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </Card>
+              </div>
+
+              {/* Product Ingredients Configuration */}
+              <div className="lg:col-span-2">
+                {selectedProduct ? (
+                  <div className="space-y-4">
+                    {/* Product Info Header */}
+                    <Card className="p-6 bg-white border-l-4 border-blue-500">
+                      <div className="flex items-start gap-4">
+                        {selectedProduct.imageUrl && (
+                          <img
+                            src={selectedProduct.imageUrl}
+                            alt={selectedProduct.name}
+                            className="w-20 h-20 rounded-lg object-cover"
+                          />
+                        )}
+                        <div className="flex-1">
+                          <h2 className="text-gray-900 mb-1">{selectedProduct.name}</h2>
+                          <p className="text-sm text-gray-600 mb-2">{selectedProduct.description}</p>
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="text-gray-600">
+                              Precio: <span className="text-gray-900">${selectedProduct.price}</span>
+                            </span>
+                            {productIngredients.length > 0 && (
+                              <span className="text-gray-600">
+                                Costo Materias Primas: <span className="text-green-600">${calculateTotalCost().toFixed(2)}</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          onClick={() => setShowAddForm(true)}
+                          className="bg-yellow-500 hover:bg-yellow-600 text-gray-900"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Agregar Ingrediente
+                        </Button>
+                      </div>
+                    </Card>
+
+                    {/* Add Ingredient Form */}
+                    <AnimatePresence>
+                      {showAddForm && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                        >
+                          <Card className="p-6 bg-white border-2 border-yellow-500">
+                            <h3 className="mb-4">Agregar Ingrediente</h3>
+
+                            {availableIngredients.length === 0 ? (
+                              <div className="text-center py-8">
+                                <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                                <p className="text-gray-600 mb-2">No hay ingredientes disponibles</p>
+                                <p className="text-sm text-gray-500">
+                                  Todos los ingredientes ya están agregados o no hay ingredientes creados
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                <div>
+                                  <label className="block text-sm mb-2">Ingrediente</label>
+                                  <select
+                                    value={newIngredient.ingredientId}
+                                    onChange={(e) => {
+                                      const id = e.target.value;
+                                      setNewIngredient({ ...newIngredient, ingredientId: id });
+                                      const ing = ingredients.find(i => i.id === id);
+                                      if (ing) {
+                                        // Normalize unit to lower case for comparison just in case, or use exact string
+                                        // If it's kilogram/liters, default to the base unit
+                                        // We can store the unit directly
+                                        const u = ing.unit.toLowerCase();
+                                        if (u === 'kilos') setInputUnit('kg');
+                                        else if (u === 'litros') setInputUnit('l');
+                                        else setInputUnit(ing.unit);
+                                      }
+                                    }}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  >
+                                    <option value="">Seleccione un ingrediente</option>
+                                    {availableIngredients.map((ingredient) => (
+                                      <option key={ingredient.id} value={ingredient.id}>
+                                        {ingredient.name} ({ingredient.currentStock} {ingredient.unit} disponibles)
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="block text-sm mb-2">
+                                    Cantidad por Unidad de Producto
+                                  </label>
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      value={newIngredient.quantity}
+                                      onChange={(e) => setNewIngredient({ ...newIngredient, quantity: parseFloat(e.target.value) || 0 })}
+                                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                      placeholder="0.00"
+                                    />
+                                    {newIngredient.ingredientId && (
+                                      (() => {
+                                        const ing = getIngredientDetails(newIngredient.ingredientId);
+                                        if (!ing) return null;
+
+                                        const isKg = ing.unit.toLowerCase() === 'kg' || ing.unit.toLowerCase() === 'kilos';
+                                        const isL = ing.unit.toLowerCase() === 'l' || ing.unit.toLowerCase() === 'litros';
+
+                                        if (isKg) {
+                                          return (
+                                            <select
+                                              value={inputUnit}
+                                              onChange={(e) => setInputUnit(e.target.value)}
+                                              className="px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700"
+                                            >
+                                              <option value="kg">kg</option>
+                                              <option value="g">gramos</option>
+                                            </select>
+                                          );
+                                        } else if (isL) {
+                                          return (
+                                            <select
+                                              value={inputUnit}
+                                              onChange={(e) => setInputUnit(e.target.value)}
+                                              className="px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700"
+                                            >
+                                              <option value="l">litros</option>
+                                              <option value="ml">ml</option>
+                                            </select>
+                                          );
+                                        } else {
+                                          return (
+                                            <span className="px-4 py-2 bg-gray-100 rounded-lg text-gray-700 flex items-center">
+                                              {ing.unit}
+                                            </span>
+                                          );
+                                        }
+                                      })()
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Cantidad de este ingrediente necesaria para fabricar 1 unidad del producto
+                                  </p>
+                                </div>
+
+                                <div className="flex gap-3">
+                                  <Button
+                                    onClick={handleAddIngredient}
+                                    disabled={saving}
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                                  >
+                                    <Save className="w-4 h-4 mr-2" />
+                                    {saving ? "Guardando..." : "Guardar"}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      setShowAddForm(false);
+                                      setNewIngredient({ ingredientId: "", quantity: 0 });
+                                      setInputUnit("");
+                                    }}
+                                    className="flex-1"
+                                  >
+                                    Cancelar
+                                  </Button>
+                                </div>
                               </div>
                             )}
                           </Card>
-                        )}
-                      </div>
-                    )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Ingredients List */}
+                    <Card className="p-6 bg-white">
+                      <h3 className="mb-4">
+                        Ingredientes Configurados ({productIngredients.length})
+                      </h3>
+
+                      {productIngredients.length === 0 ? (
+                        <div className="text-center py-12">
+                          <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                          <h3 className="text-gray-600 mb-2">
+                            No hay ingredientes configurados
+                          </h3>
+                          <p className="text-gray-500 text-sm mb-6">
+                            Este producto aún no tiene ingredientes asignados
+                          </p>
+                          <Button
+                            onClick={() => setShowAddForm(true)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Agregar Primer Ingrediente
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {productIngredients.map((pi) => {
+                            const ingredient = getIngredientDetails(pi.ingredientId);
+                            if (!ingredient) return null;
+
+                            const canProduce = Math.floor(ingredient.currentStock / pi.quantity);
+
+                            return (
+                              <motion.div
+                                key={pi.ingredientId}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                              >
+                                <Card className="p-4 bg-gray-50 hover:bg-gray-100 transition-colors">
+                                  <div className="flex items-center gap-4">
+                                    <div className="flex-1">
+                                      <h4 className="text-gray-900 mb-1">{ingredient.name}</h4>
+                                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                                        <span>
+                                          Cantidad: {pi.quantity} {ingredient.unit}
+                                        </span>
+                                        <span className="text-gray-400">•</span>
+                                        <span>
+                                          Stock: {ingredient.currentStock} {ingredient.unit}
+                                        </span>
+                                        <span className="text-gray-400">•</span>
+                                        <span className={canProduce < 10 ? "text-yellow-600" : "text-green-600"}>
+                                          Puede producir: {canProduce} unidades
+                                        </span>
+                                        {ingredient.costPerUnit && (
+                                          <>
+                                            <span className="text-gray-400">•</span>
+                                            <span>
+                                              Costo: ${(pi.quantity * ingredient.costPerUnit).toFixed(2)}
+                                            </span>
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex flex-col items-end gap-1">
+                                        <div className="flex items-center gap-1">
+                                          <input
+                                            type="number"
+                                            step="0.01"
+                                            defaultValue={formatQuantity(pi.quantity, ingredient.unit).value}
+                                            onBlur={(e) => {
+                                              const newVal = parseFloat(e.target.value);
+                                              const currentFormatted = formatQuantity(pi.quantity, ingredient.unit);
+                                              // Only update if value actually changed
+                                              if (newVal > 0 && newVal.toString() !== currentFormatted.value) {
+                                                handleUpdateQuantity(pi.ingredientId, newVal, currentFormatted.unit);
+                                              }
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') {
+                                                const target = e.target as HTMLInputElement;
+                                                const newVal = parseFloat(target.value);
+                                                const currentFormatted = formatQuantity(pi.quantity, ingredient.unit);
+                                                if (newVal > 0) {
+                                                  handleUpdateQuantity(pi.ingredientId, newVal, currentFormatted.unit);
+                                                  target.blur();
+                                                }
+                                              }
+                                            }}
+                                            className="w-20 px-2 py-1 border border-gray-300 rounded-lg text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          />
+                                          <span className="text-xs font-medium text-gray-500 w-8">
+                                            {formatQuantity(pi.quantity, ingredient.unit).unit}
+                                          </span>
+                                        </div>
+                                        <span className="text-[10px] text-gray-400">
+                                          Presiona Enter para guardar
+                                        </span>
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => handleRemoveIngredient(pi.ingredientId)}
+                                        className="text-red-600 hover:bg-red-50"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </Card>
+                              </motion.div>
+                            );
+                          })}
+
+                          {/* Summary */}
+                          {productIngredients.length > 0 && (
+                            <Card className="p-4 bg-blue-50 border-2 border-blue-200 mt-4">
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-700">
+                                  Costo Total de Materias Primas por Unidad:
+                                </span>
+                                <span className="text-blue-900">
+                                  ${calculateTotalCost().toFixed(2)}
+                                </span>
+                              </div>
+                              {selectedProduct.price && (
+                                <div className="flex justify-between items-center mt-2 pt-2 border-t border-blue-300">
+                                  <span className="text-gray-700">Margen de Ganancia:</span>
+                                  <span className={`${selectedProduct.price - calculateTotalCost() > 0
+                                    ? "text-green-600"
+                                    : "text-red-600"
+                                    }`}>
+                                    ${(selectedProduct.price - calculateTotalCost()).toFixed(2)}
+                                    ({((((selectedProduct.price - calculateTotalCost()) / selectedProduct.price) * 100) || 0).toFixed(1)}%)
+                                  </span>
+                                </div>
+                              )}
+                            </Card>
+                          )}
+                        </div>
+                      )}
+                    </Card>
+                  </div>
+                ) : (
+                  <Card className="p-12 text-center bg-white">
+                    <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-gray-600 mb-2">
+                      Seleccione un producto
+                    </h3>
+                    <p className="text-gray-500 text-sm">
+                      Elija un producto de la lista para configurar sus ingredientes
+                    </p>
                   </Card>
-                </div>
-              ) : (
-                <Card className="p-12 text-center bg-white">
-                  <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-gray-600 mb-2">
-                    Seleccione un producto
-                  </h3>
-                  <p className="text-gray-500 text-sm">
-                    Elija un producto de la lista para configurar sus ingredientes
-                  </p>
-                </Card>
-              )}
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 }

@@ -909,6 +909,8 @@ app.put('/make-server-6d979413/products/:id/ingredients', async (c) => {
 
     // Create new relationships
     const productIngredients = [];
+    const ingredientsListForProduct = [];
+
     if (ingredients && Array.isArray(ingredients)) {
       for (const ingredient of ingredients) {
         const relationId = crypto.randomUUID();
@@ -921,6 +923,12 @@ app.put('/make-server-6d979413/products/:id/ingredients', async (c) => {
         };
 
         await kv.set(`product-ingredient:${productId}:${ingredient.ingredientId}`, relation);
+
+        // Add to list for updating product object
+        ingredientsListForProduct.push({
+          ingredientId: ingredient.ingredientId,
+          quantity: ingredient.quantity
+        });
 
         // Get ingredient details for response
         const ingredientData = await kv.get(`ingredient:${ingredient.ingredientId}`);
@@ -936,6 +944,15 @@ app.put('/make-server-6d979413/products/:id/ingredients', async (c) => {
         });
       }
     }
+
+    // CRITICAL: Update the product object itself to keep sync
+    const updatedProduct = {
+      ...product,
+      ingredients: ingredientsListForProduct,
+      updatedAt: new Date().toISOString()
+    };
+    await kv.set(`product:${productId}`, updatedProduct);
+    console.log(`✓ Product object updated with ${ingredientsListForProduct.length} ingredients`);
 
     console.log(`✓ Product ingredients updated for product ${productId}: ${ingredients?.length || 0} ingredients`);
     return c.json({ data: productIngredients });
@@ -993,6 +1010,19 @@ app.post('/make-server-6d979413/products/:id/ingredients', async (c) => {
 
     await kv.set(`product-ingredient:${productId}:${ingredientId}`, relation);
 
+    // CRITICAL: Update the product object itself to keep sync
+    const currentIngredients = product.ingredients || [];
+    // Remove existing if present (update logic)
+    const otherIngredients = currentIngredients.filter((i: any) => i.ingredientId !== ingredientId);
+    otherIngredients.push({ ingredientId, quantity });
+
+    const updatedProduct = {
+      ...product,
+      ingredients: otherIngredients,
+      updatedAt: new Date().toISOString()
+    };
+    await kv.set(`product:${productId}`, updatedProduct);
+
     const productIngredient = {
       id: relationId,
       productId: productId,
@@ -1039,6 +1069,20 @@ app.delete('/make-server-6d979413/products/:productId/ingredients/:ingredientId'
 
     // Delete relationship
     await kv.del(`product-ingredient:${productId}:${ingredientId}`);
+
+    // CRITICAL: Update the product object itself to keep sync
+    const product = await kv.get(`product:${productId}`);
+    if (product) {
+      const currentIngredients = product.ingredients || [];
+      const updatedIngredients = currentIngredients.filter((i: any) => i.ingredientId !== ingredientId);
+
+      const updatedProduct = {
+        ...product,
+        ingredients: updatedIngredients,
+        updatedAt: new Date().toISOString()
+      };
+      await kv.set(`product:${productId}`, updatedProduct);
+    }
 
     console.log(`✓ Ingredient ${ingredientId} removed from product ${productId}`);
     return c.json({ data: { deleted: true } });
