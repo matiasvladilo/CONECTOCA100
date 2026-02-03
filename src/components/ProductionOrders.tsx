@@ -16,9 +16,10 @@ import {
   FileText,
   Trash2,
   Search,
-  Filter
+  Filter,
+  AlertCircle
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from './ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
@@ -57,6 +58,17 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
   const [currentProductId, setCurrentProductId] = useState('');
   const [currentQuantity, setCurrentQuantity] = useState<number | ''>('');
   const [notes, setNotes] = useState('');
+
+  // Completion Dialog State
+  const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
+  const [orderToComplete, setOrderToComplete] = useState<ProductionOrder | null>(null);
+  const [completionData, setCompletionData] = useState<Array<{
+    productId: string;
+    name: string;
+    targetQuantity: number;
+    producedQuantity: number;
+    wasteQuantity: number;
+  }>>([]);
 
   useEffect(() => {
     loadProductionOrders();
@@ -156,7 +168,22 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
   };
 
   const handleCreateOrder = async () => {
-    if (selectedProducts.length === 0) {
+    // If user has input pending in the fields but list is empty, try to use it
+    let finalProducts = [...selectedProducts];
+
+    // Auto-add pending product if list is empty and inputs are filled
+    if (finalProducts.length === 0 && currentProductId && currentQuantity && Number(currentQuantity) > 0) {
+      const product = products.find(p => p.id === currentProductId);
+      if (product) {
+        finalProducts.push({
+          productId: product.id,
+          name: product.name,
+          quantity: Number(currentQuantity)
+        });
+      }
+    }
+
+    if (finalProducts.length === 0) {
       toast.error('Agrega al menos un producto');
       return;
     }
@@ -171,7 +198,7 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
             Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify({
-            products: selectedProducts,
+            products: finalProducts,
             notes: notes || undefined,
           }),
         }
@@ -199,7 +226,52 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
     }
   };
 
-  const handleUpdateStatus = async (orderId: string, newStatus: ProductionOrderStatus) => {
+  const handleOpenCompleteDialog = (order: ProductionOrder) => {
+    setOrderToComplete(order);
+
+    // Initialize completion data with defaults (assume perfect production)
+    const initialData = order.products.map(p => ({
+      productId: p.productId,
+      name: p.name,
+      targetQuantity: p.quantity,
+      producedQuantity: p.quantity,
+      wasteQuantity: 0
+    }));
+
+    setCompletionData(initialData);
+    setIsCompleteDialogOpen(true);
+  };
+
+  const handleUpdateCompletionData = (productId: string, field: 'producedQuantity' | 'wasteQuantity', value: string) => {
+    const numValue = value === '' ? 0 : Number(value);
+
+    setCompletionData(prev => prev.map(item => {
+      if (item.productId === productId) {
+        return { ...item, [field]: numValue };
+      }
+      return item;
+    }));
+  };
+
+  const handleConfirmComplete = async () => {
+    if (!orderToComplete) return;
+
+    // Validate data
+    const hasInvalidData = completionData.some(item =>
+      item.producedQuantity < 0 || item.wasteQuantity < 0
+    );
+
+    if (hasInvalidData) {
+      toast.error('Las cantidades no pueden ser negativas');
+      return;
+    }
+
+    await handleUpdateStatus(orderToComplete.id, 'TERMINADA', completionData);
+    setIsCompleteDialogOpen(false);
+    setOrderToComplete(null);
+  };
+
+  const handleUpdateStatus = async (orderId: string, newStatus: ProductionOrderStatus, updatedProducts?: any[]) => {
     try {
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-6d979413/production-orders/${orderId}/status`,
@@ -209,7 +281,10 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
             'Content-Type': 'application/json',
             Authorization: `Bearer ${accessToken}`,
           },
-          body: JSON.stringify({ status: newStatus }),
+          body: JSON.stringify({
+            status: newStatus,
+            products: updatedProducts
+          }),
         }
       );
 
@@ -509,7 +584,7 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
                       </Button>
                       <Button
                         onClick={handleCreateOrder}
-                        disabled={selectedProducts.length === 0}
+                        disabled={selectedProducts.length === 0 && (!currentProductId || !currentQuantity)}
                         className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
                       >
                         Crear Orden de Producción
@@ -564,7 +639,7 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
                 <Filter className="w-5 h-5 text-gray-500 shrink-0" />
                 <Select
                   value={statusFilter}
-                  onValueChange={(value) => setStatusFilter(value as ProductionOrderStatus | 'ALL')}
+                  onValueChange={(value: string) => setStatusFilter(value as ProductionOrderStatus | 'ALL')}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Filtrar por estado" />
@@ -677,10 +752,25 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
                               key={idx}
                               className="flex items-center justify-between p-2 bg-gray-50 rounded-md text-sm"
                             >
-                              <span className="text-gray-700">{product.name}</span>
-                              <Badge variant="outline" className="text-xs">
-                                {product.quantity} unidades
-                              </Badge>
+                              <span className="text-gray-700 font-medium">{product.name}</span>
+                              <div className="flex gap-1.5">
+                                {order.status === 'TERMINADA' && product.producedQuantity !== undefined ? (
+                                  <>
+                                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                                      OK: {product.producedQuantity}
+                                    </Badge>
+                                    {(product.wasteQuantity || 0) > 0 && (
+                                      <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
+                                        Merma: {product.wasteQuantity}
+                                      </Badge>
+                                    )}
+                                  </>
+                                ) : (
+                                  <Badge variant="outline" className="text-xs">
+                                    {product.quantity} unidades
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -739,7 +829,7 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
                         {order.status === 'EN_PROCESO' && (
                           <Button
                             size="sm"
-                            onClick={() => handleUpdateStatus(order.id, 'TERMINADA')}
+                            onClick={() => handleOpenCompleteDialog(order)}
                             className="flex-1 bg-green-600 hover:bg-green-700"
                           >
                             <CheckCircle2 className="w-4 h-4 mr-1" />
@@ -816,6 +906,77 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
           </div>
         )}
       </div>
+      {/* Confirmation Dialog for Completion */}
+      <Dialog open={isCompleteDialogOpen} onOpenChange={setIsCompleteDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Completar Orden de Producción</DialogTitle>
+            <DialogDescription>
+              Confirma las cantidades reales producidas y registra mermas si las hubo.
+              El stock de productos terminados se incrementará según la "Cantidad Producida".
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-6">
+            {completionData.map((item) => (
+              <div key={item.productId} className="bg-slate-50 p-4 rounded-lg space-y-3">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="font-medium text-slate-800">{item.name}</h4>
+                  <span className="text-xs font-medium px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                    Objetivo: {item.targetQuantity}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-green-700 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Cantidad Producida (OK)
+                    </Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={item.producedQuantity}
+                      onChange={(e) => handleUpdateCompletionData(item.productId, 'producedQuantity', e.target.value)}
+                      className="border-green-200 focus-visible:ring-green-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-red-700 font-semibold flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> Merma (Descarte)
+                    </Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={item.wasteQuantity}
+                      onChange={(e) => handleUpdateCompletionData(item.productId, 'wasteQuantity', e.target.value)}
+                      className="border-red-200 focus-visible:ring-red-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Validation/Info Message */}
+                {(item.producedQuantity + item.wasteQuantity) !== item.targetQuantity && (
+                  <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Total ({item.producedQuantity + item.wasteQuantity}) difiere del objetivo ({item.targetQuantity})
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCompleteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmComplete} className="bg-green-600 hover:bg-green-700">
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              Confirmar y Finalizar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

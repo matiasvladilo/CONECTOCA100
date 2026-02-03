@@ -94,6 +94,8 @@ export interface ProductionOrder {
     name: string;
     quantity: number;
     currentStock?: number;
+    producedQuantity?: number;
+    wasteQuantity?: number;
   }>;
   notes?: string;
 }
@@ -1389,6 +1391,11 @@ export default function App() {
               setCurrentScreen('productionDashboard');
             }
           }}
+          onManageProducts={
+            currentUser.role === 'production'
+              ? () => setCurrentScreen('products')
+              : undefined
+          }
           pagination={ordersPagination}
           onPageChange={handlePageChange}
           isLoading={isPaginationLoading}
@@ -1474,11 +1481,17 @@ export default function App() {
 
       {currentScreen === "products" &&
         currentUser &&
-        currentUser.role === "admin" &&
+        (currentUser.role === "admin" || currentUser.role === "production") &&
         accessToken && (
           <ProductManagement
             accessToken={accessToken}
-            onBack={() => setCurrentScreen("profile")}
+            onBack={() => {
+              if (currentUser.role === "production") {
+                setCurrentScreen("home");
+              } else {
+                setCurrentScreen("profile");
+              }
+            }}
             onManageCategories={() =>
               setCurrentScreen("categories")
             }
@@ -1487,7 +1500,7 @@ export default function App() {
 
       {currentScreen === "categories" &&
         currentUser &&
-        currentUser.role === "admin" &&
+        (currentUser.role === "admin" || currentUser.role === "production") &&
         accessToken && (
           <CategoryManagement
             accessToken={accessToken}

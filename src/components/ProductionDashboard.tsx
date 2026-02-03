@@ -60,6 +60,8 @@ interface Order {
     name: string;
     quantity: number;
     price: number;
+    producedQuantity?: number;
+    wasteQuantity?: number;
   }>;
   status: string;
   createdAt: string;
@@ -156,6 +158,52 @@ export function ProductionDashboard({
     return Array.from(productMap.values())
       .sort((a, b) => b.totalOrdered - a.totalOrdered)
       .slice(0, 5);
+  }, [orders]);
+
+  // Calcular estadísticas de merma (Waste Stats)
+  const wasteStats = useMemo(() => {
+    let totalProduced = 0;
+    let totalWaste = 0;
+    const wasteByProduct = new Map<string, { name: string; waste: number; produced: number }>();
+
+    orders.filter(o => o.status === 'TERMINADA').forEach(order => {
+      order.products?.forEach(item => {
+        const produced = item.producedQuantity !== undefined ? item.producedQuantity : item.quantity;
+        const waste = item.wasteQuantity || 0;
+
+        totalProduced += produced;
+        totalWaste += waste;
+
+        if (waste > 0) {
+          const existing = wasteByProduct.get(item.productId);
+          if (existing) {
+            existing.waste += waste;
+            existing.produced += produced;
+          } else {
+            wasteByProduct.set(item.productId, {
+              name: item.name,
+              waste,
+              produced
+            });
+          }
+        }
+      });
+    });
+
+    const topWasteProducts = Array.from(wasteByProduct.values())
+      .sort((a, b) => b.waste - a.waste)
+      .slice(0, 3);
+
+    const wasteRate = totalProduced + totalWaste > 0
+      ? (totalWaste / (totalProduced + totalWaste)) * 100
+      : 0;
+
+    return {
+      totalProduced,
+      totalWaste,
+      wasteRate,
+      topWasteProducts
+    };
   }, [orders]);
 
   // Alertas de stock bajo
@@ -610,6 +658,55 @@ export function ProductionDashboard({
                 })}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Waste Control Analysis */}
+        <Card className="shadow-lg border-l-4 border-amber-500">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-600" />
+              <div>
+                <CardTitle>Control de Mermas</CardTitle>
+                <CardDescription>Análisis de desperdicios en producción</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Global Rate */}
+              <div className="flex flex-col justify-center items-center p-4 bg-amber-50 rounded-lg">
+                <p className="text-sm font-medium text-amber-800 mb-1">Tasa de Merma Global</p>
+                <p className="text-3xl font-bold text-amber-600">{wasteStats.wasteRate.toFixed(1)}%</p>
+                <p className="text-xs text-amber-600 mt-1">
+                  {wasteStats.totalWaste} mermas / {wasteStats.totalProduced} OK
+                </p>
+              </div>
+
+              {/* Top Waste Products */}
+              <div className="md:col-span-2 space-y-3">
+                <h4 className="text-sm font-semibold text-gray-700">Productos con mayor merma:</h4>
+                {wasteStats.topWasteProducts.length === 0 ? (
+                  <p className="text-sm text-gray-500 italic">No hay registros de merma.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {wasteStats.topWasteProducts.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-sm bg-gray-50 p-2 rounded">
+                        <span className="text-gray-700">{item.name}</span>
+                        <div className="flex items-center gap-3">
+                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                            {item.waste} mermas
+                          </Badge>
+                          <span className="text-xs text-gray-500">
+                            {((item.waste / (item.produced + item.waste)) * 100).toFixed(0)}% tasa
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </CardContent>
         </Card>
 

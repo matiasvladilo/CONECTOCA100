@@ -3430,7 +3430,7 @@ app.patch('/make-server-6d979413/production-orders/:orderId/status', async (c) =
     }
 
     const body = await c.req.json();
-    const { status } = body;
+    const { status, products } = body;
 
     // Validate status
     const validStatuses = ['BORRADOR', 'EN_PROCESO', 'TERMINADA'];
@@ -3439,9 +3439,28 @@ app.patch('/make-server-6d979413/production-orders/:orderId/status', async (c) =
     }
 
     const now = new Date().toISOString();
+
+    // If updating products with produced/waste quantity (only when completing)
+    let updatedProducts = productionOrder.products;
+    if (status === 'TERMINADA' && products && Array.isArray(products)) {
+      // Map over existing products and update with new data if ID matches
+      updatedProducts = productionOrder.products.map((p: any) => {
+        const updateData = products.find((u: any) => u.productId === p.productId);
+        if (updateData) {
+          return {
+            ...p,
+            producedQuantity: updateData.producedQuantity !== undefined ? Number(updateData.producedQuantity) : p.quantity,
+            wasteQuantity: updateData.wasteQuantity !== undefined ? Number(updateData.wasteQuantity) : 0
+          };
+        }
+        return p;
+      });
+    }
+
     const updatedOrder = {
       ...productionOrder,
       status,
+      products: updatedProducts,
       updatedAt: now,
       completedAt: status === 'TERMINADA' ? now : productionOrder.completedAt,
     };
@@ -3608,17 +3627,22 @@ app.patch('/make-server-6d979413/production-orders/:orderId/status', async (c) =
     if (status === 'TERMINADA' && productionOrder.status !== 'TERMINADA') {
       console.log(`📦 Completing production order ${orderId} - updating stock...`);
 
-      for (const item of productionOrder.products) {
+      for (const item of updatedProducts) {
         const product = await kv.get(`product:${item.productId}`);
         if (product) {
-          const newStock = (product.stock || 0) + item.quantity;
+          // Use producedQuantity if available (actual output), otherwise fallback to planned quantity
+          const quantityToAdd = item.producedQuantity !== undefined ? item.producedQuantity : item.quantity;
+          const newStock = (product.stock || 0) + quantityToAdd;
           const updatedProduct = {
             ...product,
             stock: newStock,
             updatedAt: now,
           };
           await kv.set(`product:${item.productId}`, updatedProduct);
-          console.log(`  ✓ Updated ${item.name}: ${product.stock || 0} → ${newStock} (+${item.quantity})`);
+          console.log(`  ✓ Updated ${item.name}: ${product.stock || 0} → ${newStock} (+${quantityToAdd})`);
+          if (item.wasteQuantity > 0) {
+            console.log(`  ⚠️ Recorded ${item.wasteQuantity} waste for ${item.name}`);
+          }
         }
       }
     }

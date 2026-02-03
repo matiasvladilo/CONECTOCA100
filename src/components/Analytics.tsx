@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { 
-  ArrowLeft, 
-  TrendingUp, 
-  DollarSign, 
-  Package, 
-  CheckCircle2, 
+import {
+  ArrowLeft,
+  TrendingUp,
+  DollarSign,
+  Package,
+  CheckCircle2,
   Clock,
   BarChart3,
   PieChart,
@@ -15,22 +15,22 @@ import {
   AlertTriangle,
   Factory
 } from 'lucide-react';
-import { 
-  LineChart, 
-  Line, 
-  BarChart, 
-  Bar, 
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
   PieChart as RePieChart,
   Pie,
   Cell,
   AreaChart,
   Area,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer 
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
 } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -42,6 +42,11 @@ import { ingredientsAPI, productIngredientsAPI, type Ingredient, type ProductIng
 import { projectId, publicAnonKey } from '../utils/supabase/info';
 import { productsAPI, type Product } from '../utils/api';
 import { createClient } from '../utils/supabase/client';
+import { Calendar } from './ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { DateRange } from "react-day-picker";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 interface AnalyticsProps {
   user: User;
@@ -87,7 +92,11 @@ interface ProductionOrder {
 }
 
 export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps) {
-  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
+  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | 'custom'>('30d');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: new Date(new Date().setDate(new Date().getDate() - 30)),
+    to: new Date(),
+  });
   const [activeTab, setActiveTab] = useState('overview');
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [productionOrders, setProductionOrders] = useState<ProductionOrder[]>([]);
@@ -113,20 +122,35 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
       case '7d': return 7;
       case '30d': return 30;
       case '90d': return 90;
+      case 'custom':
+        if (dateRange?.from && dateRange?.to) {
+          const diffTime = Math.abs(dateRange.to.getTime() - dateRange.from.getTime());
+          return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        }
+        return 30; // Fallback
       default: return 30;
     }
-  }, [timeRange]);
+  }, [timeRange, dateRange]);
 
   const startDate = useMemo(() => {
+    if (timeRange === 'custom' && dateRange?.from) {
+      return dateRange.from;
+    }
     const date = new Date();
     date.setDate(date.getDate() - dateRangeInDays);
     return date;
-  }, [dateRangeInDays]);
+  }, [dateRangeInDays, timeRange, dateRange]);
 
   // Filter orders by date range
   const filteredOrders = useMemo(() => {
     const filtered = orders.filter(order => {
       const orderDate = new Date(order.createdAt || order.date);
+      if (timeRange === 'custom' && dateRange?.to) {
+        // End of day for the end date
+        const endDate = new Date(dateRange.to);
+        endDate.setHours(23, 59, 59, 999);
+        return orderDate >= startDate && orderDate <= endDate;
+      }
       return orderDate >= startDate;
     }).map(order => ({
       ...order,
@@ -142,12 +166,12 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
         };
       })
     }));
-    
+
     console.log('📋 Filtered orders with products:', filtered.map(o => ({
       orderId: o.id.substring(0, 8),
       products: o.products?.map(p => ({ name: p.name, id: p.id, productId: (p as any).productId }))
     })));
-    
+
     return filtered;
   }, [orders, startDate]);
 
@@ -157,7 +181,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
     const completedOrders = filteredOrders.filter(o => o.status === 'completed' || o.status === 'cancelled').length;
     const totalOrders = filteredOrders.length;
     const successRate = totalOrders > 0 ? (completedOrders / totalOrders) * 100 : 0;
-    
+
     // Average production time (in hours) - simplified calculation
     const avgProductionTime = filteredOrders
       .filter(o => o.status === 'completed' || o.status === 'cancelled')
@@ -180,7 +204,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
   // Daily statistics for line chart
   const dailyStats = useMemo((): DailyStats[] => {
     const statsMap = new Map<string, { pedidos: number; ingresos: number }>();
-    
+
     // Initialize all days in range
     for (let i = 0; i < dateRangeInDays; i++) {
       const date = new Date();
@@ -193,7 +217,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
     filteredOrders.forEach(order => {
       const orderDate = new Date(order.createdAt || order.date);
       const dateStr = orderDate.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' });
-      
+
       const current = statsMap.get(dateStr);
       if (current) {
         current.pedidos += 1;
@@ -273,7 +297,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
       // Get fresh access token from Supabase session
       const supabase = createClient();
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
+
       if (sessionError || !session?.access_token) {
         console.error('⚠️ No valid session for loading production data:', sessionError);
         toast.error('No se pudo obtener sesión válida. Por favor, vuelva a iniciar sesión.');
@@ -319,7 +343,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
       console.log('📦 Loading products for recipe analysis...');
       const productsData = await productsAPI.getAll(token);
       setProducts(productsData);
-      
+
       // Load ingredients for each product
       const allProductIngredients: ProductIngredient[] = [];
       for (const product of productsData) {
@@ -340,7 +364,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
       setProductIngredients(allProductIngredients);
       console.log(`✓ Loaded ${allProductIngredients.length} product-ingredient relationships`);
       console.log('📋 All product ingredients:', allProductIngredients);
-      
+
       toast.success('Datos de producción cargados exitosamente');
     } catch (error: any) {
       console.error('❌ Error loading production data:', error);
@@ -409,7 +433,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
     // Create a map of product names AND IDs to their recipes
     const recipeMapByName = new Map<string, ProductIngredient[]>();
     const recipeMapById = new Map<string, ProductIngredient[]>();
-    
+
     productIngredients.forEach(pi => {
       // Map by product name
       if (pi.productName) {
@@ -417,7 +441,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
         existingByName.push(pi);
         recipeMapByName.set(pi.productName, existingByName);
       }
-      
+
       // Map by product ID
       if (pi.productId) {
         const existingById = recipeMapById.get(pi.productId) || [];
@@ -436,10 +460,10 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
     const ingredientMapById = new Map(ingredients.map(ing => [ing.id, ing]));
 
     // Calculate profitability for each product sold
-    const profitMap = new Map<string, { 
-      totalRevenue: number; 
-      totalCost: number; 
-      unitsSold: number; 
+    const profitMap = new Map<string, {
+      totalRevenue: number;
+      totalCost: number;
+      unitsSold: number;
       avgPrice: number;
       productId?: string;
     }>();
@@ -465,7 +489,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
 
         if (recipe && recipe.length > 0) {
           console.log(`📦 Calculating cost for ${product.name} (ID: ${productId}):`, recipe);
-          
+
           // Calculate cost based on recipe
           recipe.forEach(recipeItem => {
             // Try to find ingredient by name first, then by ID
@@ -482,16 +506,16 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
               console.warn(`  ⚠️ Ingredient not found or no cost: ${recipeItem.ingredientName}`);
             }
           });
-          
+
           console.log(`  ✓ Total production cost per unit: $${productionCost}`);
         } else {
           // Product doesn't have a recipe configured yet - this is normal for new products
           console.log(`ℹ️ No recipe configured for product: ${product.name} (ID: ${productId}) - Using price as revenue only`);
         }
 
-        const current = profitMap.get(product.name) || { 
-          totalRevenue: 0, 
-          totalCost: 0, 
+        const current = profitMap.get(product.name) || {
+          totalRevenue: 0,
+          totalCost: 0,
           unitsSold: 0,
           avgPrice: 0,
           productId: productId
@@ -528,7 +552,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
     if (!productionOrders.length) return [];
 
     const trendMap = new Map<string, { ordenes: number; terminadas: number }>();
-    
+
     // Initialize all days in range
     for (let i = 0; i < dateRangeInDays; i++) {
       const date = new Date();
@@ -565,40 +589,137 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
       // Import the xlsx library dynamically
       const XLSX = await import('xlsx');
 
-      // Prepare data for Excel
-      const data = filteredOrders.map(order => ({
-        'Fecha': new Date(order.createdAt || order.date).toLocaleDateString('es-CL'),
-        'ID Pedido': order.id.slice(0, 8),
-        'Cliente': order.customerName,
-        'Estado': order.status === 'pending' ? 'Pendiente' :
-                  order.status === 'in_progress' ? 'En Preparación' :
-                  order.status === 'completed' ? 'Completado' : 'Despachado',
-        'Total (CLP)': order.total || 0,
-        'Productos': order.products?.map(p => `${p.name} (x${p.quantity})`).join('; ') || '',
-        'Cantidad Items': order.products?.reduce((sum, p) => sum + p.quantity, 0) || 0
-      }));
-
-      // Create workbook and worksheet
-      const worksheet = XLSX.utils.json_to_sheet(data);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Análisis Pedidos');
-
-      // Set column widths
-      worksheet['!cols'] = [
-        { wch: 12 }, // Fecha
-        { wch: 12 }, // ID Pedido
-        { wch: 25 }, // Cliente
-        { wch: 15 }, // Estado
-        { wch: 12 }, // Total
-        { wch: 50 }, // Productos
-        { wch: 12 }  // Cantidad Items
+      // 1. Sheet: Resumen General
+      const resumenData = [
+        ['Resumen de Gestión', ''],
+        ['Periodo', timeRange === 'custom' && dateRange?.from && dateRange?.to
+          ? `${dateRange.from.toLocaleDateString('es-CL')} - ${dateRange.to.toLocaleDateString('es-CL')}`
+          : `Últimos ${dateRangeInDays} días`],
+        ['Fecha Generación', new Date().toLocaleDateString('es-CL')],
+        ['', ''],
+        ['Métricas Clave', 'Valor'],
+        ['Ingresos Totales', kpis.totalRevenue],
+        ['Pedidos Totales', kpis.totalOrders],
+        ['Pedidos Completados', kpis.completedOrders],
+        ['Tasa de Éxito', `${kpis.successRate.toFixed(1)}%`],
       ];
 
-      // Generate Excel file
-      const fileName = `conectoca_analytics_${new Date().toISOString().split('T')[0]}.xlsx`;
+      // Add Profitability if available
+      if (user.role === 'admin' && profitabilityAnalysis.length > 0) {
+        const totalProfit = profitabilityAnalysis.reduce((sum, p) => sum + p.profit, 0);
+        const margin = kpis.totalRevenue > 0 ? (totalProfit / kpis.totalRevenue) * 100 : 0;
+
+        resumenData.push(
+          ['Utilidad Estimada', totalProfit],
+          ['Margen Global Estimado', `${margin.toFixed(1)}%`]
+        );
+      }
+
+      const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
+
+      // 2. Sheet: Detalle Ventas
+      const ventasData = filteredOrders.map(order => ({
+        'Fecha': new Date(order.createdAt || order.date).toLocaleDateString('es-CL'),
+        'Hora': new Date(order.createdAt || order.date).toLocaleTimeString('es-CL'),
+        'ID Pedido': order.id.slice(0, 8),
+        'Cliente/Local': order.customerName || 'N/A',
+        'Estado': order.status === 'pending' ? 'Pendiente' :
+          order.status === 'in_progress' ? 'En Preparación' :
+            order.status === 'completed' ? 'Completado' : 'Despachado',
+        'Total ($)': order.total || 0,
+        'Productos': order.products?.map(p => `${p.name} (x${p.quantity})`).join('; ') || '',
+        'Notas': order.notes || ''
+      }));
+      const wsVentas = XLSX.utils.json_to_sheet(ventasData);
+
+      // 3. Sheet: Productos (Aggregated)
+      let wsProductos;
+      if (profitabilityAnalysis.length > 0) {
+        const productosData = profitabilityAnalysis.map(p => ({
+          'Producto': p.name,
+          'Unidades Vendidas': p.unitsSold,
+          'Precio Promedio': p.avgPrice,
+          'Ingresos Totales': p.revenue,
+          'Costo Unitario (Est.)': p.costPerUnit,
+          'Costo Total (Est.)': p.cost,
+          'Utilidad (Est.)': p.profit,
+          'Margen (%)': `${p.margin.toFixed(1)}%`
+        }));
+        wsProductos = XLSX.utils.json_to_sheet(productosData);
+      } else {
+        // Fallback if no cost analysis
+        const productosData = productStats.map(p => ({
+          'Producto': p.name,
+          'Unidades Vendidas': p.cantidad,
+          'Ingresos Totales': p.ingresos
+        }));
+        wsProductos = XLSX.utils.json_to_sheet(productosData);
+      }
+
+      // 4. Sheet: Por Local (Matrix)
+      // Group products by Local
+      const localProductsMap = new Map<string, Map<string, number>>();
+      const allProductNames = new Set<string>();
+
+      filteredOrders.forEach(order => {
+        const localName = order.customerName || 'Desconocido';
+        if (!localProductsMap.has(localName)) {
+          localProductsMap.set(localName, new Map());
+        }
+        const productMap = localProductsMap.get(localName)!;
+
+        order.products?.forEach(p => {
+          productMap.set(p.name, (productMap.get(p.name) || 0) + p.quantity);
+          allProductNames.add(p.name);
+        });
+      });
+
+      const sortedProductNames = Array.from(allProductNames).sort();
+      const matrizLocales = [];
+
+      // Header row
+      matrizLocales.push(['Local', ...sortedProductNames, 'Total Unidades', 'Gasto Total']);
+
+      // Data rows
+      localProductsMap.forEach((productMap, localName) => {
+        const row: any[] = [localName];
+        let totalUnits = 0;
+        let totalSpent = 0;
+
+        // Calculate total spent for this local from filteredOrders
+        // (Slightly inefficient but accurate)
+        const localOrders = filteredOrders.filter(o => (o.customerName || 'Desconocido') === localName);
+        totalSpent = localOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+
+        sortedProductNames.forEach(pName => {
+          const qty = productMap.get(pName) || 0;
+          row.push(qty > 0 ? qty : ''); // Leave empty if 0 for cleaner look
+          totalUnits += qty;
+        });
+
+        row.push(totalUnits);
+        row.push(totalSpent);
+        matrizLocales.push(row);
+      });
+
+      const wsLocales = XLSX.utils.aoa_to_sheet(matrizLocales);
+
+      // Create workbook
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, wsResumen, 'Resumen');
+      XLSX.utils.book_append_sheet(workbook, wsVentas, 'Detalle Ventas');
+      XLSX.utils.book_append_sheet(workbook, wsProductos, 'Productos');
+      XLSX.utils.book_append_sheet(workbook, wsLocales, 'Por Local');
+
+      // File name with date range
+      const rangeStr = timeRange === 'custom' && dateRange?.from && dateRange?.to
+        ? `${format(dateRange.from, 'dd-MM-yyyy')}_${format(dateRange.to, 'dd-MM-yyyy')}`
+        : `ultimos_${dateRangeInDays}_dias`;
+
+      const fileName = `Reporte_ConectOca_${rangeStr}.xlsx`;
       XLSX.writeFile(workbook, fileName);
 
-      toast.success('Datos exportados exitosamente');
+      toast.success('Reporte Excel generado exitosamente');
     } catch (error) {
       console.error('Error exporting data:', error);
       toast.error('Error al exportar datos');
@@ -611,7 +732,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
       <div className="bg-gradient-to-r from-blue-700 to-blue-800 text-white shadow-xl">
         <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex items-center justify-between mb-6">
-            <motion.button 
+            <motion.button
               onClick={onBack}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
@@ -619,7 +740,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
             >
               <ArrowLeft className="w-5 h-5" />
             </motion.button>
-            
+
             <div className="flex items-center gap-3">
               <motion.div
                 className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center"
@@ -653,7 +774,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl mb-2">📊 Dashboard de Analíticas</h1>
               {user.role === 'admin' && (
-                <Badge 
+                <Badge
                   className="mb-2 border px-2.5 py-1"
                   style={{
                     background: 'linear-gradient(90deg, #FFD43B 0%, #FFC700 100%)',
@@ -668,7 +789,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
               )}
             </div>
             <p className="text-blue-100 text-sm">
-              {user.role === 'admin' 
+              {user.role === 'admin'
                 ? 'Métricas de rendimiento de todos los usuarios'
                 : 'Insights y métricas de rendimiento de CONECTOCA'}
             </p>
@@ -680,6 +801,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
         {/* Time Range Selector */}
         <div className="flex items-center gap-3 justify-between flex-wrap">
           <div className="flex gap-2">
+            {/* Standard Ranges */}
             {(['7d', '30d', '90d'] as const).map((range) => (
               <Button
                 key={range}
@@ -693,6 +815,43 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
                 {range === '90d' && 'Últimos 90 días'}
               </Button>
             ))}
+
+            {/* Custom Range */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={timeRange === 'custom' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setTimeRange('custom')}
+                  className={timeRange === 'custom' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "dd/MM/yyyy")} -{" "}
+                        {format(dateRange.to, "dd/MM/yyyy")}
+                      </>
+                    ) : (
+                      format(dateRange.from, "dd/MM/yyyy")
+                    )
+                  ) : (
+                    <span>Personalizado</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                  locale={es}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <Badge variant="outline" className="text-sm">
@@ -819,25 +978,25 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={dailyStats}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis 
-                      dataKey="date" 
+                    <XAxis
+                      dataKey="date"
                       stroke="#6b7280"
                       style={{ fontSize: '12px' }}
                     />
                     <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#fff', 
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#fff',
                         border: '1px solid #e5e7eb',
                         borderRadius: '8px',
                         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                       }}
                     />
                     <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey="pedidos" 
-                      stroke={COLORS.primary} 
+                    <Line
+                      type="monotone"
+                      dataKey="pedidos"
+                      stroke={COLORS.primary}
                       strokeWidth={3}
                       dot={{ fill: COLORS.primary, r: 4 }}
                       activeDot={{ r: 6 }}
@@ -866,16 +1025,16 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
                   <BarChart data={productStats} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis type="number" stroke="#6b7280" style={{ fontSize: '12px' }} />
-                    <YAxis 
-                      type="category" 
-                      dataKey="name" 
-                      width={150} 
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      width={150}
                       stroke="#6b7280"
                       style={{ fontSize: '11px' }}
                     />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#fff', 
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#fff',
                         border: '1px solid #e5e7eb',
                         borderRadius: '8px',
                         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
@@ -924,9 +1083,9 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#fff', 
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#fff',
                         border: '1px solid #e5e7eb',
                         borderRadius: '8px',
                         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
@@ -939,8 +1098,8 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
                 <div className="grid grid-cols-2 gap-3 mt-6">
                   {statusDistribution.map((item, index) => (
                     <div key={index} className="flex items-center gap-2">
-                      <div 
-                        className="w-4 h-4 rounded-full" 
+                      <div
+                        className="w-4 h-4 rounded-full"
                         style={{ backgroundColor: item.color }}
                       />
                       <span className="text-sm text-gray-600">
@@ -970,32 +1129,32 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
                   <AreaChart data={dailyStats}>
                     <defs>
                       <linearGradient id="colorIngresos" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={COLORS.success} stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor={COLORS.success} stopOpacity={0.1}/>
+                        <stop offset="5%" stopColor={COLORS.success} stopOpacity={0.8} />
+                        <stop offset="95%" stopColor={COLORS.success} stopOpacity={0.1} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis 
-                      dataKey="date" 
+                    <XAxis
+                      dataKey="date"
                       stroke="#6b7280"
                       style={{ fontSize: '12px' }}
                     />
                     <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#fff', 
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#fff',
                         border: '1px solid #e5e7eb',
                         borderRadius: '8px',
                         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                       }}
                       formatter={(value) => [`$${value.toLocaleString('es-CL')}`, 'Ingresos']}
                     />
-                    <Area 
-                      type="monotone" 
-                      dataKey="ingresos" 
-                      stroke={COLORS.success} 
+                    <Area
+                      type="monotone"
+                      dataKey="ingresos"
+                      stroke={COLORS.success}
                       strokeWidth={2}
-                      fillOpacity={1} 
+                      fillOpacity={1}
                       fill="url(#colorIngresos)"
                       name="Ingresos"
                     />
@@ -1097,16 +1256,16 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
                     <BarChart data={productionCosts.ingredientsByValue} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis type="number" stroke="#6b7280" style={{ fontSize: '12px' }} />
-                      <YAxis 
-                        type="category" 
-                        dataKey="name" 
-                        width={150} 
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        width={150}
                         stroke="#6b7280"
                         style={{ fontSize: '11px' }}
                       />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: '#fff', 
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#fff',
                           border: '1px solid #e5e7eb',
                           borderRadius: '8px',
                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
@@ -1148,8 +1307,8 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
                     <ResponsiveContainer width="100%" height={400}>
                       <BarChart data={profitabilityAnalysis.slice(0, 10)}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                        <XAxis 
-                          dataKey="name" 
+                        <XAxis
+                          dataKey="name"
                           angle={-45}
                           textAnchor="end"
                           height={100}
@@ -1157,9 +1316,9 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
                           style={{ fontSize: '10px' }}
                         />
                         <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: '#fff', 
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#fff',
                             border: '1px solid #e5e7eb',
                             borderRadius: '8px',
                             boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
@@ -1205,7 +1364,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
                                 ${item.profit.toLocaleString('es-CL')}
                               </td>
                               <td className="text-right p-3">
-                                <Badge 
+                                <Badge
                                   className={item.margin > 50 ? 'bg-green-500' : item.margin > 30 ? 'bg-yellow-500' : 'bg-red-500'}
                                   style={{ fontSize: '10px' }}
                                 >
@@ -1246,33 +1405,33 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
                   <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={productionTrend}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis 
-                        dataKey="date" 
+                      <XAxis
+                        dataKey="date"
                         stroke="#6b7280"
                         style={{ fontSize: '12px' }}
                       />
                       <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: '#fff', 
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#fff',
                           border: '1px solid #e5e7eb',
                           borderRadius: '8px',
                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                         }}
                       />
                       <Legend />
-                      <Line 
-                        type="monotone" 
-                        dataKey="ordenes" 
-                        stroke="#fb923c" 
+                      <Line
+                        type="monotone"
+                        dataKey="ordenes"
+                        stroke="#fb923c"
                         strokeWidth={3}
                         dot={{ fill: '#fb923c', r: 4 }}
                         name="Órdenes Creadas"
                       />
-                      <Line 
-                        type="monotone" 
-                        dataKey="terminadas" 
-                        stroke="#22c55e" 
+                      <Line
+                        type="monotone"
+                        dataKey="terminadas"
+                        stroke="#22c55e"
                         strokeWidth={3}
                         dot={{ fill: '#22c55e', r: 4 }}
                         name="Órdenes Terminadas"
@@ -1328,7 +1487,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
             </CardHeader>
             <CardContent>
               <div className="text-2xl text-blue-600">
-                ${kpis.totalOrders > 0 
+                ${kpis.totalOrders > 0
                   ? Math.round(kpis.totalRevenue / kpis.totalOrders).toLocaleString('es-CL')
                   : 0
                 }

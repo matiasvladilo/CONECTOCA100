@@ -24,6 +24,7 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productIngredients, setProductIngredients] = useState<APIProductIngredient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingIngredients, setLoadingIngredients] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newIngredient, setNewIngredient] = useState({
@@ -39,10 +40,39 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
   }, []);
 
   useEffect(() => {
+    let isActive = true;
+
     if (selectedProduct) {
       console.log("Loading ingredients for product:", selectedProduct.name);
-      loadProductIngredients(selectedProduct.id);
+      setLoadingIngredients(true);
+      setProductIngredients([]); // Clear previous ingredients immediately
+
+      const load = async () => {
+        try {
+          const data = await productIngredientsAPI.getByProduct(accessToken, selectedProduct.id);
+          if (isActive) {
+            setProductIngredients(data);
+          }
+        } catch (error: any) {
+          if (isActive) {
+            console.error("Error loading product ingredients:", error);
+            toast.error(error.message || "Error al cargar ingredientes del producto");
+          }
+        } finally {
+          if (isActive) {
+            setLoadingIngredients(false);
+          }
+        }
+      };
+
+      load();
+    } else {
+      setProductIngredients([]);
     }
+
+    return () => {
+      isActive = false;
+    };
   }, [selectedProduct]);
 
   const loadInitialData = async () => {
@@ -516,10 +546,14 @@ export function ProductIngredientConfig({ onBack, accessToken }: ProductIngredie
                     {/* Ingredients List */}
                     <Card className="p-6 bg-white">
                       <h3 className="mb-4">
-                        Ingredientes Configurados ({productIngredients.length})
+                        Ingredientes Configurados {loadingIngredients ? "..." : `(${productIngredients.length})`}
                       </h3>
 
-                      {productIngredients.length === 0 ? (
+                      {loadingIngredients ? (
+                        <div className="flex justify-center py-8">
+                          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        </div>
+                      ) : productIngredients.length === 0 ? (
                         <div className="text-center py-12">
                           <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                           <h3 className="text-gray-600 mb-2">

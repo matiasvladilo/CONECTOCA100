@@ -17,6 +17,7 @@ interface HomeScreenProps {
   onViewHistory?: () => void;
   onGoToProduction?: () => void;
   onGoToDashboard?: () => void;
+  onManageProducts?: () => void;
   pagination?: PaginationInfo;
   onPageChange?: (page: number) => void;
   isLoading?: boolean;
@@ -49,7 +50,7 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
   }
 };
 
-export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfile, onViewHistory, onGoToProduction, onGoToDashboard, pagination, onPageChange, isLoading = false }: HomeScreenProps) {
+export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfile, onViewHistory, onGoToProduction, onGoToDashboard, onManageProducts, pagination, onPageChange, isLoading = false }: HomeScreenProps) {
   // If pagination is enabled, use all orders (already paginated from backend)
   // Otherwise, show only first 5 orders (legacy behavior)
   const displayOrders = pagination ? orders : orders.slice(0, 5);
@@ -329,6 +330,34 @@ export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfil
                   Dashboard de Producción
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Product Management - Only for production users */}
+          {onManageProducts && isProduction && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Button
+                onClick={onManageProducts}
+                className="w-full h-14 text-white relative overflow-hidden group shadow-lg"
+                style={{
+                  background: 'linear-gradient(90deg, #2563EB 0%, #3B82F6 100%)', // slightly different blue
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)'
+                }}
+              >
+                <div className="flex items-center justify-center gap-2 relative z-10">
+                  <Package className="w-5 h-5" />
+                  Gestión de Productos
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
               </Button>
             </motion.div>
           )}
