@@ -6,19 +6,16 @@ import {
   Printer,
   Package,
   User,
-  MapPin,
   Calendar,
-  Hash,
-  Phone,
   CheckCircle2,
   X,
-  Building2
+  Building2,
+  Phone
 } from 'lucide-react';
-import { motion } from 'motion/react';
 import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 
-interface StandardDeliveryGuideProps {
+export interface StandardDeliveryGuideProps {
   order: Order;
   open: boolean;
   onClose: () => void;
@@ -28,15 +25,14 @@ interface StandardDeliveryGuideProps {
   businessRut?: string;
 }
 
-export function StandardDeliveryGuide({
+export function StandardDeliveryGuideContent({
   order,
-  open,
   onClose,
   businessName = "CONECTOCA",
   businessAddress = "Dirección del Negocio",
   businessPhone = "+56 9 XXXX XXXX",
   businessRut = "XX.XXX.XXX-X"
-}: StandardDeliveryGuideProps) {
+}: Omit<StandardDeliveryGuideProps, 'open'>) {
   const [isPrinting, setIsPrinting] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -67,225 +63,221 @@ export function StandardDeliveryGuide({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-[#0047BA]">
-              <Printer className="w-5 h-5" />
-              Guía de Despacho Estándar
-            </DialogTitle>
-            <DialogDescription>
-              Vista previa y opciones de impresión para guía de despacho en formato estándar (A4/Carta)
-            </DialogDescription>
-          </DialogHeader>
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2 text-[#0047BA]">
+          <Printer className="w-5 h-5" />
+          Guía de Despacho Estándar
+        </DialogTitle>
+        <DialogDescription>
+          Vista previa y opciones de impresión para guía de despacho en formato estándar (A4/Carta)
+        </DialogDescription>
+      </DialogHeader>
 
-          <div className="space-y-4">
-            {/* Preview of standard delivery guide */}
-            <div
-              ref={printRef}
-              className="standard-delivery-guide-preview border-2 border-gray-300 rounded-lg p-8 bg-white"
-            >
-              {/* Header with Business Info */}
-              <div className="flex items-start justify-between mb-6 pb-6 border-b-2 border-gray-300">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Building2 className="w-8 h-8 text-[#0047BA]" />
-                    <h1 className="text-2xl font-bold text-[#0047BA]">{businessName}</h1>
-                  </div>
-                  <p className="text-sm text-gray-600">{businessAddress}</p>
-                  <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-                    <Phone className="w-3.5 h-3.5" />
-                    {businessPhone}
-                  </p>
-                  <p className="text-sm text-gray-600 mt-1">RUT: {businessRut}</p>
-                </div>
-                <div className="text-right">
-                  <div className="bg-[#0047BA] text-white px-4 py-2 rounded-lg mb-2">
-                    <h2 className="text-lg font-bold">GUÍA DE DESPACHO</h2>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    N° {order.id.slice(0, 8).toUpperCase()}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {formatDate(order.createdAt || order.date)}
-                  </p>
-                </div>
+      <div className="space-y-4">
+        {/* Preview of standard delivery guide */}
+        <div
+          ref={printRef}
+          className="standard-delivery-guide-preview border-2 border-gray-300 rounded-lg p-8 bg-white"
+        >
+          {/* Header with Business Info */}
+          <div className="flex items-start justify-between mb-6 pb-6 border-b-2 border-gray-300">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <Building2 className="w-8 h-8 text-[#0047BA]" />
+                <h1 className="text-2xl font-bold text-[#0047BA]">{businessName}</h1>
               </div>
-
-              {/* Customer and Order Info */}
-              <div className="grid grid-cols-2 gap-6 mb-6">
-                <div>
-                  <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                    <User className="w-4 h-4 text-[#0059FF]" />
-                    DATOS DEL CLIENTE
-                  </h3>
-                  <div className="space-y-2">
-                    <div>
-                      <p className="text-xs text-gray-500">Nombre / Razón Social</p>
-                      <p className="text-sm font-medium text-gray-900">{order.customerName}</p>
-                    </div>
-                    {order.deliveryAddress && (
-                      <div>
-                        <p className="text-xs text-gray-500">Dirección de Entrega</p>
-                        <p className="text-sm font-medium text-gray-900">{order.deliveryAddress}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-[#0059FF]" />
-                    INFORMACIÓN DEL PEDIDO
-                  </h3>
-                  <div className="space-y-2">
-                    <div>
-                      <p className="text-xs text-gray-500">Fecha de Pedido</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {new Date(order.createdAt || order.date).toLocaleDateString('es-CL', {
-                          day: '2-digit',
-                          month: 'long',
-                          year: 'numeric'
-                        })}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Hora</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {new Date(order.createdAt || order.date).toLocaleTimeString('es-CL', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Estado</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {order.status === 'completed' ? 'LISTO PARA DESPACHO' :
-                          order.status === 'cancelled' ? 'DESPACHADO' :
-                            order.status === 'in_progress' ? 'EN PREPARACIÓN' : 'PENDIENTE'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Products Table */}
-              <div className="mb-6">
-                <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                  <Package className="w-4 h-4 text-[#0059FF]" />
-                  DETALLE DE PRODUCTOS
-                </h3>
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-gray-100 border-b-2 border-gray-300">
-                      <th className="text-left py-3 px-4 text-xs font-bold text-gray-700">CANT.</th>
-                      <th className="text-left py-3 px-4 text-xs font-bold text-gray-700">DESCRIPCIÓN</th>
-                      <th className="text-right py-3 px-4 text-xs font-bold text-gray-700">PRECIO UNIT.</th>
-                      <th className="text-right py-3 px-4 text-xs font-bold text-gray-700">SUBTOTAL</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {order.products && order.products.length > 0 ? (
-                      order.products.map((product, index) => (
-                        <tr key={index} className="border-b border-gray-200">
-                          <td className="py-3 px-4 text-sm text-gray-900">{product.quantity}</td>
-                          <td className="py-3 px-4 text-sm text-gray-900 font-medium">{product.name}</td>
-                          <td className="py-3 px-4 text-sm text-gray-900 text-right">{formatCLP(product.price)}</td>
-                          <td className="py-3 px-4 text-sm text-gray-900 text-right font-medium">
-                            {formatCLP(product.price * product.quantity)}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr className="border-b border-gray-200">
-                        <td className="py-3 px-4 text-sm text-gray-900">{order.quantity}</td>
-                        <td className="py-3 px-4 text-sm text-gray-900 font-medium">{order.productName}</td>
-                        <td className="py-3 px-4 text-sm text-gray-900 text-right">-</td>
-                        <td className="py-3 px-4 text-sm text-gray-900 text-right font-medium">-</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Notes Section */}
-              {order.notes && order.notes.trim() && (
-                <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
-                  <h3 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-yellow-600" />
-                    OBSERVACIONES
-                  </h3>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{order.notes}</p>
-                </div>
-              )}
-
-              {/* Total */}
-              <div className="flex justify-end mb-6">
-                <div className="w-64">
-                  <div className="bg-[#0047BA] text-white px-4 py-3 rounded-lg flex justify-between items-center">
-                    <span className="font-bold">TOTAL:</span>
-                    <span className="text-xl font-bold">{formatCLP(order.total || 0)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Signature Section */}
-              <div className="grid grid-cols-2 gap-8 pt-6 border-t-2 border-gray-300">
-                <div>
-                  <p className="text-xs text-gray-600 mb-12">FIRMA Y TIMBRE EMISOR</p>
-                  <div className="border-b-2 border-gray-400"></div>
-                  <p className="text-xs text-gray-500 text-center mt-2">{businessName}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-600 mb-12">FIRMA Y TIMBRE RECEPTOR</p>
-                  <div className="border-b-2 border-gray-400"></div>
-                  <p className="text-xs text-gray-500 text-center mt-2">Recibí conforme</p>
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="mt-8 pt-4 border-t border-gray-200 text-center">
-                <p className="text-xs text-gray-500">
-                  Este documento es una guía de despacho no fiscal. Conservar para efectos tributarios.
-                </p>
-                <p className="text-xs text-gray-500 mt-1">www.conectoca.cl</p>
-              </div>
+              <p className="text-sm text-gray-600">{businessAddress}</p>
+              <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                <Phone className="w-3.5 h-3.5" />
+                {businessPhone}
+              </p>
+              <p className="text-sm text-gray-600 mt-1">RUT: {businessRut}</p>
             </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <Button
-                onClick={handlePrint}
-                disabled={isPrinting}
-                className="flex-1"
-                style={{
-                  background: 'linear-gradient(90deg, #0059FF 0%, #004BCE 100%)',
-                }}
-              >
-                <Printer className="w-4 h-4 mr-2" />
-                {isPrinting ? 'Imprimiendo...' : 'Imprimir'}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={onClose}
-                className="flex-1"
-              >
-                <X className="w-4 h-4 mr-2" />
-                Cerrar
-              </Button>
-            </div>
-
-            {/* Instructions */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-xs text-blue-800">
-                <strong>Nota:</strong> Esta guía está optimizada para impresoras estándar en formato A4 o Carta.
-                El diseño es profesional y adecuado para documentación formal.
+            <div className="text-right">
+              <div className="bg-[#0047BA] text-white px-4 py-2 rounded-lg mb-2">
+                <h2 className="text-lg font-bold">GUÍA DE DESPACHO</h2>
+              </div>
+              <p className="text-sm text-gray-600">
+                N° {order.id.slice(0, 8).toUpperCase()}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {formatDate(order.createdAt || order.date)}
               </p>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+
+          {/* Customer and Order Info */}
+          <div className="grid grid-cols-2 gap-6 mb-6">
+            <div>
+              <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                <User className="w-4 h-4 text-[#0059FF]" />
+                DATOS DEL CLIENTE
+              </h3>
+              <div className="space-y-2">
+                <div>
+                  <p className="text-xs text-gray-500">Nombre / Razón Social</p>
+                  <p className="text-sm font-medium text-gray-900">{order.customerName}</p>
+                </div>
+                {order.deliveryAddress && (
+                  <div>
+                    <p className="text-xs text-gray-500">Dirección de Entrega</p>
+                    <p className="text-sm font-medium text-gray-900">{order.deliveryAddress}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[#0059FF]" />
+                INFORMACIÓN DEL PEDIDO
+              </h3>
+              <div className="space-y-2">
+                <div>
+                  <p className="text-xs text-gray-500">Fecha de Pedido</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {new Date(order.createdAt || order.date).toLocaleDateString('es-CL', {
+                      day: '2-digit',
+                      month: 'long',
+                      year: 'numeric'
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Hora</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {new Date(order.createdAt || order.date).toLocaleTimeString('es-CL', {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Estado</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {order.status === 'completed' ? 'LISTO PARA DESPACHO' :
+                      order.status === 'cancelled' ? 'DESPACHADO' :
+                        order.status === 'in_progress' ? 'EN PREPARACIÓN' : 'PENDIENTE'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Products Table */}
+          <div className="mb-6">
+            <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+              <Package className="w-4 h-4 text-[#0059FF]" />
+              DETALLE DE PRODUCTOS
+            </h3>
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-gray-100 border-b-2 border-gray-300">
+                  <th className="text-left py-3 px-4 text-xs font-bold text-gray-700">CANT.</th>
+                  <th className="text-left py-3 px-4 text-xs font-bold text-gray-700">DESCRIPCIÓN</th>
+                  <th className="text-right py-3 px-4 text-xs font-bold text-gray-700">PRECIO UNIT.</th>
+                  <th className="text-right py-3 px-4 text-xs font-bold text-gray-700">SUBTOTAL</th>
+                </tr>
+              </thead>
+              <tbody>
+                {order.products && order.products.length > 0 ? (
+                  order.products.map((product, index) => (
+                    <tr key={index} className="border-b border-gray-200">
+                      <td className="py-3 px-4 text-sm text-gray-900">{product.quantity}</td>
+                      <td className="py-3 px-4 text-sm text-gray-900 font-medium">{product.name}</td>
+                      <td className="py-3 px-4 text-sm text-gray-900 text-right">{formatCLP(product.price)}</td>
+                      <td className="py-3 px-4 text-sm text-gray-900 text-right font-medium">
+                        {formatCLP(product.price * product.quantity)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr className="border-b border-gray-200">
+                    <td className="py-3 px-4 text-sm text-gray-900">{order.quantity}</td>
+                    <td className="py-3 px-4 text-sm text-gray-900 font-medium">{order.productName}</td>
+                    <td className="py-3 px-4 text-sm text-gray-900 text-right">-</td>
+                    <td className="py-3 px-4 text-sm text-gray-900 text-right font-medium">-</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Notes Section */}
+          {order.notes && order.notes.trim() && (
+            <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+              <h3 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-yellow-600" />
+                OBSERVACIONES
+              </h3>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">{order.notes}</p>
+            </div>
+          )}
+
+          {/* Total */}
+          <div className="flex justify-end mb-6">
+            <div className="w-64">
+              <div className="bg-[#0047BA] text-white px-4 py-3 rounded-lg flex justify-between items-center">
+                <span className="font-bold">TOTAL:</span>
+                <span className="text-xl font-bold">{formatCLP(order.total || 0)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Signature Section */}
+          <div className="grid grid-cols-2 gap-8 pt-6 border-t-2 border-gray-300">
+            <div>
+              <p className="text-xs text-gray-600 mb-12">FIRMA Y TIMBRE EMISOR</p>
+              <div className="border-b-2 border-gray-400"></div>
+              <p className="text-xs text-gray-500 text-center mt-2">{businessName}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-600 mb-12">FIRMA Y TIMBRE RECEPTOR</p>
+              <div className="border-b-2 border-gray-400"></div>
+              <p className="text-xs text-gray-500 text-center mt-2">Recibí conforme</p>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-8 pt-4 border-t border-gray-200 text-center">
+            <p className="text-xs text-gray-500">
+              Este documento es una guía de despacho no fiscal. Conservar para efectos tributarios.
+            </p>
+            <p className="text-xs text-gray-500 mt-1">www.conectoca.cl</p>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3">
+          <Button
+            onClick={handlePrint}
+            disabled={isPrinting}
+            className="flex-1"
+            style={{
+              background: 'linear-gradient(90deg, #0059FF 0%, #004BCE 100%)',
+            }}
+          >
+            <Printer className="w-4 h-4 mr-2" />
+            {isPrinting ? 'Imprimiendo...' : 'Imprimir'}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="flex-1"
+          >
+            <X className="w-4 h-4 mr-2" />
+            Cerrar
+          </Button>
+        </div>
+
+        {/* Instructions */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-xs text-blue-800">
+            <strong>Nota:</strong> Esta guía está optimizada para impresoras estándar en formato A4 o Carta.
+            El diseño es profesional y adecuado para documentación formal.
+          </p>
+        </div>
+      </div>
 
       {/* Hidden print-only version */}
       {isPrinting && (
@@ -443,5 +435,30 @@ export function StandardDeliveryGuide({
         </div>
       )}
     </>
+  );
+}
+
+export function StandardDeliveryGuide({
+  order,
+  open,
+  onClose,
+  businessName,
+  businessAddress,
+  businessPhone,
+  businessRut
+}: StandardDeliveryGuideProps) {
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <StandardDeliveryGuideContent
+          order={order}
+          onClose={onClose}
+          businessName={businessName}
+          businessAddress={businessAddress}
+          businessPhone={businessPhone}
+          businessRut={businessRut}
+        />
+      </DialogContent>
+    </Dialog>
   );
 }
