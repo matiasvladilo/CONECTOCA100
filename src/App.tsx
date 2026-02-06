@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LoginScreen } from "./components/LoginScreen";
 import { HomeScreen } from "./components/HomeScreen";
 import { OrderDetail } from "./components/OrderDetail";
@@ -1486,13 +1487,15 @@ export default function App() {
       {currentScreen === "orderDetail" &&
         selectedOrder &&
         currentUser && (
-          <OrderDetail
-            order={selectedOrder}
-            onBack={() => setCurrentScreen("home")}
-            onDelete={handleDeleteOrder}
-            onStatusChange={handleUpdateOrderStatus}
-            userRole={currentUser.role}
-          />
+          <ErrorBoundary>
+            <OrderDetail
+              order={selectedOrder}
+              onBack={() => setCurrentScreen("home")}
+              onDelete={handleDeleteOrder}
+              onStatusChange={handleUpdateOrderStatus}
+              userRole={currentUser.role}
+            />
+          </ErrorBoundary>
         )}
 
       {currentScreen === "production" &&
