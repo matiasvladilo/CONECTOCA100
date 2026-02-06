@@ -547,6 +547,50 @@ export function OrderDetail({ order, onBack, onDelete, onStatusChange, userRole 
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
+          {/* Admin Status Management - Allow manually changing status */}
+          {['admin', 'production', 'dispatch'].includes(userRole || '') && onStatusChange && (
+            <div className="bg-white p-4 rounded-xl border border-blue-200 shadow-sm mb-3">
+              <p className="text-sm font-medium text-gray-700 mb-2">Gestión de Estado (Admin)</p>
+              <div className="flex gap-2">
+                <select
+                  className="flex-1 h-10 rounded-md border border-gray-300 px-3 py-1 text-sm bg-white text-black"
+                  value={order.status}
+                  onChange={async (e) => {
+                    const newStatus = e.target.value as any;
+                    const confirmChange = window.confirm(`¿Cambiar estado a "${newStatus}"?`);
+                    if (!confirmChange) return;
+
+                    setIsUpdating(true);
+                    try {
+                      // Determines progress based on status
+                      let progress = 0;
+                      if (newStatus === 'in_progress') progress = 25;
+                      if (newStatus === 'completed') progress = 50;
+                      if (newStatus === 'dispatched') progress = 75;
+                      if (newStatus === 'delivered') progress = 100;
+                      if (newStatus === 'cancelled') progress = 0;
+
+                      await onStatusChange(order.id, newStatus, progress);
+                      toast.success(`Estado actualizado a ${newStatus}`);
+                    } catch (error) {
+                      console.error('Error changing status:', error);
+                      toast.error('Error al actualizar');
+                    } finally {
+                      setIsUpdating(false);
+                    }
+                  }}
+                  disabled={isUpdating}
+                >
+                  <option value="pending">Pendiente</option>
+                  <option value="in_progress">En Preparación</option>
+                  <option value="completed">Listo</option>
+                  <option value="dispatched">Despachado</option>
+                  <option value="delivered">Recibido/Entregado</option>
+                  <option value="cancelled">Cancelado</option>
+                </select>
+              </div>
+            </div>
+          )}
           {/* Print Delivery Guide Button - Only for completed or delivered orders */}
           {/* Print Delivery Guide Button - For completed/dispatched orders. Visible to production/dispatch/admin */}
           {['completed', 'dispatched', 'delivered'].includes(order.status) && ['production', 'dispatch', 'admin'].includes(userRole || '') && (
