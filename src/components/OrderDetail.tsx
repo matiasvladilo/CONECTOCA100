@@ -2,7 +2,6 @@ import { Order } from '../App';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
-import { Progress } from './ui/progress';
 import { Separator } from './ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
@@ -22,12 +21,11 @@ import {
   ShoppingCart,
   DollarSign,
   ChevronDown,
-  ChevronUp,
-  Sparkles,
   FileText,
   Trash2,
   MessageSquare,
-  Printer
+  Printer,
+  X
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -35,6 +33,8 @@ interface OrderDetailProps {
   order: Order;
   onBack: () => void;
   onDelete?: (orderId: string) => Promise<void>;
+  onStatusChange?: (orderId: string, newStatus: any, progress: number) => Promise<void>;
+  userRole?: string;
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string; icon: any; description: string }> = {
@@ -53,31 +53,47 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
     description: 'Estamos fabricando tu pedido'
   },
   completed: {
-    label: 'Listo para Despacho',
+    label: 'Listo',
     color: 'text-green-700',
     bgColor: 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200',
     icon: CheckCircle2,
-    description: 'Tu pedido está listo'
+    description: 'Tu pedido está listo para despacho'
+  },
+  dispatched: {
+    label: 'Despachado',
+    color: 'text-indigo-700',
+    bgColor: 'bg-gradient-to-r from-indigo-50 to-violet-50 border-indigo-200',
+    icon: Truck,
+    description: 'Pedido en camino a tu local'
+  },
+  delivered: {
+    label: 'Recibido',
+    color: 'text-teal-700',
+    bgColor: 'bg-gradient-to-r from-teal-50 to-cyan-50 border-teal-200',
+    icon: CheckCircle2,
+    description: 'Pedido recibido correctamente'
   },
   cancelled: {
-    label: 'Despachado',
-    color: 'text-gray-700',
-    bgColor: 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200',
-    icon: Truck,
-    description: 'Pedido entregado exitosamente'
+    label: 'Cancelado',
+    color: 'text-red-700',
+    bgColor: 'bg-gradient-to-r from-red-50 to-pink-50 border-red-200',
+    icon: X,
+    description: 'El pedido fue cancelado'
   }
 };
 
 const statusSteps = [
-  { key: 'pending', label: 'Recibido', progress: 0 },
-  { key: 'in_progress', label: 'En Preparación', progress: 50 },
-  { key: 'completed', label: 'Listo', progress: 85 },
-  { key: 'cancelled', label: 'Despachado', progress: 100 }
+  { key: 'pending', label: 'Ingresado', progress: 0 },
+  { key: 'in_progress', label: 'En Preparación', progress: 25 },
+  { key: 'completed', label: 'Listo', progress: 50 },
+  { key: 'dispatched', label: 'Despachado', progress: 75 },
+  { key: 'delivered', label: 'Recibido', progress: 100 }
 ];
 
-export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
+export function OrderDetail({ order, onBack, onDelete, onStatusChange, userRole }: OrderDetailProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [showDeliveryGuide, setShowDeliveryGuide] = useState(false);
 
   const handleDelete = async () => {
@@ -172,7 +188,9 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
               borderLeftWidth: '6px',
               borderLeftColor: order.status === 'pending' ? '#F59E0B' :
                 order.status === 'in_progress' ? '#0059FF' :
-                  order.status === 'completed' ? '#10B981' : '#6B7280',
+                  order.status === 'completed' ? '#10B981' :
+                    order.status === 'dispatched' ? '#6366F1' :
+                      order.status === 'delivered' ? '#14B8A6' : '#6B7280',
               borderTopColor: '#E0EDFF',
               borderRightColor: '#E0EDFF',
               borderBottomColor: '#E0EDFF'
@@ -191,7 +209,9 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
                   style={{
                     background: order.status === 'pending' ? 'rgba(245, 158, 11, 0.1)' :
                       order.status === 'in_progress' ? 'rgba(0, 89, 255, 0.1)' :
-                        order.status === 'completed' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(107, 114, 128, 0.1)'
+                        order.status === 'completed' ? 'rgba(16, 185, 129, 0.1)' :
+                          order.status === 'dispatched' ? 'rgba(99, 102, 241, 0.1)' :
+                            order.status === 'delivered' ? 'rgba(20, 184, 166, 0.1)' : 'rgba(107, 114, 128, 0.1)'
                   }}
                 >
                   <StatusIcon
@@ -199,7 +219,9 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
                     style={{
                       color: order.status === 'pending' ? '#F59E0B' :
                         order.status === 'in_progress' ? '#0059FF' :
-                          order.status === 'completed' ? '#10B981' : '#6B7280'
+                          order.status === 'completed' ? '#10B981' :
+                            order.status === 'dispatched' ? '#6366F1' :
+                              order.status === 'delivered' ? '#14B8A6' : '#6B7280'
                     }}
                   />
                 </div>
@@ -235,11 +257,13 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
                   <motion.div
                     className="h-3 rounded-full"
                     style={{
-                      background: order.status === 'completed' || order.status === 'cancelled'
-                        ? 'linear-gradient(90deg, #10B981 0%, #059669 100%)'
-                        : order.status === 'in_progress'
-                          ? 'linear-gradient(90deg, #0059FF 0%, #004BCE 100%)'
-                          : 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)',
+                      background: order.status === 'delivered'
+                        ? 'linear-gradient(90deg, #10B981 0%, #059669 100%)' // Green for delivered
+                        : order.status === 'dispatched'
+                          ? 'linear-gradient(90deg, #6366f1 0%, #4f46e5 100%)' // Indigo for dispatched
+                          : order.status === 'in_progress'
+                            ? 'linear-gradient(90deg, #0059FF 0%, #004BCE 100%)' // Blue for progress
+                            : 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)', // Amber for pending
                       width: `${order.progress}%`
                     }}
                     initial={{ width: 0 }}
@@ -524,7 +548,8 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
           transition={{ duration: 0.4, delay: 0.3 }}
         >
           {/* Print Delivery Guide Button - Only for completed or delivered orders */}
-          {(order.status === 'completed' || order.status === 'cancelled') && (
+          {/* Print Delivery Guide Button - For completed/dispatched orders. Visible to production/dispatch/admin */}
+          {['completed', 'dispatched', 'delivered'].includes(order.status) && ['production', 'dispatch', 'admin'].includes(userRole || '') && (
             <motion.div whileTap={{ scale: 0.98 }}>
               <Button
                 onClick={() => setShowDeliveryGuide(true)}
@@ -542,6 +567,43 @@ export function OrderDetail({ order, onBack, onDelete }: OrderDetailProps) {
                   Imprimir Guía de Despacho
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-r from-[#059669] to-[#047857] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Recibido Button - Only for DISPATCHED orders and LOCAL users */}
+          {order.status === 'dispatched' && userRole === 'local' && onStatusChange && (
+            <motion.div whileTap={{ scale: 0.98 }}>
+              <Button
+                onClick={async () => {
+                  setIsUpdating(true);
+                  try {
+                    // Change status to delivered (entregado)
+                    await onStatusChange(order.id, 'delivered', 100);
+                    toast.success('Pedido marcado como recibido');
+                    onBack();
+                  } catch (error) {
+                    console.error('Error updating status:', error);
+                    toast.error('Error al actualizar estado');
+                  } finally {
+                    setIsUpdating(false);
+                  }
+                }}
+                disabled={isUpdating}
+                className="w-full h-12 relative overflow-hidden group"
+                style={{
+                  background: 'linear-gradient(90deg, #0059FF 0%, #004BCE 100%)',
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  boxShadow: '0 4px 14px rgba(0, 89, 255, 0.3)'
+                }}
+              >
+                <div className="flex items-center gap-2 relative z-10 text-white">
+                  <CheckCircle2 className="w-4 h-4" />
+                  {isUpdating ? 'Actualizando...' : 'Recibido'}
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-r from-[#006DFF] to-[#0059FF] opacity-0 group-hover:opacity-100 transition-opacity" />
               </Button>
             </motion.div>
           )}

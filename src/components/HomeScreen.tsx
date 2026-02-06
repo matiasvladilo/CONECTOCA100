@@ -2,7 +2,7 @@ import { User, Order } from '../App';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { Package, Plus, User as UserIcon, Clock, CheckCircle2, Truck, Sparkles, TrendingUp, History, MessageSquare, Factory, BarChart3 } from 'lucide-react';
+import { Package, Plus, User as UserIcon, Clock, CheckCircle2, Truck, Sparkles, TrendingUp, History, MessageSquare, Factory, BarChart3, X } from 'lucide-react';
 import { PaginationControls } from './PaginationControls';
 import { PaginationInfo } from '../utils/api';
 import logo from '../assets/logo.png';
@@ -42,11 +42,23 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
     bgColor: 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200',
     icon: CheckCircle2
   },
-  cancelled: {
+  dispatched: {
     label: 'Despachado',
-    color: 'text-gray-700',
-    bgColor: 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200',
+    color: 'text-indigo-700',
+    bgColor: 'bg-gradient-to-r from-indigo-50 to-violet-50 border-indigo-200',
     icon: Truck
+  },
+  delivered: {
+    label: 'Recibido',
+    color: 'text-teal-700',
+    bgColor: 'bg-gradient-to-r from-teal-50 to-cyan-50 border-teal-200',
+    icon: CheckCircle2
+  },
+  cancelled: {
+    label: 'Cancelado',
+    color: 'text-red-700',
+    bgColor: 'bg-gradient-to-r from-red-50 to-pink-50 border-red-200',
+    icon: X
   }
 };
 
@@ -59,7 +71,8 @@ export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfil
   const pendingOrders = orders.filter(o => o.status === 'pending').length;
   const inProgressOrders = orders.filter(o => o.status === 'in_progress').length;
   const completedOrders = orders.filter(o => o.status === 'completed').length;
-  const dispatchedOrders = orders.filter(o => o.status === 'cancelled').length;
+  const dispatchedOrders = orders.filter(o => o.status === 'dispatched').length;
+  const deliveredOrders = orders.filter(o => o.status === 'delivered').length;
   const totalAmount = orders.reduce((sum, o) => sum + (o.total || 0), 0);
 
   // Get unique customers count (only for admin)
@@ -410,7 +423,7 @@ export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfil
               >
                 <div className="flex items-center justify-center gap-2 relative z-10">
                   <Factory className="w-5 h-5" />
-                  Ir a Panel de Producción
+                  Ir a Panel de Despacho
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity" />
               </Button>

@@ -197,6 +197,7 @@ body {
 
 /* Evitar zoom accidental en inputs en iOS */
 @media screen and (max-width: 768px) {
+
   input,
   select,
   textarea {
@@ -223,7 +224,16 @@ svg {
 }
 
 /* Forzar renderizado de alta calidad en botones y texto */
-button, span, p, h1, h2, h3, h4, h5, h6, div {
+button,
+span,
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+div {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -231,13 +241,13 @@ button, span, p, h1, h2, h3, h4, h5, h6, div {
 
 /* Optimización específica para pantallas de alta densidad (2x, 3x) */
 @media only screen and (-webkit-min-device-pixel-ratio: 2),
-       only screen and (min-device-pixel-ratio: 2),
-       only screen and (min-resolution: 192dpi),
-       only screen and (min-resolution: 2dppx) {
+only screen and (min-device-pixel-ratio: 2),
+only screen and (min-resolution: 192dpi),
+only screen and (min-resolution: 2dppx) {
   html {
     font-size: 16px !important;
   }
-  
+
   body {
     transform: translateZ(0);
     -webkit-transform: translateZ(0);
@@ -246,7 +256,9 @@ button, span, p, h1, h2, h3, h4, h5, h6, div {
 
 /* Específico para iOS Safari */
 @supports (-webkit-touch-callout: none) {
-  html, body {
+
+  html,
+  body {
     -webkit-text-size-adjust: 100% !important;
   }
 }
@@ -261,19 +273,24 @@ button, span, p, h1, h2, h3, h4, h5, h6, div {
     visibility: hidden;
     position: static;
   }
-  
+
   .thermal-print-content,
-  .thermal-print-content * {
+  .thermal-print-content *,
+  #thermal-receipt-print,
+  #thermal-receipt-print * {
     visibility: visible;
   }
-  
-  .thermal-print-content {
-    position: absolute;
+
+  .thermal-print-content,
+  #thermal-receipt-print {
+    position: fixed;
     left: 0;
     top: 0;
     width: 100%;
     margin: 0;
     padding: 0;
+    z-index: 9999;
+    background-color: white;
   }
 
   /* Hide dialogs and overlays */
@@ -453,12 +470,12 @@ button, span, p, h1, h2, h3, h4, h5, h6, div {
     visibility: hidden;
     position: static;
   }
-  
+
   .standard-print-content,
   .standard-print-content * {
     visibility: visible;
   }
-  
+
   .standard-print-content {
     position: absolute;
     left: 0;

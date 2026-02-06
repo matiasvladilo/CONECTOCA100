@@ -10,13 +10,13 @@ import {
   Printer,
   Settings,
   X,
-  ZoomIn,
-  ZoomOut,
-  AlignCenter,
-  Type
+  Type,
+  AlignLeft,
+  AlignCenter
 } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { toast } from 'sonner';
+import logo from '../assets/logo.png'; // Assuming logo exists
 
 interface ThermalReceiptConfigProps {
   order: Order;
@@ -25,25 +25,24 @@ interface ThermalReceiptConfigProps {
   businessName?: string;
   businessAddress?: string;
   businessPhone?: string;
+  businessRut?: string;
 }
 
 export function ThermalReceiptConfig({
   order,
   open,
   onClose,
-  businessName = "CONECTOCA",
-  businessAddress = "Av. La Oca 123, Santiago",
-  businessPhone = "+569 1234 5678"
+  businessName = "PANIFICADORA ELORRIO LTDA.",
+  businessAddress = "PEDRO DE VALDIVIA 4280",
+  businessPhone = "+569 1234 5678",
+  businessRut = "76.020.756-K"
 }: ThermalReceiptConfigProps) {
-  // Configuration state
+  // Configuration state - Defaults based on user request
   const [paperWidth, setPaperWidth] = useState<'58mm' | '80mm'>('80mm');
-  const [fontSize, setFontSize] = useState(14); // Base font size
-  const [lineHeight, setLineHeight] = useState(1.4);
-  const [marginX, setMarginX] = useState(4); // Horizontal margin in mm
-  const [marginY, setMarginY] = useState(4); // Vertical margin in mm
-  const [showBorders, setShowBorders] = useState(true);
-  const [boldText, setBoldText] = useState(true);
-  const [fontFamily, setFontFamily] = useState<string>('Roboto Mono');
+  const [fontSize, setFontSize] = useState(12); // Slightly smaller for table
+  const [marginTop, setMarginTop] = useState(5); // 5mm top
+  const [marginBottom, setMarginBottom] = useState(3); // 3mm bottom
+  const [marginX, setMarginX] = useState(2); // 2mm side
   const [isPrinting, setIsPrinting] = useState(false);
 
   const printRef = useRef<HTMLDivElement>(null);
@@ -61,61 +60,132 @@ export function ThermalReceiptConfig({
     }, 100);
   };
 
-  const resetToDefault = () => {
-    setPaperWidth('80mm');
-    setFontSize(14);
-    setLineHeight(1.4);
-    setMarginX(4);
-    setMarginY(4);
-    setShowBorders(true);
-    setBoldText(true);
-    setFontFamily('Roboto Mono');
-    toast.success('Configuración restaurada');
-  };
-
-  // Font options with descriptions
-  const fontOptions = [
-    { value: 'Roboto Mono', label: 'Roboto Mono', description: 'Moderna y gruesa (Recomendada)' },
-    { value: 'Consolas', label: 'Consolas', description: 'Muy gruesa y clara' },
-    { value: 'Monaco', label: 'Monaco', description: 'Compacta y legible' },
-    { value: 'Lucida Console', label: 'Lucida Console', description: 'Gruesa y profesional' },
-    { value: 'Courier New', label: 'Courier New', description: 'Clásica de máquina de escribir' },
-    { value: 'Arial', label: 'Arial (Sans)', description: 'Moderna sin serifas' },
-  ];
-
-  const getFontStack = (font: string) => {
-    switch (font) {
-      case 'Roboto Mono':
-        return '"Roboto Mono", "Courier New", monospace';
-      case 'Consolas':
-        return 'Consolas, "Courier New", monospace';
-      case 'Monaco':
-        return 'Monaco, "Courier New", monospace';
-      case 'Lucida Console':
-        return '"Lucida Console", Monaco, monospace';
-      case 'Courier New':
-        return '"Courier New", Courier, monospace';
-      case 'Arial':
-        return 'Arial, Helvetica, sans-serif';
-      default:
-        return '"Roboto Mono", monospace';
-    }
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-CL', {
       day: '2-digit',
-      month: 'long',
+      month: '2-digit',
       year: 'numeric'
     });
   };
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('es-CL', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  // Helper component for the receipt content
+  const ReceiptContent = () => (
+    <div style={{
+      fontFamily: 'Arial, sans-serif',
+      fontSize: `${fontSize}px`,
+      color: 'black',
+      lineHeight: '1.2'
+    }}>
+      {/* 1. Header: Logo Left, Text Right */}
+      <div style={{ display: 'flex', gap: '5px', marginBottom: '10px', alignItems: 'flex-start' }}>
+        {/* Logo Area */}
+        <div style={{ width: '35%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <img
+            src={logo}
+            alt="Logo"
+            style={{
+              width: '100%',
+              maxWidth: '60px',
+              filter: 'grayscale(100%) contrast(150%)', // High contrast for thermal
+              marginBottom: '2px'
+            }}
+          />
+          <div style={{ fontSize: '10px', fontWeight: 'bold', textAlign: 'center' }}>La Oca</div>
+        </div>
+
+        {/* Business Details */}
+        <div style={{ width: '65%', paddingLeft: '5px' }}>
+          <div style={{ fontWeight: 'bold', fontSize: '1.1em', lineHeight: '1.1', marginBottom: '2px' }}>
+            {businessName}
+          </div>
+          <div style={{ fontSize: '0.9em', marginBottom: '1px' }}>
+            RUT: {businessRut}
+          </div>
+          <div style={{ fontSize: '0.9em', marginBottom: '4px' }}>
+            Dirección: {businessAddress}
+          </div>
+
+          <div style={{ fontWeight: 'bold', fontSize: '1em', marginTop: '4px' }}>
+            GUÍA DE DESPACHO
+          </div>
+          <div style={{ fontSize: '0.9em' }}>
+            ID Despacho: D-{order.id.slice(0, 4)}
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Customer Info */}
+      <div style={{
+        borderTop: '1px solid black',
+        borderBottom: '1px solid black',
+        padding: '5px 0',
+        marginBottom: '10px',
+        fontSize: '0.95em'
+      }}>
+        <div style={{ display: 'flex', marginBottom: '2px' }}>
+          <span style={{ fontWeight: 'bold', width: '70px' }}>Cliente:</span>
+          <span>{order.customerName}</span>
+        </div>
+        <div style={{ display: 'flex', marginBottom: '2px' }}>
+          <span style={{ fontWeight: 'bold', width: '70px' }}>Dirección:</span>
+          <span>{order.deliveryAddress || '-'}</span>
+        </div>
+        <div style={{ display: 'flex' }}>
+          <span style={{ fontWeight: 'bold', width: '70px' }}>Fecha:</span>
+          <span>{formatDate(order.createdAt || order.date)}</span>
+        </div>
+      </div>
+
+      {/* 3. Products Table */}
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '10px', fontSize: '0.9em' }}>
+        <thead>
+          <tr style={{ borderBottom: '1px solid black' }}>
+            <th style={{ textAlign: 'left', padding: '2px' }}>Producto</th>
+            <th style={{ textAlign: 'center', padding: '2px', width: '40px' }}>Cant.</th>
+            <th style={{ textAlign: 'right', padding: '2px', width: '60px' }}>Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          {order.products && order.products.length > 0 ? (
+            order.products.map((p, i) => (
+              <tr key={i} style={{ borderBottom: '1px dotted #ccc' }}>
+                <td style={{ padding: '4px 2px', verticalAlign: 'top' }}>
+                  {p.name}
+                </td>
+                <td style={{ padding: '4px 2px', textAlign: 'center', verticalAlign: 'top' }}>
+                  {p.quantity}
+                </td>
+                <td style={{ padding: '4px 2px', textAlign: 'right', verticalAlign: 'top' }}>
+                  {formatCLP(p.price * p.quantity)}
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td style={{ padding: '4px 2px' }}>{order.productName}</td>
+              <td style={{ padding: '4px 2px', textAlign: 'center' }}>{order.quantity}</td>
+              <td style={{ padding: '4px 2px', textAlign: 'right' }}>{formatCLP(order.total || 0)}</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+
+      {/* 4. Total */}
+      <div style={{ textAlign: 'right', fontWeight: 'bold', fontSize: '1.2em', marginBottom: '20px' }}>
+        Total: {formatCLP(order.total || 0)}
+      </div>
+
+      {/* 5. Footer / Signature */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '30px' }}>
+        <div style={{ textAlign: 'center', width: '120px' }}>
+          <div style={{ fontSize: '0.8em', color: '#666', marginBottom: '25px' }}>Firma Empresa:</div>
+          <div style={{ borderTop: '1px solid black', paddingTop: '2px', fontSize: '0.8em' }}>
+            Recibí Conforme
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -127,462 +197,109 @@ export function ThermalReceiptConfig({
               Configuración de Recibo Térmico
             </DialogTitle>
             <DialogDescription>
-              Ajusta el formato para tu impresora térmica
+              Ajusta el formato para tu impresora térmica (Optimizado)
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-h-[calc(95vh-200px)] overflow-y-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-h-[calc(95vh-200px)] overflow-y-auto">
             {/* Configuration Panel */}
-            <div className="space-y-6 pr-4 border-r border-gray-200">
+            <div className="space-y-6 pr-4 border-r border-gray-200 col-span-1">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-sm flex items-center gap-2">
                   <Settings className="w-4 h-4" />
-                  Configuración
+                  Ajustes de Impresión
                 </h3>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={resetToDefault}
-                  className="text-xs"
-                >
-                  Restaurar
-                </Button>
               </div>
 
               {/* Paper Width */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  <AlignCenter className="w-4 h-4" />
-                  Ancho de Papel
-                </Label>
+                <Label className="text-sm font-medium">Ancho de Papel</Label>
                 <Select value={paperWidth} onValueChange={(v) => setPaperWidth(v as '58mm' | '80mm')}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="58mm">58mm (Papel pequeño)</SelectItem>
-                    <SelectItem value="80mm">80mm (Papel estándar)</SelectItem>
+                    <SelectItem value="58mm">58mm</SelectItem>
+                    <SelectItem value="80mm">80mm (Estándar)</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-gray-500">Ancho del papel de tu impresora térmica</p>
               </div>
 
               {/* Font Size */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <Type className="w-4 h-4" />
-                    Tamaño de Letra
-                  </span>
-                  <span className="text-blue-600 font-mono">{fontSize}px</span>
+                <Label className="text-sm font-medium flex justify-between">
+                  <span>Tamaño Letra</span>
+                  <span className="text-blue-600">{fontSize}px</span>
                 </Label>
-                <Slider
-                  value={[fontSize]}
-                  onValueChange={([value]) => setFontSize(value)}
-                  min={10}
-                  max={20}
-                  step={1}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>Pequeña (10px)</span>
-                  <span>Grande (20px)</span>
+                <Slider value={[fontSize]} onValueChange={([v]) => setFontSize(v)} min={10} max={16} step={1} />
+              </div>
+
+              {/* Margins */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex justify-between">
+                    <span>Margen Superior (Top)</span>
+                    <span className="text-blue-600">{marginTop}mm</span>
+                  </Label>
+                  <Slider value={[marginTop]} onValueChange={([v]) => setMarginTop(v)} min={0} max={20} step={1} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex justify-between">
+                    <span>Margen Inferior (Bottom)</span>
+                    <span className="text-blue-600">{marginBottom}mm</span>
+                  </Label>
+                  <Slider value={[marginBottom]} onValueChange={([v]) => setMarginBottom(v)} min={0} max={20} step={1} />
                 </div>
               </div>
 
-              {/* Line Height */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <ZoomIn className="w-4 h-4" />
-                    Espaciado de Línea
-                  </span>
-                  <span className="text-blue-600 font-mono">{lineHeight.toFixed(1)}</span>
-                </Label>
-                <Slider
-                  value={[lineHeight]}
-                  onValueChange={([value]) => setLineHeight(value)}
-                  min={1.0}
-                  max={2.0}
-                  step={0.1}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>Compacto (1.0)</span>
-                  <span>Espaciado (2.0)</span>
-                </div>
-              </div>
-
-              {/* Horizontal Margin */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center justify-between">
-                  <span>Margen Horizontal</span>
-                  <span className="text-blue-600 font-mono">{marginX}mm</span>
-                </Label>
-                <Slider
-                  value={[marginX]}
-                  onValueChange={([value]) => setMarginX(value)}
-                  min={0}
-                  max={10}
-                  step={1}
-                  className="w-full"
-                />
-                <p className="text-xs text-gray-500">Espacio a los lados del recibo</p>
-              </div>
-
-              {/* Vertical Margin */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center justify-between">
-                  <span>Margen Vertical</span>
-                  <span className="text-blue-600 font-mono">{marginY}mm</span>
-                </Label>
-                <Slider
-                  value={[marginY]}
-                  onValueChange={([value]) => setMarginY(value)}
-                  min={0}
-                  max={10}
-                  step={1}
-                  className="w-full"
-                />
-                <p className="text-xs text-gray-500">Espacio arriba y abajo del recibo</p>
-              </div>
-
-              {/* Bold Text */}
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="space-y-0.5">
-                  <Label className="text-sm font-medium">Texto en Negrita</Label>
-                  <p className="text-xs text-gray-500">Mejora la impresión en papel térmico</p>
-                </div>
-                <Switch
-                  checked={boldText}
-                  onCheckedChange={setBoldText}
-                />
-              </div>
-
-              {/* Show Borders */}
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="space-y-0.5">
-                  <Label className="text-sm font-medium">Mostrar Separadores</Label>
-                  <p className="text-xs text-gray-500">Líneas entre secciones</p>
-                </div>
-                <Switch
-                  checked={showBorders}
-                  onCheckedChange={setShowBorders}
-                />
-              </div>
-
-              {/* Font Family */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  <Type className="w-4 h-4" />
-                  Fuente de Letra
-                </Label>
-                <Select value={fontFamily} onValueChange={(v) => setFontFamily(v as string)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fontOptions.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label} - {option.description}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-gray-500">Estilo de letra para el recibo</p>
+              <div className="bg-blue-50 p-3 rounded text-xs text-blue-800">
+                Diseño optimizado según especificaciones: Logo a la izquierda, datos a la derecha, tabla compacta.
               </div>
             </div>
 
             {/* Preview Panel */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-sm">Vista Previa</h3>
-
-              <div className="bg-gray-100 p-4 rounded-lg overflow-auto max-h-[600px]">
-                <div
-                  ref={printRef}
-                  className="bg-white mx-auto shadow-lg"
-                  style={{
-                    width: paperWidth,
-                    fontSize: `${fontSize}px`,
-                    lineHeight: lineHeight,
-                    padding: `${marginY}mm ${marginX}mm`,
-                    fontFamily: getFontStack(fontFamily)
-                  }}
-                >
-                  {/* Business Info */}
-                  <div className="text-center mb-3">
-                    <div
-                      className="text-lg mb-1"
-                      style={{ fontWeight: boldText ? '900' : '700' }}
-                    >
-                      RECIBO #{order.id.slice(0, 8).toUpperCase()}
-                    </div>
-                    <div style={{ fontWeight: boldText ? '700' : '600' }}>
-                      {businessName}
-                    </div>
-                    <div className="text-xs mt-1" style={{ fontWeight: boldText ? '600' : '400' }}>
-                      {businessPhone}
-                    </div>
-                  </div>
-
-                  {/* Customer Info */}
-                  <div className="mb-3">
-                    <div style={{ fontWeight: boldText ? '700' : '600' }}>
-                      {order.customerName}
-                    </div>
-                    {order.deliveryAddress && (
-                      <div className="text-xs mt-1" style={{ fontWeight: boldText ? '600' : '400' }}>
-                        - {order.deliveryAddress}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Date */}
-                  <div className="mb-3 text-sm" style={{ fontWeight: boldText ? '600' : '400' }}>
-                    {order.customerName || 'Cliente'}
-                  </div>
-                  {order.deliveryAddress && (
-                    <div className="mb-3 text-xs" style={{ fontWeight: boldText ? '600' : '400' }}>
-                      +{order.deliveryAddress.slice(0, 15)}
-                    </div>
-                  )}
-
-                  {/* Products Count */}
-                  <div className="mb-2" style={{ fontWeight: boldText ? '700' : '600' }}>
-                    {order.products?.length || 0} artículo{(order.products?.length || 0) !== 1 ? 's' : ''}
-                    {order.products && order.products.length > 0 && (
-                      <span className="ml-1">
-                        (Cant: {order.products.reduce((sum, p) => sum + p.quantity, 0)})
-                      </span>
-                    )}
-                  </div>
-
-                  {showBorders && <div className="border-b border-dashed border-gray-400 my-2" />}
-
-                  {/* Products */}
-                  <div className="space-y-2 mb-3">
-                    {order.products && order.products.length > 0 ? (
-                      order.products.map((product, index) => (
-                        <div key={index}>
-                          <div style={{ fontWeight: boldText ? '700' : '600' }}>
-                            {product.quantity}x {product.name}
-                          </div>
-                          {showBorders && index < order.products!.length - 1 && (
-                            <div className="border-b border-dotted border-gray-300 my-1.5" />
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <div style={{ fontWeight: boldText ? '700' : '600' }}>
-                        {order.quantity}x {order.productName}
-                      </div>
-                    )}
-                  </div>
-
-                  {showBorders && <div className="border-b border-gray-400 my-2" />}
-
-                  {/* Total */}
-                  <div className="text-right mb-3">
-                    <div className="text-sm" style={{ fontWeight: boldText ? '600' : '400' }}>
-                      Tot:
-                    </div>
-                  </div>
-
-                  {showBorders && <div className="border-b border-gray-400 my-2" />}
-
-                  {/* Date/Time */}
-                  <div className="text-center text-xs mt-3" style={{ fontWeight: boldText ? '600' : '400' }}>
-                    {formatDate(order.createdAt || order.date)} {formatTime(order.createdAt || order.date)}
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <p className="text-xs text-yellow-800">
-                  <strong>💡 Tip:</strong> Si el texto se ve cortado en tu impresora, reduce el tamaño de letra o los márgenes.
-                </p>
+            <div className="col-span-2 bg-gray-100 p-8 rounded-lg overflow-auto flex justify-center">
+              <div
+                id="thermal-receipt-preview"
+                className="bg-white shadow-xl"
+                style={{
+                  width: paperWidth,
+                  minHeight: '400px',
+                  padding: `${marginTop}mm ${marginX}mm ${marginBottom}mm ${marginX}mm`,
+                }}
+              >
+                <ReceiptContent />
               </div>
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* Actions */}
           <div className="flex gap-3 pt-4 border-t">
             <Button
               onClick={handlePrint}
               disabled={isPrinting}
               className="flex-1"
-              style={{
-                background: 'linear-gradient(90deg, #0059FF 0%, #004BCE 100%)',
-              }}
+              style={{ background: 'linear-gradient(90deg, #0059FF 0%, #004BCE 100%)' }}
             >
               <Printer className="w-4 h-4 mr-2" />
               {isPrinting ? 'Imprimiendo...' : 'Imprimir Recibo'}
             </Button>
-            <Button
-              variant="outline"
-              onClick={onClose}
-              className="flex-1"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Cerrar
+            <Button variant="outline" onClick={onClose} className="flex-1">
+              <X className="w-4 h-4 mr-2" /> Cerrar
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Print-only styles */}
+      {/* Hidden Print Content (Rendered outside Dialog to avoid display:none) */}
       {isPrinting && (
-        <style>{`
-          @media print {
-            @page {
-              size: ${paperWidth} auto;
-              margin: 0mm;
-            }
-            
-            body {
-              margin: 0;
-              padding: 0;
-              width: ${paperWidth};
-              min-width: ${paperWidth};
-            }
-
-            body * {
-              visibility: hidden;
-              height: 0;
-            }
-            
-            .thermal-print-container,
-            .thermal-print-container * {
-              visibility: visible;
-              height: auto;
-            }
-            
-            .thermal-print-container {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: ${paperWidth} !important;
-              margin: 0;
-              padding: 0;
-              background-color: white;
-              z-index: 9999;
-            }
-          }
-        `}</style>
-      )}
-
-      {isPrinting && (
-        <div className="thermal-print-container">
-          <div
-            style={{
-              width: paperWidth,
-              fontSize: `${fontSize}px`,
-              lineHeight: lineHeight,
-              padding: `${marginY}mm ${marginX}mm`,
-              fontFamily: getFontStack(fontFamily),
-              fontWeight: boldText ? '900' : '700'
-            }}
-          >
-            {/* Business Info */}
-            <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-              <div style={{
-                fontSize: '1.2em',
-                fontWeight: '900',
-                marginBottom: '4px'
-              }}>
-                RECIBO #{order.id.slice(0, 8).toUpperCase()}
-              </div>
-              <div style={{ fontWeight: '900' }}>
-                {businessName}
-              </div>
-              <div style={{ fontSize: '0.85em', fontWeight: boldText ? '700' : '600', marginTop: '2px' }}>
-                {businessPhone}
-              </div>
-            </div>
-
-            {/* Customer */}
-            <div style={{ marginBottom: '8px' }}>
-              <div style={{ fontWeight: '900' }}>
-                {order.customerName}
-              </div>
-              {order.deliveryAddress && (
-                <div style={{ fontSize: '0.85em', fontWeight: boldText ? '700' : '600', marginTop: '2px' }}>
-                  - {order.deliveryAddress}
-                </div>
-              )}
-            </div>
-
-            {/* Products Count */}
-            <div style={{ fontWeight: '900', marginBottom: '6px' }}>
-              {order.products?.length || 0} artículo{(order.products?.length || 0) !== 1 ? 's' : ''}
-              {order.products && order.products.length > 0 && (
-                <span>
-                  {' '}(Cant: {order.products.reduce((sum, p) => sum + p.quantity, 0)})
-                </span>
-              )}
-            </div>
-
-            {showBorders && (
-              <div style={{
-                borderBottom: '1px dashed #666',
-                margin: '6px 0'
-              }} />
-            )}
-
-            {/* Products */}
-            <div style={{ marginBottom: '8px' }}>
-              {order.products && order.products.length > 0 ? (
-                order.products.map((product, index) => (
-                  <div key={index} style={{ marginBottom: '6px' }}>
-                    <div style={{ fontWeight: '900' }}>
-                      {product.quantity}x {product.name}
-                    </div>
-                    {showBorders && index < order.products!.length - 1 && (
-                      <div style={{
-                        borderBottom: '1px dotted #999',
-                        margin: '4px 0'
-                      }} />
-                    )}
-                  </div>
-                ))
-              ) : (
-                <div style={{ fontWeight: '900' }}>
-                  {order.quantity}x {order.productName}
-                </div>
-              )}
-            </div>
-
-            {showBorders && (
-              <div style={{
-                borderBottom: '2px solid #333',
-                margin: '6px 0'
-              }} />
-            )}
-
-            {/* Total */}
-            <div style={{ textAlign: 'right', marginBottom: '8px' }}>
-              <div style={{ fontSize: '0.9em', fontWeight: boldText ? '700' : '600' }}>
-                Tot:
-              </div>
-            </div>
-
-            {showBorders && (
-              <div style={{
-                borderBottom: '2px solid #333',
-                margin: '6px 0'
-              }} />
-            )}
-
-            {/* Date/Time */}
-            <div style={{
-              textAlign: 'center',
-              fontSize: '0.85em',
-              fontWeight: boldText ? '700' : '600',
-              marginTop: '8px'
-            }}>
-              {formatDate(order.createdAt || order.date)} {formatTime(order.createdAt || order.date)}
-            </div>
-          </div>
+        <div
+          id="thermal-receipt-print" // Use distinct ID for printing
+          className="thermal-print-content"
+          style={{
+            width: paperWidth,
+            padding: `${marginTop}mm ${marginX}mm ${marginBottom}mm ${marginX}mm`
+          }}
+        >
+          <ReceiptContent />
         </div>
       )}
     </>

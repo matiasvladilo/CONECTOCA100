@@ -4,8 +4,8 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
-import { 
-  ArrowLeft, 
+import {
+  ArrowLeft,
   Search,
   Filter,
   Package,
@@ -15,7 +15,8 @@ import {
   Printer,
   Eye,
   TrendingUp,
-  ShoppingCart
+  ShoppingCart,
+  Truck
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { motion, AnimatePresence } from 'motion/react';
@@ -31,13 +32,13 @@ interface DispatchOrdersProps {
   lastSync?: Date | null;
 }
 
-export function DispatchOrders({ 
-  orders, 
-  onBack, 
+export function DispatchOrders({
+  orders,
+  onBack,
   onUpdateOrderStatus,
   onViewOrder,
   userName,
-  lastSync 
+  lastSync
 }: DispatchOrdersProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'ALL'>('ALL');
@@ -51,6 +52,10 @@ export function DispatchOrders({
         return 'bg-blue-100 text-blue-800 border-blue-300';
       case 'completed':
         return 'bg-green-100 text-green-800 border-green-300';
+      case 'dispatched':
+        return 'bg-indigo-100 text-indigo-800 border-indigo-300';
+      case 'delivered':
+        return 'bg-teal-100 text-teal-800 border-teal-300';
       case 'cancelled':
         return 'bg-gray-100 text-gray-800 border-gray-300';
       default:
@@ -65,6 +70,10 @@ export function DispatchOrders({
       case 'in_progress':
         return <TrendingUp className="w-4 h-4" />;
       case 'completed':
+        return <CheckCircle2 className="w-4 h-4" />;
+      case 'dispatched':
+        return <Truck className="w-4 h-4" />;
+      case 'delivered':
         return <CheckCircle2 className="w-4 h-4" />;
       case 'cancelled':
         return <XCircle className="w-4 h-4" />;
@@ -81,8 +90,12 @@ export function DispatchOrders({
         return 'En Preparación';
       case 'completed':
         return 'Listo';
-      case 'cancelled':
+      case 'dispatched':
         return 'Despachado';
+      case 'delivered':
+        return 'Recibido';
+      case 'cancelled':
+        return 'Cancelado';
       default:
         return status;
     }
@@ -97,24 +110,26 @@ export function DispatchOrders({
   };
 
   const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
-    const progressMap = {
+    const progressMap: Record<string, number> = {
       pending: 0,
       in_progress: 50,
       completed: 100,
+      dispatched: 100, // Keep at 100 or visually restrict
+      delivered: 100,
       cancelled: 100
     };
-    onUpdateOrderStatus(orderId, newStatus, progressMap[newStatus]);
+    onUpdateOrderStatus(orderId, newStatus, progressMap[newStatus] || 0);
   };
 
   // Filter orders
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = 
+    const matchesSearch =
       order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.productName.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = statusFilter === 'ALL' || order.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -123,11 +138,11 @@ export function DispatchOrders({
     // Pending orders first
     if (a.status === 'pending' && b.status !== 'pending') return -1;
     if (a.status !== 'pending' && b.status === 'pending') return 1;
-    
+
     // In progress second
     if (a.status === 'in_progress' && b.status !== 'in_progress' && b.status !== 'pending') return -1;
     if (a.status !== 'in_progress' && b.status === 'in_progress' && a.status !== 'pending') return 1;
-    
+
     // Then by date (newest first)
     return new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime();
   });
@@ -138,7 +153,7 @@ export function DispatchOrders({
     pending: orders.filter(o => o.status === 'pending').length,
     inProgress: orders.filter(o => o.status === 'in_progress').length,
     completed: orders.filter(o => o.status === 'completed').length,
-    dispatched: orders.filter(o => o.status === 'cancelled').length,
+    dispatched: orders.filter(o => o.status === 'dispatched').length,
   };
 
   return (
@@ -230,13 +245,13 @@ export function DispatchOrders({
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
+          <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
             <CardContent className="p-3 md:p-4">
               <div className="flex items-center gap-2">
-                <XCircle className="w-5 h-5 text-gray-600 shrink-0" />
+                <Package className="w-5 h-5 text-indigo-600 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-xs text-gray-600 truncate">Despachados</p>
-                  <p className="text-xl md:text-2xl text-gray-900">{stats.dispatched}</p>
+                  <p className="text-xs text-indigo-600 truncate">Despachados</p>
+                  <p className="text-xl md:text-2xl text-indigo-900">{stats.dispatched}</p>
                 </div>
               </div>
             </CardContent>
@@ -271,7 +286,8 @@ export function DispatchOrders({
                     <SelectItem value="pending">Pendiente</SelectItem>
                     <SelectItem value="in_progress">En Preparación</SelectItem>
                     <SelectItem value="completed">Listo</SelectItem>
-                    <SelectItem value="cancelled">Despachado</SelectItem>
+                    <SelectItem value="dispatched">Despachado</SelectItem>
+                    <SelectItem value="delivered">Recibido</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -284,7 +300,7 @@ export function DispatchOrders({
           <Card className="p-12 text-center">
             <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg text-gray-600 mb-2">
-              {searchTerm || statusFilter !== 'ALL' 
+              {searchTerm || statusFilter !== 'ALL'
                 ? 'No se encontraron pedidos con estos filtros'
                 : 'No hay pedidos de locales'}
             </h3>
@@ -396,7 +412,7 @@ export function DispatchOrders({
                               Iniciar
                             </Button>
                           )}
-                          
+
                           {order.status === 'in_progress' && (
                             <Button
                               size="sm"
@@ -411,18 +427,26 @@ export function DispatchOrders({
                           {order.status === 'completed' && (
                             <Button
                               size="sm"
-                              onClick={() => handleStatusChange(order.id, 'cancelled')}
-                              className="flex-1 bg-gray-600 hover:bg-gray-700"
+                              onClick={() => handleStatusChange(order.id, 'dispatched')}
+                              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
                             >
-                              <XCircle className="w-4 h-4 mr-1" />
+                              <Package className="w-4 h-4 mr-1" />
                               Despachar
                             </Button>
                           )}
 
-                          {order.status === 'cancelled' && (
-                            <div className="flex-1 text-center py-2 bg-gray-50 rounded-md">
-                              <p className="text-sm text-gray-700 font-medium">
-                                ✅ Despachado
+                          {order.status === 'dispatched' && (
+                            <div className="flex-1 text-center py-2 bg-indigo-50 rounded-md">
+                              <p className="text-sm text-indigo-700 font-medium">
+                                🚚 Despachado
+                              </p>
+                            </div>
+                          )}
+
+                          {order.status === 'delivered' && (
+                            <div className="flex-1 text-center py-2 bg-green-50 rounded-md">
+                              <p className="text-sm text-green-700 font-medium">
+                                ✅ Recibido
                               </p>
                             </div>
                           )}

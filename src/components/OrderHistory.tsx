@@ -40,7 +40,7 @@ interface OrderHistoryProps {
   userName: string;
 }
 
-type FilterStatus = 'all' | 'pending' | 'in_progress' | 'completed' | 'cancelled';
+type FilterStatus = 'all' | 'pending' | 'in_progress' | 'completed' | 'dispatched' | 'delivered' | 'cancelled';
 type ViewMode = 'grid' | 'list';
 type SortOption = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc';
 
@@ -58,16 +58,28 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
     icon: Package
   },
   completed: {
-    label: 'Listo para Despacho',
+    label: 'Listo',
     color: 'text-green-700',
     bgColor: 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200',
     icon: CheckCircle2
   },
-  cancelled: {
+  dispatched: {
     label: 'Despachado',
-    color: 'text-gray-700',
-    bgColor: 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200',
+    color: 'text-indigo-700',
+    bgColor: 'bg-gradient-to-r from-indigo-50 to-violet-50 border-indigo-200',
     icon: Truck
+  },
+  delivered: {
+    label: 'Recibido',
+    color: 'text-teal-700',
+    bgColor: 'bg-gradient-to-r from-teal-50 to-cyan-50 border-teal-200',
+    icon: CheckCircle2
+  },
+  cancelled: {
+    label: 'Cancelado',
+    color: 'text-red-700',
+    bgColor: 'bg-gradient-to-r from-red-50 to-pink-50 border-red-200',
+    icon: X
   }
 };
 
@@ -151,10 +163,12 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
     const pending = filteredOrders.filter(o => o.status === 'pending').length;
     const inProgress = filteredOrders.filter(o => o.status === 'in_progress').length;
     const completed = filteredOrders.filter(o => o.status === 'completed').length;
-    const dispatched = filteredOrders.filter(o => o.status === 'cancelled').length;
+    const dispatched = filteredOrders.filter(o => o.status === 'dispatched').length;
+    const delivered = filteredOrders.filter(o => o.status === 'delivered').length;
+    const cancelled = filteredOrders.filter(o => o.status === 'cancelled').length;
     const totalAmount = filteredOrders.reduce((sum, o) => sum + (o.total || 0), 0);
 
-    return { total, pending, inProgress, completed, dispatched, totalAmount };
+    return { total, pending, inProgress, completed, dispatched, delivered, cancelled, totalAmount };
   }, [filteredOrders]);
 
   const clearFilters = () => {
@@ -341,7 +355,7 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
             >
               <div className="flex items-center gap-2 mb-1">
                 <CheckCircle2 className="w-4 h-4 text-green-200" />
-                <span className="text-xs text-green-100">Completados</span>
+                <span className="text-xs text-green-100">Listos</span>
               </div>
               <p className="text-white" style={{ fontSize: '24px', fontWeight: 600 }}>
                 {stats.completed}
@@ -351,19 +365,57 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
             <motion.div
               className="p-4 rounded-xl backdrop-blur-md"
               style={{
-                background: 'rgba(255, 255, 255, 0.15)',
-                border: '1px solid rgba(255, 255, 255, 0.2)'
+                background: 'rgba(99, 102, 241, 0.2)',
+                border: '1px solid rgba(99, 102, 241, 0.3)'
               }}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
               <div className="flex items-center gap-2 mb-1">
-                <Truck className="w-4 h-4 text-blue-100" />
-                <span className="text-xs text-blue-100">Despachados</span>
+                <Truck className="w-4 h-4 text-indigo-100" />
+                <span className="text-xs text-indigo-100">Despachados</span>
               </div>
               <p className="text-white" style={{ fontSize: '24px', fontWeight: 600 }}>
                 {stats.dispatched}
+              </p>
+            </motion.div>
+
+            <motion.div
+              className="p-4 rounded-xl backdrop-blur-md"
+              style={{
+                background: 'rgba(20, 184, 166, 0.2)',
+                border: '1px solid rgba(20, 184, 166, 0.3)'
+              }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <CheckCircle2 className="w-4 h-4 text-teal-100" />
+                <span className="text-xs text-teal-100">Recibidos</span>
+              </div>
+              <p className="text-white" style={{ fontSize: '24px', fontWeight: 600 }}>
+                {stats.delivered}
+              </p>
+            </motion.div>
+
+            <motion.div
+              className="p-4 rounded-xl backdrop-blur-md"
+              style={{
+                background: 'rgba(239, 68, 68, 0.2)',
+                border: '1px solid rgba(239, 68, 68, 0.3)'
+              }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <X className="w-4 h-4 text-red-100" />
+                <span className="text-xs text-red-100">Cancelados</span>
+              </div>
+              <p className="text-white" style={{ fontSize: '24px', fontWeight: 600 }}>
+                {stats.cancelled}
               </p>
             </motion.div>
 
@@ -375,7 +427,7 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
               }}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35 }}
+              transition={{ delay: 0.45 }}
             >
               <div className="flex items-center gap-2 mb-1">
                 <DollarSign className="w-4 h-4 text-yellow-200" />
@@ -438,8 +490,10 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
                       <SelectItem value="all">Todos los estados</SelectItem>
                       <SelectItem value="pending">Pendientes</SelectItem>
                       <SelectItem value="in_progress">En Preparación</SelectItem>
-                      <SelectItem value="completed">Completados</SelectItem>
-                      <SelectItem value="cancelled">Despachados</SelectItem>
+                      <SelectItem value="completed">Listos</SelectItem>
+                      <SelectItem value="dispatched">Despachados</SelectItem>
+                      <SelectItem value="delivered">Recibidos</SelectItem>
+                      <SelectItem value="cancelled">Cancelados</SelectItem>
                     </SelectContent>
                   </Select>
 

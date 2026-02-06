@@ -1,6 +1,6 @@
 import { projectId, publicAnonKey } from './supabase/info';
 
-const API_BASE_URL = `https://${projectId}.supabase.co/functions/v1/make-server-6d979413`;
+export const API_BASE_URL = `https://${projectId}.supabase.co/functions/v1/make-server-6d979413`;
 
 export interface Category {
   id: string;
@@ -56,7 +56,7 @@ export interface Order {
   products: Array<OrderItemWithArea>; // Updated to use new type
   total: number;
   deadline: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'pending' | 'in_progress' | 'completed' | 'dispatched' | 'delivered' | 'cancelled';
   progress: number;
   notes?: string;
   createdAt: string;
@@ -261,11 +261,23 @@ export const ordersAPI = {
     status: Order['status'],
     progress: number
   ): Promise<Order> => {
+    // Map frontend status to backend status
+    const statusMap: Record<string, string> = {
+      pending: 'pending',
+      in_progress: 'in_progress',
+      completed: 'completed',
+      dispatched: 'despachado',
+      delivered: 'entregado',
+      cancelled: 'cancelled',
+    };
+
+    const backendStatus = statusMap[status] || status;
+
     const response = await fetchAPI(
       `/orders/${orderId}/status`,
       {
         method: 'PUT',
-        body: JSON.stringify({ status, progress }),
+        body: JSON.stringify({ status: backendStatus, progress }),
       },
       token
     );

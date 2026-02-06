@@ -48,7 +48,8 @@ import {
   CookingPot,
   Beef,
   Fish,
-  Apple
+  Apple,
+  Truck
 } from 'lucide-react';
 import { PaginationControls } from './PaginationControls';
 import { PaginationInfo, ProductionArea as ProductionAreaType, productionAreasAPI } from '../utils/api';
@@ -69,7 +70,7 @@ interface ProductionAreaProps {
   isLoading?: boolean;
 }
 
-type FilterStatus = 'all' | 'pending' | 'in_progress' | 'completed' | 'cancelled';
+type FilterStatus = 'all' | 'pending' | 'in_progress' | 'completed' | 'dispatched' | 'delivered' | 'cancelled';
 type SortOption = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc' | 'customer-asc' | 'customer-desc';
 type ViewMode = 'grid' | 'list';
 
@@ -115,7 +116,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
   };
 
   // Filter options array for navigation
-  const filterStatusOptions: FilterStatus[] = ['all', 'pending', 'in_progress', 'completed', 'cancelled'];
+  const filterStatusOptions: FilterStatus[] = ['all', 'pending', 'in_progress', 'completed', 'dispatched', 'delivered', 'cancelled'];
   const filterStatusIndex = filterStatusOptions.indexOf(filterStatus);
 
   // Navigation handlers
@@ -141,8 +142,12 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
         return 'En Preparación';
       case 'completed':
         return 'Listos para Despacho';
-      case 'cancelled':
+      case 'dispatched':
         return 'Despachados';
+      case 'delivered':
+        return 'Entregados/Recibidos';
+      case 'cancelled':
+        return 'Cancelados';
       default:
         return 'Todos';
     }
@@ -158,8 +163,12 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
         return 'bg-blue-500 text-blue-900';
       case 'completed':
         return 'bg-green-500 text-green-900';
+      case 'dispatched':
+        return 'bg-indigo-500 text-indigo-900';
+      case 'delivered':
+        return 'bg-teal-500 text-teal-900';
       case 'cancelled':
-        return 'bg-gray-400 text-gray-900';
+        return 'bg-red-500 text-red-900';
       default:
         return 'bg-white text-blue-900';
     }
@@ -174,6 +183,10 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
       case 'in_progress':
         return <PlayCircle className="w-5 h-5" />;
       case 'completed':
+        return <CheckCircle2 className="w-5 h-5" />;
+      case 'dispatched':
+        return <Truck className="w-5 h-5" />;
+      case 'delivered':
         return <CheckCircle2 className="w-5 h-5" />;
       case 'cancelled':
         return <XCircle className="w-5 h-5" />;
@@ -190,8 +203,12 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
         return 'bg-blue-500';
       case 'completed':
         return 'bg-green-500';
+      case 'dispatched':
+        return 'bg-indigo-500';
+      case 'delivered':
+        return 'bg-teal-500';
       case 'cancelled':
-        return 'bg-gray-400';
+        return 'bg-red-500';
       default:
         return 'bg-gray-300';
     }
@@ -205,8 +222,12 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
         return 'En Preparación';
       case 'completed':
         return 'Listo para Despacho';
-      case 'cancelled':
+      case 'dispatched':
         return 'Despachado';
+      case 'delivered':
+        return 'Recibido';
+      case 'cancelled':
+        return 'Cancelado';
       default:
         return status;
     }
@@ -219,6 +240,10 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
       case 'in_progress':
         return <PlayCircle className="w-4 h-4" />;
       case 'completed':
+        return <CheckCircle2 className="w-4 h-4" />;
+      case 'dispatched':
+        return <Truck className="w-4 h-4" />;
+      case 'delivered':
         return <CheckCircle2 className="w-4 h-4" />;
       case 'cancelled':
         return <XCircle className="w-4 h-4" />;
@@ -411,7 +436,9 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
   const hasActiveFilters = searchQuery || dateFrom || dateTo || minAmount || maxAmount || customerFilter;
 
   const handleStatusChange = (orderId: string, newStatus: Order['status']) => {
-    const progress = newStatus === 'completed' ? 100 : newStatus === 'in_progress' ? 50 : 0;
+    const progress = (newStatus === 'completed' || newStatus === 'dispatched' || newStatus === 'delivered' || newStatus === 'cancelled')
+      ? 100
+      : newStatus === 'in_progress' ? 50 : 0;
     onUpdateOrderStatus(orderId, newStatus, progress);
     toast.success(`Estado actualizado a: ${getStatusLabel(newStatus)}`);
     setSelectedOrder(null);
@@ -629,8 +656,8 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
                   whileHover={{ rotate: [0, -10, 10, -10, 0], transition: { duration: 0.5 } }}
                 />
                 <div className="min-w-0">
-                  <h1 className="text-base sm:text-xl tracking-wider truncate">CONECTOCA - Producción</h1>
-                  <p className="text-[10px] sm:text-xs text-blue-200 opacity-80 truncate">Panel de Producción</p>
+                  <h1 className="text-base sm:text-xl tracking-wider truncate">CONECTOCA - Despacho</h1>
+                  <p className="text-[10px] sm:text-xs text-blue-200 opacity-80 truncate">Panel de Despacho</p>
                 </div>
               </div>
             </div>
@@ -1292,12 +1319,33 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
                   </Button>
 
                   <Button
+                    onClick={() => handleStatusChange(selectedOrder.id, 'dispatched')}
+                    disabled={selectedOrder.status === 'dispatched'}
+                    className="bg-indigo-500 hover:bg-indigo-600 text-indigo-900"
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    Despachado
+                  </Button>
+                </div>
+
+                {/* Secondary Actions Row */}
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    onClick={() => handleStatusChange(selectedOrder.id, 'delivered')}
+                    disabled={selectedOrder.status === 'delivered'}
+                    className="bg-teal-500 hover:bg-teal-600 text-teal-900"
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Recibido
+                  </Button>
+
+                  <Button
                     onClick={() => handleStatusChange(selectedOrder.id, 'cancelled')}
                     disabled={selectedOrder.status === 'cancelled'}
-                    className="bg-gray-500 hover:bg-gray-600 text-gray-900"
+                    className="bg-red-500 hover:bg-red-600 text-red-900"
                   >
                     <XCircle className="w-4 h-4 mr-2" />
-                    Despachado
+                    Cancelar
                   </Button>
                 </div>
 

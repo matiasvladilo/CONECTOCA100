@@ -1535,12 +1535,16 @@ app.put("/make-server-6d979413/orders/:id/status", async (c) => {
   try {
     const userProfile = await kv.get(`user:${userId}`);
 
-    if (userProfile?.role !== 'production' && userProfile?.role !== 'dispatch' && userProfile?.role !== 'admin') {
-      return c.json({ error: 'No autorizado' }, 403);
-    }
-
     const orderId = c.req.param('id');
     const { status, progress } = await c.req.json();
+
+    const userRole = userProfile?.role;
+    const isPowerUser = userRole === 'production' || userRole === 'dispatch' || userRole === 'admin';
+    const isLocalDelivering = (userRole === 'local' || userRole === 'user') && (status === 'entregado' || status === 'delivered');
+
+    if (!isPowerUser && !isLocalDelivering) {
+      return c.json({ error: 'No autorizado' }, 403);
+    }
 
     const currentOrder = await kv.get(`order:${orderId}`);
 
