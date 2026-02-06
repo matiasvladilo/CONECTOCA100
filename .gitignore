@@ -118,3 +118,4 @@ dist
 # Vite
 dist-electron
 release
+build/
