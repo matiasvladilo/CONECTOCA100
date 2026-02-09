@@ -283,7 +283,7 @@ export function ThermalReceiptConfigContent({
       </div>
 
       {/* Hidden Print Content (Rendered outside Dialog to avoid display:none) */}
-      {isPrinting && createPortal(
+      {createPortal(
         <div
           id="thermal-receipt-print" // Use distinct ID for printing
           className="thermal-print-content"
