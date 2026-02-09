@@ -1494,6 +1494,8 @@ export default function App() {
               onDelete={handleDeleteOrder}
               onStatusChange={handleUpdateOrderStatus}
               userRole={currentUser.role}
+              accessToken={accessToken}
+              onRefresh={() => loadOrders(accessToken)}
             />
           </ErrorBoundary>
         )}
@@ -1562,6 +1564,8 @@ export default function App() {
           onBack={() => setCurrentScreen("home")}
           onViewOrder={handleViewOrder}
           userName={currentUser.name}
+          accessToken={accessToken}
+          onRefresh={() => loadOrders(accessToken)}
         />
       )}
 
@@ -1694,6 +1698,8 @@ export default function App() {
             onViewOrder={handleViewOrder}
             userName={currentUser.name}
             lastSync={lastSync}
+            accessToken={accessToken}
+            onRefresh={() => loadOrders(accessToken)}
           />
         )}
 

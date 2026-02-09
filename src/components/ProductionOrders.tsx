@@ -501,7 +501,7 @@ export function ProductionOrders({ onBack, accessToken, userName, userRole, onNa
                             <SelectContent>
                               {products.map(product => (
                                 <SelectItem key={product.id} value={product.id}>
-                                  {product.name} (Stock: {product.trackStock === false ? '∞ Ilimitado' : product.stock})
+                                  {product.name} (Stock: {product.trackStock === false || product.stock === -1 ? '∞ Ilimitado' : product.stock})
                                 </SelectItem>
                               ))}
                             </SelectContent>

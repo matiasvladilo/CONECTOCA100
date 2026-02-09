@@ -28,10 +28,12 @@ import {
   DollarSign,
   User,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  Edit
 } from 'lucide-react';
 import { PaginationControls } from './PaginationControls';
 import logo from '../assets/logo.png';
+import { EditOrderDialog } from './EditOrderDialog';
 
 interface OrderHistoryProps {
   orders: Order[];
@@ -83,10 +85,11 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
   }
 };
 
-export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHistoryProps) {
+export function OrderHistory({ orders, onBack, onViewOrder, userName, accessToken, onRefresh }: OrderHistoryProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
@@ -747,6 +750,23 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
                           </div>
                         </div>
 
+                        {/* Edit Button */}
+                        {['pending', 'in_progress', 'completed'].includes(order.status) && (
+                          <div className="mx-4">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingOrder(order);
+                              }}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
+
                         {/* Arrow */}
                         <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-[#0059FF] transition-colors" />
                       </div>
@@ -861,6 +881,25 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
                           {formatCLP(order.total || 0)}
                         </span>
                       </div>
+
+                      {/* Edit Button */}
+                      {['pending', 'in_progress', 'completed'].includes(order.status) && (
+                        <div className="mt-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full text-yellow-600 border-yellow-200 hover:bg-yellow-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingOrder(order);
+                            }}
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Editar
+                          </Button>
+                        </div>
+                      )}
+
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -869,23 +908,36 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName }: OrderHis
           </div>
         )}
 
-        {/* Pagination */}
+        {/* Pagination Controls */}
         {totalPages > 1 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
+          <div className="mt-8 flex justify-center">
             <PaginationControls
               pagination={{
                 page: currentPage,
-                pageSize: itemsPerPage,
+                limit: 9, // Hardcoded as itemsPerPage is 9 in the component
                 total: filteredOrders.length,
-                totalPages: totalPages
+                totalPages: totalPages,
+                hasNext: currentPage < totalPages,
+                hasPrev: currentPage > 1
               }}
               onPageChange={setCurrentPage}
+              isLoading={false}
             />
-          </motion.div>
+          </div>
+        )}
+
+        {/* Edit Order Dialog */}
+        {editingOrder && (
+          <EditOrderDialog
+            isOpen={!!editingOrder}
+            onClose={() => setEditingOrder(null)}
+            order={editingOrder}
+            accessToken={accessToken}
+            onOrderUpdated={() => {
+              onRefresh();
+              setEditingOrder(null);
+            }}
+          />
         )}
       </div>
     </div>

@@ -25,9 +25,11 @@ import {
   Trash2,
   MessageSquare,
   Printer,
-  X
+  X,
+  Edit
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { EditOrderDialog } from './EditOrderDialog';
 
 interface OrderDetailProps {
   order: Order;
@@ -35,6 +37,8 @@ interface OrderDetailProps {
   onDelete?: (orderId: string) => Promise<void>;
   onStatusChange?: (orderId: string, newStatus: any, progress: number) => Promise<void>;
   userRole?: string;
+  accessToken: string;
+  onRefresh: () => void;
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string; icon: any; description: string }> = {
@@ -90,11 +94,12 @@ const statusSteps = [
   { key: 'delivered', label: 'Recibido', progress: 100 }
 ];
 
-export function OrderDetail({ order, onBack, onDelete, onStatusChange, userRole }: OrderDetailProps) {
+export function OrderDetail({ order, onBack, onDelete, onStatusChange, userRole, accessToken, onRefresh }: OrderDetailProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [showDeliveryGuide, setShowDeliveryGuide] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
 
   const handleDelete = async () => {
     if (!onDelete) return;
@@ -592,6 +597,29 @@ export function OrderDetail({ order, onBack, onDelete, onStatusChange, userRole 
             </div>
           )}
           {/* Print Delivery Guide Button - Only for completed or delivered orders */}
+          {/* Edit Order Button */}
+          {['pending', 'in_progress', 'completed'].includes(order.status) && (
+            <motion.div whileTap={{ scale: 0.98 }}>
+              <Button
+                onClick={() => setEditingOrder(order)}
+                className="w-full h-12 relative overflow-hidden group mb-3"
+                style={{
+                  background: 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)',
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  boxShadow: '0 4px 14px rgba(245, 158, 11, 0.3)'
+                }}
+              >
+                <div className="flex items-center gap-2 relative z-10 text-white">
+                  <Edit className="w-4 h-4" />
+                  Editar Pedido
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-r from-[#D97706] to-[#B45309] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </Button>
+            </motion.div>
+          )}
+
           {/* Print Delivery Guide Button - For completed/dispatched orders. Visible to production/dispatch/admin */}
           {['completed', 'dispatched', 'delivered'].includes(order.status) && ['production', 'dispatch', 'admin'].includes(userRole || '') && (
             <motion.div whileTap={{ scale: 0.98 }}>
@@ -722,6 +750,20 @@ export function OrderDetail({ order, onBack, onDelete, onStatusChange, userRole 
         open={showDeliveryGuide}
         onClose={() => setShowDeliveryGuide(false)}
       />
+
+      {/* Edit Order Dialog */}
+      {editingOrder && (
+        <EditOrderDialog
+          isOpen={!!editingOrder}
+          onClose={() => setEditingOrder(null)}
+          order={editingOrder}
+          accessToken={accessToken}
+          onOrderUpdated={() => {
+            onRefresh();
+            setEditingOrder(null);
+          }}
+        />
+      )}
     </div>
   );
 }

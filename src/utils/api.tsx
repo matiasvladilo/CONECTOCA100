@@ -255,6 +255,22 @@ export const ordersAPI = {
     return response?.data || response;
   },
 
+  update: async (
+    token: string,
+    orderId: string,
+    updates: Partial<Order>
+  ): Promise<Order> => {
+    const response = await fetchAPI(
+      `/orders/${orderId}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      },
+      token
+    );
+    return response?.data || response;
+  },
+
   updateStatus: async (
     token: string,
     orderId: string,

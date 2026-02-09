@@ -16,12 +16,14 @@ import {
   Eye,
   TrendingUp,
   ShoppingCart,
-  Truck
+  Truck,
+  Edit
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatCLP } from '../utils/format';
 import { StandardDeliveryGuide } from './StandardDeliveryGuide';
+import { EditOrderDialog } from './EditOrderDialog';
 
 interface DispatchOrdersProps {
   orders: Order[];
@@ -30,6 +32,8 @@ interface DispatchOrdersProps {
   onViewOrder: (order: Order) => void;
   userName: string;
   lastSync?: Date | null;
+  accessToken: string;
+  onRefresh: () => void;
 }
 
 export function DispatchOrders({
@@ -38,11 +42,14 @@ export function DispatchOrders({
   onUpdateOrderStatus,
   onViewOrder,
   userName,
-  lastSync
+  lastSync,
+  accessToken,
+  onRefresh
 }: DispatchOrdersProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'ALL'>('ALL');
   const [selectedOrderForPrint, setSelectedOrderForPrint] = useState<Order | null>(null);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
 
   const getStatusColor = (status: OrderStatus) => {
     switch (status) {
@@ -473,6 +480,18 @@ export function DispatchOrders({
                             Imprimir
                           </Button>
                         </div>
+                        {/* Edit Button */}
+                        {['pending', 'in_progress', 'completed'].includes(order.status) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditingOrder(order)}
+                            className="bg-yellow-50 text-yellow-700 hover:bg-yellow-100 hover:text-yellow-800 border-yellow-200"
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Editar Pedido
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -480,6 +499,20 @@ export function DispatchOrders({
               ))}
             </AnimatePresence>
           </div>
+        )}
+
+        {/* Edit Order Dialog */}
+        {editingOrder && (
+          <EditOrderDialog
+            isOpen={!!editingOrder}
+            onClose={() => setEditingOrder(null)}
+            order={editingOrder}
+            accessToken={accessToken}
+            onOrderUpdated={() => {
+              onRefresh();
+              setEditingOrder(null);
+            }}
+          />
         )}
       </div>
     </div>

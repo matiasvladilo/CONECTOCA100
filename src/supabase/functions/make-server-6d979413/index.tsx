@@ -1523,6 +1523,88 @@ app.post("/make-server-6d979413/orders", async (c) => {
   }
 });
 
+// Update order details (general update)
+app.put("/make-server-6d979413/orders/:id", async (c) => {
+  const authHeader = c.req.header('Authorization');
+  const { error, userId } = await verifyAuth(authHeader);
+
+  if (error) {
+    return c.json({ error }, 401);
+  }
+
+  try {
+    const userProfile = await kv.get(`user:${userId}`);
+
+    const orderId = c.req.param('id');
+    const updates = await c.req.json();
+
+    const currentOrder = await kv.get(`order:${orderId}`);
+
+    if (!currentOrder) {
+      return c.json({ error: 'Pedido no encontrado' }, 404);
+    }
+
+    // Check business permission
+    if (currentOrder.businessId !== userProfile?.businessId) {
+      return c.json({ error: 'No autorizado' }, 403);
+    }
+
+    // Allow staff roles to edit
+    const allowedRoles = ['admin', 'production', 'dispatch', 'local'];
+    if (!allowedRoles.includes(userProfile?.role) && currentOrder.userId !== userId) {
+      return c.json({ error: 'No tienes permiso para editar este pedido' }, 403);
+    }
+
+    const { products, total, notes, deadline, customerName, deliveryAddress, status } = updates;
+
+    const updatedOrder = {
+      ...currentOrder,
+      total: total !== undefined ? parseFloat(total) : currentOrder.total,
+      notes: notes !== undefined ? notes : currentOrder.notes,
+      deadline: deadline !== undefined ? deadline : currentOrder.deadline,
+      customerName: customerName !== undefined ? customerName : currentOrder.customerName,
+      deliveryAddress: deliveryAddress !== undefined ? deliveryAddress : currentOrder.deliveryAddress,
+      updatedAt: new Date().toISOString()
+    };
+
+    // If status is updated directly (though usually it goes through /status endpoint)
+    if (status) {
+      updatedOrder.status = status;
+    }
+
+    // Logic to handle products update while preserving area info
+    if (products && Array.isArray(products)) {
+      const allProducts = await kv.getByPrefix('product:');
+
+      const enrichedProducts = products.map((item: any) => {
+        const productDef = allProducts.find((p: any) => p.id === item.productId);
+        // Preserve existing area status if it's the same product
+        const existingItem = currentOrder.products?.find((p: any) => p.productId === item.productId);
+
+        return {
+          ...item,
+          productionAreaId: productDef?.productionAreaId || existingItem?.productionAreaId || null,
+          areaStatus: existingItem?.areaStatus || 'pending'
+        };
+      });
+      updatedOrder.products = enrichedProducts;
+
+      // Also update areaStatuses map if new areas are introduced?
+      // Simplification: keep existing areaStatuses, add new ones as pending?
+      // For now, let's rely on the products array as the source of truth for areas.
+    }
+
+    await kv.set(`order:${orderId}`, updatedOrder);
+
+    console.log(`✓ Order updated: ${orderId} by ${userId}`);
+    return c.json(updatedOrder);
+
+  } catch (error) {
+    console.log(`Error updating order: ${error}`);
+    return c.json({ error: 'Error al actualizar el pedido' }, 500);
+  }
+});
+
 // Update order status (production and admin only)
 app.put("/make-server-6d979413/orders/:id/status", async (c) => {
   const authHeader = c.req.header('Authorization');

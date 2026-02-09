@@ -228,8 +228,8 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
   };
 
   const handleAddToCart = (product: Product, quantity?: number) => {
-    // Check if product has stock
-    if (product.stock <= 0 && product.trackStock) {
+    // Check if product has stock (handle unlimited stock -1)
+    if (product.stock <= 0 && product.stock !== -1 && product.trackStock) {
       toast.error('Producto sin stock disponible');
       return;
     }
@@ -245,8 +245,8 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
     const currentCartQuantity = existingItem ? existingItem.quantity : 0;
     const totalQuantity = currentCartQuantity + qtyToAdd;
 
-    // Check if total quantity exceeds stock
-    if (totalQuantity > product.stock && product.trackStock) {
+    // Check if total quantity exceeds stock (handle unlimited stock -1)
+    if (totalQuantity > product.stock && product.stock !== -1 && product.trackStock) {
       toast.error(`Solo hay ${product.stock} unidades disponibles en stock`);
       return;
     }
@@ -271,8 +271,8 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
       if (item.id === productId) {
         const newQuantity = item.quantity + delta;
 
-        // Check if new quantity exceeds stock
-        if (newQuantity > item.stock && item.trackStock) {
+        // Check if new quantity exceeds stock (handle unlimited stock -1)
+        if (newQuantity > item.stock && item.stock !== -1 && item.trackStock) {
           toast.error(`Solo hay ${item.stock} unidades disponibles en stock`);
           return item;
         }
@@ -636,7 +636,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
               })
               .map((product) => {
                 const productStock = product.stock ?? 0;
-                const isOutOfStock = productStock <= 0 && product.trackStock;
+                const isOutOfStock = productStock <= 0 && productStock !== -1 && product.trackStock;
                 const cartItem = cart.find(item => item.id === product.id);
                 const remainingStock = productStock - (cartItem?.quantity || 0);
 
@@ -708,7 +708,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                             variant={isOutOfStock ? "destructive" : remainingStock < 10 ? "outline" : "secondary"}
                             className="text-xs"
                           >
-                            {product.trackStock === false ? '∞ Ilimitado' : (isOutOfStock ? 'Sin stock' : `Stock: ${productStock}`)}
+                            {product.trackStock === false || productStock === -1 ? '∞ Ilimitado' : (isOutOfStock ? 'Sin stock' : `Stock: ${productStock}`)}
                           </Badge>
                         </div>
 
@@ -854,8 +854,8 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                     {/* Product List */}
                     <div className="space-y-3 max-h-64 overflow-y-auto">
                       {cart.map((item) => {
-                        const isNearLimit = item.quantity >= item.stock * 0.8;
-                        const atLimit = item.quantity >= item.stock;
+                        const isNearLimit = item.stock !== -1 && item.quantity >= item.stock * 0.8;
+                        const atLimit = item.stock !== -1 && item.quantity >= item.stock;
 
                         return (
                           <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
