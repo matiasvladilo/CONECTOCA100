@@ -42,6 +42,8 @@ import { productsAPI, ordersAPI, type Product as APIProduct } from '../utils/api
 import { formatCLP } from '../utils/format';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
+import { createClient } from '@supabase/supabase-js';
+import { projectId, publicAnonKey } from '../utils/supabase/info';
 
 interface EditOrderDialogProps {
     isOpen: boolean;
@@ -160,11 +162,21 @@ export function EditOrderDialog({
         try {
             setIsSaving(true);
 
-            // 1. Calculate and Apply Stock Changes
-            // We need to fetch the latest product data to ensure we update stock correctly
-            // based on CURRENT database values, not stale ones.
-            const freshProducts = await productsAPI.getAll(accessToken);
+            // Initialize Supabase client
+            const supabase = createClient(
+                `https://${projectId}.supabase.co`,
+                publicAnonKey,
+                {
+                    global: {
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`
+                        }
+                    }
+                }
+            );
 
+            // 1. Calculate and Apply Stock Changes
+            const freshProducts = await productsAPI.getAll(accessToken);
             const stockUpdates = [];
 
             // Process all items in the NEW order
@@ -179,12 +191,9 @@ export function EditOrderDialog({
 
                 // If quantity changed
                 if (quantityDiff !== 0) {
-                    // If quantity increased (diff > 0), we need to DECREASE stock
-                    // If quantity decreased (diff < 0), we need to INCREASE stock
-                    // So subtract the difference
                     const newStock = Math.max(0, product.stock - quantityDiff);
 
-                    if (newStock < 0 && product.stock !== -1) {
+                    if (newStock < 0 && product.stock !== -1 && !product.unlimitedStock) {
                         toast.error(`No hay suficiente stock para ${product.name}`);
                         setIsSaving(false);
                         return;
@@ -194,8 +203,7 @@ export function EditOrderDialog({
                 }
             }
 
-            // Process removed items (exist in original order but not in new orderItems)
-            // We need to RESTORE their stock
+            // Process removed items
             const originalProductIds = order.products?.map(p => p.productId) || [];
             const currentProductIds = new Set(orderItems.map(i => i.productId));
             const removedProductIds = originalProductIds.filter(id => !currentProductIds.has(id));
@@ -207,25 +215,49 @@ export function EditOrderDialog({
                 const product = freshProducts.find(p => p.id === removedId);
                 if (!product) continue;
 
-                // Skip unlimited stock items
                 if (product.stock === -1 || product.unlimitedStock) continue;
 
-                // Restore stock
                 const newStock = product.stock + originalItem.quantity;
                 stockUpdates.push(productsAPI.update(accessToken, product.id, { stock: newStock }));
             }
 
-            // Run all stock updates in parallel
+            // Run stock updates
             await Promise.all(stockUpdates);
 
-            // 2. Update the Order
-            const updatedOrderData = {
-                products: orderItems.map(item => ({
+            // 2. Update the Order using RPC to bypass RLS
+            const enrichedProducts = orderItems.map(item => {
+                // Try to find product definition in fresh list, or fallback to local products list
+                const productDef = freshProducts.find(p => p.id === item.productId) ||
+                    products.find(p => p.id === item.productId);
+
+                const existingItem = order.products?.find(p => p.productId === item.productId);
+
+                // Log if product definition is missing (critical for debugging)
+                if (!productDef && !existingItem) {
+                    console.warn(`Producto ${item.name} (${item.productId}) no encontrado ni en freshProducts ni en existingItems`);
+                }
+
+                return {
                     productId: item.productId,
                     name: item.name,
                     quantity: item.quantity,
-                    price: item.price
-                })),
+                    price: item.price,
+                    // Preserve or Assign production area info
+                    productionAreaId: productDef?.productionAreaId || (existingItem as any)?.productionAreaId || null,
+                    areaStatus: (existingItem as any)?.areaStatus || 'pending'
+                };
+            });
+            console.log('Enriched Products to Save:', enrichedProducts);
+
+            if (enrichedProducts.length === 0) {
+                console.error('Error Crítico: Intentando guardar pedido sin productos. Abortando.');
+                toast.error('Error interno: Lista de productos vacía. No se guardaron cambios.');
+                setIsSaving(false);
+                return;
+            }
+
+            const updatedOrderData = {
+                products: enrichedProducts,
                 total: calculateTotal(),
                 notes: notes,
                 deadline: order.deadline,
@@ -233,7 +265,30 @@ export function EditOrderDialog({
                 deliveryAddress: order.deliveryAddress
             };
 
-            await ordersAPI.update(accessToken, order.id, updatedOrderData);
+            // Get current user businessId to ensure it persists
+            const { data: { user } } = await supabase.auth.getUser();
+            const businessId = user?.user_metadata?.businessId || (order as any).businessId || '';
+
+            // Merge with existing order data to preserve other fields, ensuring businessId and userId are set
+            const fullUpdatedOrder = {
+                ...order,
+                ...updatedOrderData,
+                businessId: businessId, // CRITICAL: Ensure businessId is set
+                userId: order.userId || user?.id, // CRITICAL: Ensure userId is set
+                updatedAt: new Date().toISOString()
+            };
+
+            console.log('Sending Updated Order to RPC:', fullUpdatedOrder);
+
+            const { error: rpcError } = await supabase.rpc('update_order_kv', {
+                order_id: order.id,
+                new_data: fullUpdatedOrder
+            });
+
+            if (rpcError) {
+                console.error('RPC Error:', rpcError);
+                throw new Error(`Error en base de datos: ${rpcError.message}`);
+            }
 
             toast.success('Pedido actualizado correctamente');
             onOrderUpdated();

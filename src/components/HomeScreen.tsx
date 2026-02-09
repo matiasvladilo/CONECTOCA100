@@ -2,7 +2,7 @@ import { User, Order } from '../App';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { Package, Plus, User as UserIcon, Clock, CheckCircle2, Truck, Sparkles, TrendingUp, History, MessageSquare, Factory, BarChart3, X } from 'lucide-react';
+import { Package, Plus, User as UserIcon, Clock, CheckCircle2, Truck, Sparkles, TrendingUp, History, MessageSquare, Factory, BarChart3, X, Store } from 'lucide-react';
 import { PaginationControls } from './PaginationControls';
 import { PaginationInfo } from '../utils/api';
 import logo from '../assets/logo.png';
@@ -583,7 +583,7 @@ export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfil
                                       className="text-[#0047BA] group-hover:text-[#0059FF] transition-colors truncate"
                                       style={{ fontSize: '16px', fontWeight: 600 }}
                                     >
-                                      {order.productName}
+                                      Pedido #{order.id.slice(0, 8).toUpperCase()}
                                     </CardTitle>
                                     {order.notes && order.notes.trim() && (
                                       <div
@@ -607,15 +607,6 @@ export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfil
                                   </Badge>
                                 </div>
                                 <CardDescription className="flex items-center gap-3 text-xs mt-2 flex-wrap">
-                                  {isAdmin && (
-                                    <>
-                                      <span className="flex items-center gap-1 text-[#0059FF]" style={{ fontWeight: 600 }}>
-                                        <UserIcon className="w-3.5 h-3.5" />
-                                        {order.customerName}
-                                      </span>
-                                      <span>•</span>
-                                    </>
-                                  )}
                                   <span className="flex items-center gap-1">
                                     <Package className="w-3.5 h-3.5" />
                                     {order.quantity} unid.
@@ -628,6 +619,15 @@ export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfil
                                       minute: '2-digit'
                                     })}
                                   </span>
+                                  {order.customerName && (
+                                    <>
+                                      <span>•</span>
+                                      <span className="flex items-center gap-1 font-medium text-blue-600">
+                                        <Store className="w-3.5 h-3.5" />
+                                        {order.customerName}
+                                      </span>
+                                    </>
+                                  )}
                                 </CardDescription>
                               </CardHeader>
                               <CardContent className="pt-0">

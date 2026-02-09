@@ -1,4 +1,5 @@
 import { projectId, publicAnonKey } from './supabase/info';
+import { createClient } from '@supabase/supabase-js';
 
 export const API_BASE_URL = `https://${projectId}.supabase.co/functions/v1/make-server-6d979413`;
 
@@ -53,6 +54,7 @@ export interface OrderItemWithArea {
 export interface Order {
   id: string;
   userId: string;
+  businessId?: string; // Added businessId
   products: Array<OrderItemWithArea>; // Updated to use new type
   total: number;
   deadline: string;
@@ -244,15 +246,109 @@ export const ordersAPI = {
       customerName?: string;
     }
   ): Promise<Order> => {
-    const response = await fetchAPI(
-      '/orders',
+    // START: Client-side creation to bypass backend limitations (Unlimited Stock Bug)
+
+    // Initialize Supabase Client
+    const supabase = createClient(
+      `https://${projectId}.supabase.co`,
+      publicAnonKey,
       {
-        method: 'POST',
-        body: JSON.stringify(orderData),
-      },
-      token
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      }
     );
-    return response?.data || response;
+
+    // 1. Fetch Fresh Products for Stock Check
+    // We assume getAll returns all products. If pagination is involved, we might need a specific getByIds or search.
+    // For now, trusting getAll is sufficient as per usage.
+    const productsResponse = await productsAPI.getAll(token);
+    const freshProducts = Array.isArray(productsResponse) ? productsResponse : (productsResponse as any).data || [];
+
+    const stockUpdates: Promise<any>[] = [];
+
+    // 2. Validate & Prepare Stock Updates
+    for (const item of orderData.products) {
+      const product = freshProducts.find((p: any) => p.id === item.productId);
+
+      if (!product) {
+        // Fallback: If product not found in fresh list (maybe new?), allow it but warn? 
+        // Or strict check. Strict check is safer.
+        console.warn(`Producto ${item.name} (${item.productId}) no encontrado en lista fresca.`);
+        continue;
+      }
+
+      // Check for unlimited stock (-1 or unlimitedStock flag)
+      if (product.stock === -1 || product.unlimitedStock) {
+        continue; // Skip stock check/update
+      }
+
+      if (product.stock < item.quantity) {
+        throw new Error(`Stock insuficiente para "${item.name}". Disponible: ${product.stock}, Solicitado: ${item.quantity}`);
+      }
+
+      const newStock = Math.max(0, product.stock - item.quantity);
+      stockUpdates.push(productsAPI.update(token, product.id, { stock: newStock }));
+    }
+
+    // 3. Execute Stock Updates
+    await Promise.all(stockUpdates);
+
+    // 4. Construct Order Object
+    const newOrderId = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    // Enrich products with productionAreaId from definition
+    const enrichedProducts = orderData.products.map(item => {
+      const productDef = freshProducts.find((p: any) => p.id === item.productId);
+      return {
+        ...item,
+        productionAreaId: productDef?.productionAreaId || null,
+        areaStatus: 'pending' as const
+      };
+    });
+
+    // Get User and Business ID from Supabase Auth
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id || 'unknown';
+    // Get businessId from user metadata or profile
+    const businessId = user?.user_metadata?.businessId || '';
+
+    if (!businessId) {
+      console.warn('⚠️ Creating order without businessId. It might not be visible.');
+    }
+
+    const newOrder: Order = {
+      id: newOrderId,
+      userId: userId,
+      businessId: businessId, // CRITICAL: Assign order to business
+      products: enrichedProducts,
+      total: orderData.total,
+      deadline: orderData.deadline,
+      status: 'pending',
+      progress: 0,
+      notes: orderData.notes,
+      createdAt: now,
+      updatedAt: now,
+      deliveryAddress: orderData.deliveryAddress,
+      customerName: orderData.customerName,
+      areaStatuses: {}
+    };
+
+    // 5. Save Order via RPC
+    const { error } = await supabase.rpc('create_order_kv', {
+      order_id: newOrderId,
+      new_data: newOrder
+    });
+
+    if (error) {
+      console.error('RPC Error creating order:', error);
+      throw new Error(`Error guardando pedido: ${error.message}`);
+    }
+
+    return newOrder;
   },
 
   update: async (
