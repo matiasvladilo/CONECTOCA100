@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -801,9 +802,9 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
         </div>
 
         {/* Order Summary - Collapsible */}
-        {cart.length > 0 && (
+        {cart.length > 0 && createPortal(
           <motion.div
-            className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-blue-600 shadow-lg rounded-t-2xl z-20"
+            className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-blue-600 shadow-lg rounded-t-2xl z-50"
             initial={false}
           >
             {/* Collapsed Header - Always Visible */}
@@ -1006,7 +1007,8 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                 </motion.div>
               )}
             </AnimatePresence>
-          </motion.div>
+          </motion.div>,
+          document.body
         )}
       </div>
 
