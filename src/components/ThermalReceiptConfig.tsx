@@ -182,7 +182,7 @@ export function ThermalReceiptConfigContent({
             fontSize={fontSize}
           />
         </div>,
-        document.body
+        document.getElementById('print-root') || document.body
       )}
     </>
   );
