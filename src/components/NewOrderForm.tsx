@@ -803,217 +803,228 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
 
         {/* Order Summary - Collapsible */}
         {cart.length > 0 && createPortal(
-          <motion.div
-            className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-blue-600 shadow-lg rounded-t-2xl z-[100] pb-[env(safe-area-inset-bottom)]"
-            initial={false}
-          >
-            {/* Collapsed Header - Always Visible */}
-            <div
-              onClick={() => setSummaryExpanded(!summaryExpanded)}
-              className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+          <div style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 99999,
+            width: '100%',
+            pointerEvents: 'none' // Allow clicks to pass through the wrapper
+          }}>
+            <motion.div
+              style={{ pointerEvents: 'auto' }} // Re-enable pointer events for the footer content
+              className="bg-white border-t-2 border-blue-600 shadow-lg rounded-t-2xl pb-[env(safe-area-inset-bottom)]"
+              initial={false}
             >
-              <div className="max-w-6xl mx-auto flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <ShoppingCart className="w-5 h-5 text-blue-600" />
-                  <div>
-                    <h3 className="text-gray-900">Resumen del Pedido</h3>
-                    <p className="text-xs text-gray-500">
-                      {cart.length} {cart.length === 1 ? 'ítem' : 'ítems'}
-                    </p>
+              {/* Collapsed Header - Always Visible */}
+              <div
+                onClick={() => setSummaryExpanded(!summaryExpanded)}
+                className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+              >
+                <div className="max-w-6xl mx-auto flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <ShoppingCart className="w-5 h-5 text-blue-600" />
+                    <div>
+                      <h3 className="text-gray-900">Resumen del Pedido</h3>
+                      <p className="text-xs text-gray-500">
+                        {cart.length} {cart.length === 1 ? 'ítem' : 'ítems'}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500">Total</p>
-                    <p className="text-blue-700">
-                      ${calculateTotal().toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500">Total</p>
+                      <p className="text-blue-700">
+                        ${calculateTotal().toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    {summaryExpanded ? (
+                      <ChevronDown className="w-5 h-5 text-blue-600" />
+                    ) : (
+                      <ChevronUp className="w-5 h-5 text-blue-600" />
+                    )}
                   </div>
-                  {summaryExpanded ? (
-                    <ChevronDown className="w-5 h-5 text-blue-600" />
-                  ) : (
-                    <ChevronUp className="w-5 h-5 text-blue-600" />
-                  )}
                 </div>
               </div>
-            </div>
 
-            {/* Expanded Content */}
-            <AnimatePresence>
-              {summaryExpanded && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3, ease: 'easeInOut' }}
-                  className="overflow-hidden"
-                >
-                  <Separator />
-
-                  <div className="p-6 space-y-4 max-w-6xl mx-auto">
-                    {/* Product List */}
-                    <div className="space-y-3 max-h-64 overflow-y-auto">
-                      {cart.map((item) => {
-                        const isNearLimit = item.stock !== -1 && item.quantity >= item.stock * 0.8;
-                        const atLimit = item.stock !== -1 && item.quantity >= item.stock;
-
-                        return (
-                          <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                            <div className="w-16 h-16 bg-gray-200 rounded overflow-hidden flex-shrink-0">
-                              <ImageWithFallback
-                                src={item.image}
-                                alt={item.name}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-sm text-gray-900 mb-1">{item.name}</h4>
-                              <p className="text-xs text-gray-500">
-                                {formatCLP(item.price)} x {item.quantity} = {formatCLP(item.price * item.quantity)}
-                              </p>
-                              {atLimit && (
-                                <p className="text-xs text-orange-600 mt-1 flex items-center gap-1">
-                                  <AlertCircle className="w-3 h-3" />
-                                  Stock máximo alcanzado
-                                </p>
-                              )}
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => handleUpdateCartQuantity(item.id, -1)}
-                                className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
-                              >
-                                <Minus className="w-3 h-3" />
-                              </button>
-                              <span className={`text-sm w-8 text-center ${atLimit ? 'text-orange-600' : ''}`}>
-                                {item.quantity}
-                              </span>
-                              <button
-                                onClick={() => handleUpdateCartQuantity(item.id, 1)}
-                                disabled={atLimit}
-                                className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${atLimit
-                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                  : 'bg-gray-200 hover:bg-gray-300'
-                                  }`}
-                              >
-                                <Plus className="w-3 h-3" />
-                              </button>
-                              <button
-                                onClick={() => handleRemoveFromCart(item.id)}
-                                className="w-7 h-7 flex items-center justify-center rounded-full bg-red-100 hover:bg-red-200 text-red-600 transition-colors ml-2"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
+              {/* Expanded Content */}
+              <AnimatePresence>
+                {summaryExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
                     <Separator />
 
-                    {/* Delivery Date */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-blue-600" />
-                        <Label className="text-sm text-gray-700">
-                          Fecha límite de entrega
-                        </Label>
+                    <div className="p-6 space-y-4 max-w-6xl mx-auto">
+                      {/* Product List */}
+                      <div className="space-y-3 max-h-64 overflow-y-auto">
+                        {cart.map((item) => {
+                          const isNearLimit = item.stock !== -1 && item.quantity >= item.stock * 0.8;
+                          const atLimit = item.stock !== -1 && item.quantity >= item.stock;
+
+                          return (
+                            <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                              <div className="w-16 h-16 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+                                <ImageWithFallback
+                                  src={item.image}
+                                  alt={item.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-sm text-gray-900 mb-1">{item.name}</h4>
+                                <p className="text-xs text-gray-500">
+                                  {formatCLP(item.price)} x {item.quantity} = {formatCLP(item.price * item.quantity)}
+                                </p>
+                                {atLimit && (
+                                  <p className="text-xs text-orange-600 mt-1 flex items-center gap-1">
+                                    <AlertCircle className="w-3 h-3" />
+                                    Stock máximo alcanzado
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleUpdateCartQuantity(item.id, -1)}
+                                  className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className={`text-sm w-8 text-center ${atLimit ? 'text-orange-600' : ''}`}>
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  onClick={() => handleUpdateCartQuantity(item.id, 1)}
+                                  disabled={atLimit}
+                                  className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${atLimit
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    : 'bg-gray-200 hover:bg-gray-300'
+                                    }`}
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => handleRemoveFromCart(item.id)}
+                                  className="w-7 h-7 flex items-center justify-center rounded-full bg-red-100 hover:bg-red-200 text-red-600 transition-colors ml-2"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                      <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal border-blue-200 hover:border-blue-500"
-                          >
-                            <Calendar className="w-4 h-4 mr-2" />
-                            {deadlineDate ? (
-                              new Date(deadlineDate).toLocaleDateString('es-ES', {
-                                day: '2-digit',
-                                month: 'long',
-                                year: 'numeric'
-                              })
-                            ) : (
-                              <span className="text-gray-500">Selecciona una fecha</span>
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
-                            mode="single"
-                            selected={deadlineDate}
-                            onSelect={(date) => {
-                              setDeadlineDate(date);
-                              if (date) {
-                                setDeadline(date.toISOString().split('T')[0]);
-                                setCalendarOpen(false);
-                              }
-                            }}
-                            disabled={(date) => {
-                              const today = new Date();
-                              today.setHours(0, 0, 0, 0);
-                              const compareDate = new Date(date);
-                              compareDate.setHours(0, 0, 0, 0);
-                              return compareDate < today;
-                            }}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
 
-                    {/* Notes */}
-                    <div className="space-y-2">
-                      <Label className="text-sm text-gray-700">Observaciones (opcional)</Label>
-                      <Textarea
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Agrega notas o instrucciones especiales para este pedido..."
-                        className="min-h-[80px] border-blue-200 focus:border-blue-500 resize-none"
-                        maxLength={500}
-                      />
-                      <p className="text-xs text-gray-500 text-right">{notes.length}/500 caracteres</p>
-                    </div>
+                      <Separator />
 
-                    {/* Total */}
-                    <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-                      <span className="text-blue-900">Total</span>
-                      <span className="text-blue-900">
-                        ${calculateTotal().toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </div>
+                      {/* Delivery Date */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-5 h-5 text-blue-600" />
+                          <Label className="text-sm text-gray-700">
+                            Fecha límite de entrega
+                          </Label>
+                        </div>
+                        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal border-blue-200 hover:border-blue-500"
+                            >
+                              <Calendar className="w-4 h-4 mr-2" />
+                              {deadlineDate ? (
+                                new Date(deadlineDate).toLocaleDateString('es-ES', {
+                                  day: '2-digit',
+                                  month: 'long',
+                                  year: 'numeric'
+                                })
+                              ) : (
+                                <span className="text-gray-500">Selecciona una fecha</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                              mode="single"
+                              selected={deadlineDate}
+                              onSelect={(date) => {
+                                setDeadlineDate(date);
+                                if (date) {
+                                  setDeadline(date.toISOString().split('T')[0]);
+                                  setCalendarOpen(false);
+                                }
+                              }}
+                              disabled={(date) => {
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                const compareDate = new Date(date);
+                                compareDate.setHours(0, 0, 0, 0);
+                                return compareDate < today;
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex gap-3">
-                      <Button
-                        onClick={onBack}
-                        variant="outline"
-                        className="flex-1"
-                      >
-                        Cancelar
-                      </Button>
-                      <Button
-                        onClick={handleConfirmOrder}
-                        className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-blue-900 gap-2"
-                      >
-                        <ShoppingCart className="w-4 h-4" />
-                        Confirmar Pedido
-                      </Button>
+                      {/* Notes */}
+                      <div className="space-y-2">
+                        <Label className="text-sm text-gray-700">Observaciones (opcional)</Label>
+                        <Textarea
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          placeholder="Agrega notas o instrucciones especiales para este pedido..."
+                          className="min-h-[80px] border-blue-200 focus:border-blue-500 resize-none"
+                          maxLength={500}
+                        />
+                        <p className="text-xs text-gray-500 text-right">{notes.length}/500 caracteres</p>
+                      </div>
+
+                      {/* Total */}
+                      <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                        <span className="text-blue-900">Total</span>
+                        <span className="text-blue-900">
+                          ${calculateTotal().toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-3">
+                        <Button
+                          onClick={onBack}
+                          variant="outline"
+                          className="flex-1"
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          onClick={handleConfirmOrder}
+                          className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-blue-900 gap-2"
+                        >
+                          <ShoppingCart className="w-4 h-4" />
+                          Confirmar Pedido
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>,
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </div>,
           document.body
         )}
       </div>
 
       {/* Edit Product Modal */}
-      <Dialog open={!!editingProduct} onOpenChange={() => setEditingProduct(null)}>
+      < Dialog open={!!editingProduct} onOpenChange={() => setEditingProduct(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">

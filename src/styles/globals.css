@@ -248,10 +248,7 @@ only screen and (min-resolution: 2dppx) {
     font-size: 16px !important;
   }
 
-  body {
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
-  }
+
 }
 
 /* Específico para iOS Safari */
@@ -261,6 +258,17 @@ only screen and (min-resolution: 2dppx) {
   body {
     -webkit-text-size-adjust: 100% !important;
   }
+}
+
+/* FIX: Prevent fixed positioning issues on mobile */
+html,
+body {
+  transform: none !important;
+  filter: none !important;
+  perspective: none !important;
+  contain: none !important;
+  overscroll-behavior-y: none;
+  /* Prevent bounce effect hiding footer */
 }
 
 /* ===========================================
