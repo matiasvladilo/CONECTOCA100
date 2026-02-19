@@ -804,7 +804,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
         {/* Order Summary - Collapsible */}
         {cart.length > 0 && createPortal(
           <motion.div
-            className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-blue-600 shadow-lg rounded-t-2xl z-50"
+            className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-blue-600 shadow-lg rounded-t-2xl z-[100] pb-[env(safe-area-inset-bottom)]"
             initial={false}
           >
             {/* Collapsed Header - Always Visible */}
