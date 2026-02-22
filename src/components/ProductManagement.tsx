@@ -67,6 +67,7 @@ interface ProductFormData {
   imageUrl: string;
   productionAreaId: string;
   unlimitedStock: boolean;
+  laborCost: string;
   ingredients: (ProductIngredient & { inputUnit?: string })[];
 }
 
@@ -80,6 +81,7 @@ const emptyForm: ProductFormData = {
   imageUrl: '',
   productionAreaId: '',
   unlimitedStock: false,
+  laborCost: '',
   ingredients: []
 };
 
@@ -159,16 +161,23 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
     if (product) {
       setEditingProduct(product);
 
-      // Transform ingredients for display
-      const displayIngredients = (product.ingredients || []).map(pi => {
-        // Enforce the use of ingredients state which is already loaded
-        const ingData = ingredients.find(i => i.id === pi.ingredientId);
-        const baseUnit = ingData?.unit?.toLowerCase() || 'kg';
+      // Transform ingredients for display and extract labor cost
+      let extractedLaborCost = '';
+      const displayIngredients: (ProductIngredient & { inputUnit?: string })[] = [];
 
+      (product.ingredients || []).forEach(pi => {
+        const ingData = ingredients.find(i => i.id === pi.ingredientId);
+
+        // Hide the special labor cost ingredient from the recipe and extract its value
+        if (ingData?.name === 'Costo Mano de Obra') {
+          extractedLaborCost = pi.quantity.toString();
+          return;
+        }
+
+        const baseUnit = ingData?.unit?.toLowerCase() || 'kg';
         let displayQty = pi.quantity;
         let displayUnit = baseUnit;
 
-        // Auto-convert small amounts to sub-units for better UX
         if (baseUnit === 'kg' && pi.quantity < 1) {
           displayQty = pi.quantity * 1000;
           displayUnit = 'g';
@@ -177,11 +186,11 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
           displayUnit = 'ml';
         }
 
-        return {
+        displayIngredients.push({
           ...pi,
           quantity: parseFloat(displayQty.toFixed(3)),
           inputUnit: displayUnit
-        };
+        });
       });
 
       setFormData({
@@ -194,6 +203,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
         imageUrl: product.imageUrl || '',
         productionAreaId: product.productionAreaId || '',
         unlimitedStock: product.stock === -1,
+        laborCost: extractedLaborCost,
         ingredients: displayIngredients
       });
     } else {
@@ -234,6 +244,38 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
 
       console.log('📝 [DEBUG] Form Ingredients:', formData.ingredients);
 
+      let finalFormIngredients = [...formData.ingredients];
+      const laborCostValue = parseInt(formData.laborCost.replace(/[^0-9]/g, '')) || 0;
+
+      // Ensure the "Costo Mano de Obra" ingredient exists and add it to the final recipe
+      if (laborCostValue > 0) {
+        let laborIng = ingredients.find(i => i.name === 'Costo Mano de Obra');
+
+        if (!laborIng) {
+          try {
+            laborIng = await ingredientsAPI.create(accessToken, {
+              name: 'Costo Mano de Obra',
+              unit: 'CLP',
+              currentStock: 999999,
+              minStock: 0,
+              costPerUnit: 1
+            });
+            setIngredients(prev => [...prev, laborIng as Ingredient]);
+          } catch (err) {
+            console.error("Error creating hidden labor ingredient", err);
+            toast.error("Error al configurar el costo de mano de obra");
+            setSubmitting(false);
+            return;
+          }
+        }
+
+        finalFormIngredients.push({
+          ingredientId: laborIng.id,
+          quantity: laborCostValue,
+          inputUnit: 'CLP'
+        } as any);
+      }
+
       const productData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
@@ -243,7 +285,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
         categoryId: formData.categoryId || undefined,
         imageUrl: formData.imageUrl.trim() || undefined,
         productionAreaId: formData.productionAreaId || undefined,
-        ingredients: formData.ingredients.map(pi => {
+        ingredients: finalFormIngredients.map(pi => {
           // Convert back to base unit if necessary before saving
           let quantityToSave = pi.quantity;
           const unit = pi.inputUnit;
@@ -371,7 +413,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
         }}
       >
         <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-4">
               <motion.button
                 onClick={onBack}
@@ -412,39 +454,35 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="grid grid-cols-2 sm:flex gap-2 w-full md:w-auto mt-2 md:mt-0">
               <motion.button
                 onClick={onManageCategories}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-4 py-2.5 rounded-xl flex items-center gap-2"
+                className="w-full px-2 sm:px-4 py-2.5 rounded-xl flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm font-medium"
                 style={{
                   background: 'rgba(255, 255, 255, 0.15)',
                   backdropFilter: 'blur(10px)',
                   border: '1px solid rgba(255, 255, 255, 0.3)',
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: 500
+                  color: 'white'
                 }}
               >
-                <Folder className="w-4 h-4" />
-                Categorías
+                <Folder className="w-4 h-4 shrink-0" />
+                <span className="truncate">Categorías</span>
               </motion.button>
 
               <motion.button
                 onClick={() => handleOpenDialog()}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg"
+                className="w-full px-2 sm:px-4 py-2.5 rounded-xl flex items-center justify-center gap-1 sm:gap-2 shadow-lg text-xs sm:text-sm font-semibold"
                 style={{
                   background: 'linear-gradient(90deg, #FFD43B 0%, #FFC700 100%)',
-                  color: '#0047BA',
-                  fontSize: '14px',
-                  fontWeight: 600
+                  color: '#0047BA'
                 }}
               >
-                <Plus className="w-5 h-5" />
-                Nuevo Producto
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                <span className="truncate">Nuevo Producto</span>
               </motion.button>
             </div>
           </div>
@@ -784,7 +822,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
               </div>
 
               <div>
-                <Label htmlFor="price">Precio *</Label>
+                <Label htmlFor="price">Precio de Venta *</Label>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <Input
@@ -795,6 +833,21 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                     placeholder="0"
                     className="pl-9"
                     required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="laborCost">Costo Mano de Obra</Label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500" />
+                  <Input
+                    id="laborCost"
+                    type="text"
+                    value={formData.laborCost ? formatCLP(parseInt(formData.laborCost.replace(/[^0-9]/g, '')) || 0) : ''}
+                    onChange={(e) => setFormData({ ...formData, laborCost: e.target.value.replace(/[^0-9]/g, '') })}
+                    placeholder="Ej: $1.500"
+                    className="pl-9 border-amber-200 focus-visible:ring-amber-400"
                   />
                 </div>
               </div>
@@ -1197,16 +1250,35 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
 
                           <div className="space-y-3">
                             <div className="flex justify-between items-center text-sm">
-                              <span className="text-gray-500">Costo de Producción:</span>
+                              <span className="text-gray-500">Materias Primas:</span>
                               <span className="font-bold text-slate-800">
                                 {formatCLP(formData.ingredients.reduce((sum, pi) => {
                                   const ing = ingredients.find(i => i.id === pi.ingredientId);
-                                  // Base conversion: if in 'g' or 'ml', calculate based on costPerUnit (assumed to be per kg/l)
                                   let finalQty = pi.quantity;
                                   if (pi.inputUnit === 'g' || pi.inputUnit === 'ml') finalQty = pi.quantity / 1000;
-
                                   return sum + ((ing?.costPerUnit || pi.costPerUnit || 0) * finalQty);
                                 }, 0))}
+                              </span>
+                            </div>
+
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="text-gray-500">Mano de Obra:</span>
+                              <span className="font-bold text-slate-800">
+                                {formatCLP(parseInt(formData.laborCost.replace(/[^0-9]/g, '')) || 0)}
+                              </span>
+                            </div>
+
+                            <div className="flex justify-between items-center text-sm border-t border-slate-100 pt-2">
+                              <span className="text-gray-700 font-semibold">Costo Total:</span>
+                              <span className="font-bold text-[#0059FF]">
+                                {formatCLP(
+                                  formData.ingredients.reduce((sum, pi) => {
+                                    const ing = ingredients.find(i => i.id === pi.ingredientId);
+                                    let finalQty = pi.quantity;
+                                    if (pi.inputUnit === 'g' || pi.inputUnit === 'ml') finalQty = pi.quantity / 1000;
+                                    return sum + ((ing?.costPerUnit || pi.costPerUnit || 0) * finalQty);
+                                  }, 0) + (parseInt(formData.laborCost.replace(/[^0-9]/g, '')) || 0)
+                                )}
                               </span>
                             </div>
 
@@ -1214,12 +1286,14 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                               <div className="flex justify-between items-center pt-2 text-sm">
                                 <span className="text-gray-500">Margen Bruto Receta:</span>
                                 {(() => {
-                                  const totalCost = formData.ingredients.reduce((sum, pi) => {
+                                  const materialCost = formData.ingredients.reduce((sum, pi) => {
                                     const ing = ingredients.find(i => i.id === pi.ingredientId);
                                     let finalQty = pi.quantity;
                                     if (pi.inputUnit === 'g' || pi.inputUnit === 'ml') finalQty = pi.quantity / 1000;
                                     return sum + ((ing?.costPerUnit || pi.costPerUnit || 0) * finalQty);
                                   }, 0);
+                                  const laborCost = parseInt(formData.laborCost.replace(/[^0-9]/g, '')) || 0;
+                                  const totalCost = materialCost + laborCost;
                                   const margin = parseCLP(formData.price) - totalCost;
                                   const marginPercent = parseCLP(formData.price) > 0 ? (margin / parseCLP(formData.price)) * 100 : 0;
 

@@ -31,7 +31,8 @@ import {
   ChevronUp,
   ChevronDown,
   PackagePlus,
-  Tag
+  Tag,
+  Search
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageWithFallback } from './figma/ImageWithFallback';
@@ -86,6 +87,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
   const [summaryExpanded, setSummaryExpanded] = useState(true);
   const [cartPreviewOpen, setCartPreviewOpen] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [notes, setNotes] = useState('');
 
   // Load products from API
@@ -580,13 +582,27 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
         </div>
 
         {/* Product Catalog */}
-        <div>
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between mb-2 flex-wrap gap-4">
             <div className="flex items-center gap-2">
               <Package className="w-5 h-5 text-blue-600" />
-              <h2 className="text-gray-800">Catálogo de Productos</h2>
+              <h2 className="text-gray-800 font-semibold">Catálogo de Productos</h2>
             </div>
 
+            {/* Search Bar */}
+            <div className="relative w-full md:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Buscar por nombre o descripción..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 bg-white"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
             {/* Category Filter */}
             {categories.length > 0 && (
               <div className="flex gap-2 flex-wrap">
@@ -631,6 +647,15 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {products
               .filter((product: any) => {
+                // Fila de Búsqueda de Texto
+                const searchLower = searchQuery.toLowerCase();
+                const matchesSearch =
+                  product.name.toLowerCase().includes(searchLower) ||
+                  (product.description && product.description.toLowerCase().includes(searchLower));
+
+                if (!matchesSearch) return false;
+
+                // Fila de Categoría
                 if (selectedCategoryFilter === 'all') return true;
                 if (selectedCategoryFilter === 'uncategorized') return !product.categoryId;
                 return product.categoryId === selectedCategoryFilter;

@@ -281,13 +281,13 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
 
   // Load production data (ingredients and production orders)
   useEffect(() => {
-    if (accessToken && user.role === 'admin') {
-      console.log('✓ Access token available, loading production data for admin user');
+    if (accessToken && (user.role === 'admin' || user.role === 'production')) {
+      console.log('✓ Access token available, loading production data for admin/production user');
       loadProductionData();
-    } else if (!accessToken && user.role === 'admin') {
-      console.warn('⚠️ Admin user but no access token available');
-    } else if (user.role !== 'admin') {
-      console.log('ℹ️ Non-admin user, skipping production data load');
+    } else if (!accessToken && (user.role === 'admin' || user.role === 'production')) {
+      console.warn('⚠️ Admin/Production user but no access token available');
+    } else if (user.role !== 'admin' && user.role !== 'production') {
+      console.log('ℹ️ Non-admin/production user, skipping production data load');
     }
   }, [accessToken, user.role]);
 
@@ -605,7 +605,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
       ];
 
       // Add Profitability if available
-      if (user.role === 'admin' && profitabilityAnalysis.length > 0) {
+      if ((user.role === 'admin' || user.role === 'production') && profitabilityAnalysis.length > 0) {
         const totalProfit = profitabilityAnalysis.reduce((sum, p) => sum + p.profit, 0);
         const margin = kpis.totalRevenue > 0 ? (totalProfit / kpis.totalRevenue) * 100 : 0;
 
@@ -773,7 +773,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
           >
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl mb-2">📊 Dashboard de Analíticas</h1>
-              {user.role === 'admin' && (
+              {(user.role === 'admin' || user.role === 'production') && (
                 <Badge
                   className="mb-2 border px-2.5 py-1"
                   style={{
@@ -789,7 +789,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
               )}
             </div>
             <p className="text-blue-100 text-sm">
-              {user.role === 'admin'
+              {(user.role === 'admin' || user.role === 'production')
                 ? 'Métricas de rendimiento de todos los usuarios'
                 : 'Insights y métricas de rendimiento de CONECTOCA'}
             </p>

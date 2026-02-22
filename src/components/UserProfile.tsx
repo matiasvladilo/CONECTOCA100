@@ -709,37 +709,38 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
           </motion.div>
         )}
 
+        {/* Analytics button (Admin and Production) */}
+        {(user.role === 'admin' || user.role === 'production') && onViewAnalytics && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            whileTap={{ scale: 0.98 }}
+            className={user.role === 'production' ? '' : 'mb-4'}
+          >
+            <Button
+              onClick={onViewAnalytics}
+              className="w-full h-12 relative overflow-hidden group"
+              style={{
+                background: 'linear-gradient(90deg, #0059FF 0%, #004BCE 100%)',
+                borderRadius: '12px',
+                fontSize: '15px',
+                fontWeight: 600,
+                boxShadow: '0 4px 14px rgba(0, 89, 255, 0.3)'
+              }}
+            >
+              <div className="flex items-center gap-2 relative z-10 text-white">
+                <BarChart3 className="w-5 h-5" />
+                Ver Panel de Analíticas
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-r from-[#006DFF] to-[#0059FF] opacity-0 group-hover:opacity-100 transition-opacity" />
+            </Button>
+          </motion.div>
+        )}
+
         {/* Admin actions */}
         {user.role === 'admin' && (
           <>
-            {/* Analytics button */}
-            {onViewAnalytics && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.2 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Button
-                  onClick={onViewAnalytics}
-                  className="w-full h-12 relative overflow-hidden group"
-                  style={{
-                    background: 'linear-gradient(90deg, #0059FF 0%, #004BCE 100%)',
-                    borderRadius: '12px',
-                    fontSize: '15px',
-                    fontWeight: 600,
-                    boxShadow: '0 4px 14px rgba(0, 89, 255, 0.3)'
-                  }}
-                >
-                  <div className="flex items-center gap-2 relative z-10 text-white">
-                    <BarChart3 className="w-5 h-5" />
-                    Ver Panel de Analíticas
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#006DFF] to-[#0059FF] opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Button>
-              </motion.div>
-            )}
-
             {/* Attendance Management button */}
             {onManageAttendance && (
               <motion.div
