@@ -32,7 +32,8 @@ import {
   ChevronDown,
   PackagePlus,
   Tag,
-  Search
+  Search,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageWithFallback } from './figma/ImageWithFallback';
@@ -89,6 +90,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Load products from API
   useEffect(() => {
@@ -435,6 +437,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
     };
 
     try {
+      setIsSubmitting(true);
       await onSubmit(orderData);
       // Reload products to reflect updated stock
       await loadProducts();
@@ -454,6 +457,8 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
         await loadProducts();
       }
       throw error;
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -686,11 +691,11 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                         }
                       }}
                     >
-                      <div className="relative h-48 bg-gray-200 overflow-hidden group">
+                      <div className="relative h-48 bg-white overflow-hidden group">
                         <ImageWithFallback
                           src={product.image}
                           alt={product.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain p-2"
                         />
                         {isOutOfStock && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -895,11 +900,11 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
 
                           return (
                             <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                              <div className="w-16 h-16 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+                              <div className="w-16 h-16 bg-white rounded overflow-hidden flex-shrink-0">
                                 <ImageWithFallback
                                   src={item.image}
                                   alt={item.name}
-                                  className="w-full h-full object-cover"
+                                  className="w-full h-full object-contain p-1"
                                 />
                               </div>
 
@@ -1032,10 +1037,20 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                         </Button>
                         <Button
                           onClick={handleConfirmOrder}
-                          className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-blue-900 gap-2"
+                          disabled={isSubmitting}
+                          className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-blue-900 gap-2 disabled:opacity-50"
                         >
-                          <ShoppingCart className="w-4 h-4" />
-                          Confirmar Pedido
+                          {isSubmitting ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Confirmando...
+                            </>
+                          ) : (
+                            <>
+                              <ShoppingCart className="w-4 h-4" />
+                              Confirmar Pedido
+                            </>
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -1065,11 +1080,11 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
             {/* Image Preview */}
             <div>
               <Label className="text-sm mb-2 block">Imagen del producto</Label>
-              <div className="relative h-40 bg-gray-100 rounded-lg overflow-hidden mb-3">
+              <div className="relative h-40 bg-white rounded-lg overflow-hidden mb-3">
                 <ImageWithFallback
                   src={imagePreview || editForm.image}
                   alt="Preview"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain p-2"
                 />
               </div>
 

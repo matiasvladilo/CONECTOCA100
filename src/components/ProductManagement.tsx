@@ -28,7 +28,8 @@ import {
   Factory,
   AlertTriangle,
   Check,
-  ChevronsUpDown
+  ChevronsUpDown,
+  Filter
 } from 'lucide-react';
 import { toast } from 'sonner';
 import logo from '../assets/logo.png';
@@ -92,6 +93,7 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState<ProductFormData>(emptyForm);
@@ -366,11 +368,15 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
     }
   };
 
-  const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.category?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.category?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesCategory = selectedCategoryFilter === 'all' || p.category === selectedCategoryFilter;
+
+    return matchesSearch && matchesCategory;
+  });
 
   const stats = {
     total: products.length,
@@ -579,8 +585,8 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
             className="border-2 shadow-lg"
             style={{ borderRadius: '16px', borderColor: '#E0EDFF' }}
           >
-            <CardContent className="p-4">
-              <div className="relative">
+            <CardContent className="p-4 flex flex-row gap-3">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
                   placeholder="Buscar por nombre, descripción o categoría..."
@@ -589,6 +595,26 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                   className="pl-11 h-11 bg-white border-[#CBD5E1]"
                   style={{ borderRadius: '10px' }}
                 />
+              </div>
+              <div className="shrink-0">
+                <Select value={selectedCategoryFilter} onValueChange={setSelectedCategoryFilter}>
+                  <SelectTrigger className="h-11 bg-white border-[#CBD5E1] w-[130px] sm:w-[180px]" style={{ borderRadius: '10px' }}>
+                    <div className="flex items-center gap-2 text-gray-600 overflow-hidden">
+                      <Filter className="w-4 h-4 shrink-0" />
+                      <span className="truncate font-medium text-sm">
+                        {selectedCategoryFilter === 'all' ? 'Filtrar' : selectedCategoryFilter}
+                      </span>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las categorías</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.name}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
@@ -664,16 +690,16 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                   <CardContent className="p-5">
                     {/* Product Image/Icon */}
                     <div
-                      className="w-full h-32 rounded-xl mb-4 flex items-center justify-center overflow-hidden"
+                      className="w-full h-32 rounded-xl mb-4 flex items-center justify-center overflow-hidden bg-white"
                       style={{
-                        background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)'
+                        background: 'white'
                       }}
                     >
                       {product.imageUrl ? (
                         <img
                           src={product.imageUrl}
                           alt={product.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain p-2"
                         />
                       ) : (
                         <Package className="w-16 h-16 text-blue-300" />
