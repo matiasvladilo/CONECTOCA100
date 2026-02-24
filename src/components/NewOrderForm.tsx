@@ -71,8 +71,14 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [productQuantities, setProductQuantities] = useState<{ [key: string]: number }>({});
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    const savedCart = localStorage.getItem('conectoca_cart');
+    return savedCart ? JSON.parse(savedCart) : [];
+  });
+  const [productQuantities, setProductQuantities] = useState<{ [key: string]: number }>(() => {
+    const savedQuantities = localStorage.getItem('conectoca_productQuantities');
+    return savedQuantities ? JSON.parse(savedQuantities) : {};
+  });
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -89,7 +95,9 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
   const [cartPreviewOpen, setCartPreviewOpen] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(() => {
+    return localStorage.getItem('conectoca_orderNotes') || '';
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Load products from API
@@ -97,6 +105,17 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
     loadProducts();
     loadCategories();
   }, []);
+
+  // Save cart state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('conectoca_cart', JSON.stringify(cart));
+    localStorage.setItem('conectoca_productQuantities', JSON.stringify(productQuantities));
+  }, [cart, productQuantities]);
+
+  // Save notes to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('conectoca_orderNotes', notes);
+  }, [notes]);
 
   const loadProducts = async () => {
     try {
@@ -441,8 +460,12 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
       await onSubmit(orderData);
       // Reload products to reflect updated stock
       await loadProducts();
-      // Clear cart after successful order and reset date to today
+      // Clear cart and local storage after successful order and reset date to today
       setCart([]);
+      setProductQuantities({});
+      localStorage.removeItem('conectoca_cart');
+      localStorage.removeItem('conectoca_productQuantities');
+      localStorage.removeItem('conectoca_orderNotes');
       const newToday = new Date();
       setDeadline(newToday.toISOString().split('T')[0]);
       setDeadlineDate(newToday);
