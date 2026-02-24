@@ -28,6 +28,14 @@ export const ThermalReceiptTemplate = ({
         });
     };
 
+    const formatTime = (dateString: string) => {
+        if (!dateString) return '-';
+        return new Date(dateString).toLocaleTimeString('es-CL', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
     return (
         <div style={{
             fontFamily: 'Arial, sans-serif',
@@ -89,10 +97,20 @@ export const ThermalReceiptTemplate = ({
                     <span style={{ fontWeight: 'bold', width: '70px' }}>Dirección:</span>
                     <span>{order.deliveryAddress || '-'}</span>
                 </div>
-                <div style={{ display: 'flex' }}>
+                <div style={{ display: 'flex', marginBottom: '2px' }}>
                     <span style={{ fontWeight: 'bold', width: '70px' }}>Fecha:</span>
                     <span>{formatDate(order.createdAt || order.date)}</span>
                 </div>
+                <div style={{ display: 'flex', marginBottom: '2px' }}>
+                    <span style={{ fontWeight: 'bold', width: '70px' }}>Hora:</span>
+                    <span>{formatTime(order.createdAt || order.date)}</span>
+                </div>
+                {order.notes && (
+                    <div style={{ display: 'flex', marginTop: '2px' }}>
+                        <span style={{ fontWeight: 'bold', width: '70px' }}>Obs:</span>
+                        <span style={{ flex: 1, whiteSpace: 'pre-wrap' }}>{order.notes}</span>
+                    </div>
+                )}
             </div>
 
             {/* 3. Products Table */}
