@@ -1,3 +1,5 @@
+import React from 'react';
+import { createPortal } from 'react-dom';
 import { Order } from '../App';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
@@ -280,7 +282,7 @@ export function StandardDeliveryGuideContent({
       </div>
 
       {/* Hidden print-only version */}
-      {isPrinting && (
+      {isPrinting && createPortal(
         <div className="standard-print-content">
           <div className="standard-receipt">
             {/* Header with Business Info */}
@@ -432,7 +434,8 @@ export function StandardDeliveryGuideContent({
               <p className="text-xs text-gray-600 mt-1" style={{ marginTop: '4px' }}>www.conectoca.cl</p>
             </div>
           </div>
-        </div>
+        </div>,
+        document.getElementById('print-root') || document.body
       )}
     </>
   );

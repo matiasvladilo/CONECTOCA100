@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Order, OrderStatus } from '../App';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -22,7 +22,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatCLP } from '../utils/format';
-import { StandardDeliveryGuide } from './StandardDeliveryGuide';
+import { StandardDeliveryGuideContent } from './StandardDeliveryGuide';
 import { EditOrderDialog } from './EditOrderDialog';
 
 interface DispatchOrdersProps {
@@ -168,7 +168,10 @@ export function DispatchOrders({
       {/* Hidden print component */}
       {selectedOrderForPrint && (
         <div className="hidden print:block">
-          <StandardDeliveryGuide order={selectedOrderForPrint} />
+          <StandardDeliveryGuideContent
+            order={selectedOrderForPrint}
+            onClose={() => setSelectedOrderForPrint(null)}
+          />
         </div>
       )}
 
@@ -320,183 +323,253 @@ export function DispatchOrders({
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             <AnimatePresence mode="popLayout">
-              {sortedOrders.map((order) => (
-                <motion.div
-                  key={order.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Card className="hover:shadow-xl transition-shadow duration-300 border-2">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <CardTitle className="text-lg truncate">
-                            {order.customerName}
-                          </CardTitle>
-                          <p className="text-xs text-gray-500 mt-1">
-                            Pedido #{order.id.substring(0, 8).toUpperCase()}
-                          </p>
-                        </div>
-                        <Badge className={`${getStatusColor(order.status)} border shrink-0`}>
-                          <span className="flex items-center gap-1.5">
-                            {getStatusIcon(order.status)}
-                            {getStatusLabel(order.status)}
-                          </span>
-                        </Badge>
-                      </div>
-                    </CardHeader>
+              {(() => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
 
-                    <CardContent className="space-y-4">
-                      {/* Products */}
-                      <div className="space-y-2">
-                        {order.products && order.products.length > 0 ? (
-                          order.products.map((product, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-center justify-between p-2 bg-gray-50 rounded-md text-sm"
-                            >
-                              <span className="text-gray-700 flex-1 truncate">{product.name}</span>
-                              <Badge variant="outline" className="text-xs ml-2 shrink-0">
-                                {product.quantity}x
-                              </Badge>
+                const isFutureOrder = (deadline?: string) => {
+                  if (!deadline) return false;
+                  const parts = deadline.split('T')[0].split('-');
+                  if (parts.length !== 3) return false;
+                  const deadlineDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                  deadlineDate.setHours(0, 0, 0, 0);
+                  return deadlineDate > today;
+                };
+
+                const futureOrders: typeof sortedOrders = [];
+                const regularOrders: typeof sortedOrders = [];
+
+                sortedOrders.forEach(order => {
+                  if (isFutureOrder(order.deadline)) {
+                    futureOrders.push(order);
+                  } else {
+                    regularOrders.push(order);
+                  }
+                });
+
+                const renderOrderCards = (ordersToRender: typeof sortedOrders, isFutureGroup: boolean) => {
+                  return ordersToRender.map((order) => (
+                    <motion.div
+                      key={order.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Card className={`hover:shadow-xl transition-shadow duration-300 border-2 ${isFutureGroup ? 'border-dashed bg-slate-50 border-purple-200 hover:shadow-md' : ''}`}>
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <CardTitle className={`text-lg truncate ${isFutureGroup ? 'text-purple-900' : ''}`}>
+                                {order.customerName}
+                              </CardTitle>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Pedido #{order.id.substring(0, 8).toUpperCase()}
+                              </p>
                             </div>
-                          ))
-                        ) : (
-                          <div className="p-2 bg-gray-50 rounded-md text-sm">
-                            <span className="text-gray-700">{order.productName}</span>
+                            <Badge className={`${getStatusColor(order.status)} border shrink-0`}>
+                              <span className="flex items-center gap-1.5">
+                                {getStatusIcon(order.status)}
+                                {getStatusLabel(order.status)}
+                              </span>
+                            </Badge>
                           </div>
-                        )}
-                      </div>
+                        </CardHeader>
 
-                      {/* Total */}
-                      {order.total && (
-                        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
-                          <span className="text-sm text-blue-700">Total</span>
-                          <span className="font-bold text-blue-900">
-                            {formatCLP(order.total)}
+                        <CardContent className="space-y-4">
+                          {/* Products */}
+                          <div className="space-y-2">
+                            {order.products && order.products.length > 0 ? (
+                              order.products.map((product, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex items-center justify-between p-2 bg-gray-50 rounded-md text-sm"
+                                >
+                                  <span className="text-gray-700 flex-1 truncate">{product.name}</span>
+                                  <Badge variant="outline" className="text-xs ml-2 shrink-0">
+                                    {product.quantity}x
+                                  </Badge>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="p-2 bg-gray-50 rounded-md text-sm">
+                                <span className="text-gray-700">{order.productName}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Total */}
+                          {order.total && (
+                            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                              <span className="text-sm text-blue-700">Total</span>
+                              <span className="font-bold text-blue-900">
+                                {formatCLP(order.total)}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Dates */}
+                          <div className="flex gap-4 text-xs bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                            <div className="flex-1">
+                              <p className="text-gray-500 flex items-center gap-1 mb-1">
+                                <Clock className="w-3.5 h-3.5" />
+                                Creación
+                              </p>
+                              <p className="font-medium text-gray-900 pl-4.5">
+                                {new Date(order.createdAt || order.date).toLocaleString('es-CL', {
+                                  day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
+                            <div className="w-px bg-gray-200" />
+                            <div className="flex-1">
+                              <p className="text-gray-500 flex items-center gap-1 mb-1">
+                                <Package className="w-3.5 h-3.5" />
+                                Entrega
+                              </p>
+                              <p className={`font-medium ${isFutureGroup ? 'text-purple-700' : 'text-gray-900'} pl-4.5`}>
+                                {new Date(order.deadline).toLocaleDateString('es-CL', {
+                                  weekday: 'short', day: '2-digit', month: 'long'
+                                })}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Notes */}
+                          {order.notes && (
+                            <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                              <p className="text-xs text-gray-600 mb-1">Notas:</p>
+                              <p className="text-sm text-gray-800 line-clamp-2">{order.notes}</p>
+                            </div>
+                          )}
+
+                          {/* Actions */}
+                          <div className="flex flex-col gap-2 pt-2 border-t mt-4">
+                            {/* Primary action buttons */}
+                            <div className="flex gap-2">
+                              {order.status === 'pending' && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleStatusChange(order.id, 'in_progress')}
+                                  className="flex-1 bg-blue-600 hover:bg-blue-700 shadow-sm"
+                                >
+                                  <TrendingUp className="w-4 h-4 mr-1.5" />
+                                  Iniciar
+                                </Button>
+                              )}
+
+                              {order.status === 'in_progress' && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleStatusChange(order.id, 'completed')}
+                                  className="flex-1 bg-green-600 hover:bg-green-700 shadow-sm"
+                                >
+                                  <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                                  Listo
+                                </Button>
+                              )}
+
+                              {order.status === 'completed' && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleStatusChange(order.id, 'dispatched')}
+                                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+                                >
+                                  <Truck className="w-4 h-4 mr-1.5" />
+                                  Despachar
+                                </Button>
+                              )}
+
+                              {order.status === 'dispatched' && (
+                                <div className="flex-1 text-center py-2 bg-indigo-50 border border-indigo-100 rounded-md">
+                                  <p className="text-sm text-indigo-700 font-medium">
+                                    🚚 Despachado
+                                  </p>
+                                </div>
+                              )}
+
+                              {order.status === 'delivered' && (
+                                <div className="flex-1 text-center py-2 bg-teal-50 border border-teal-100 rounded-md">
+                                  <p className="text-sm text-teal-700 font-medium">
+                                    ✅ Recibido
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Secondary action buttons */}
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => onViewOrder(order)}
+                                className="flex-1 bg-white hover:bg-gray-50"
+                              >
+                                <Eye className="w-4 h-4 mr-1.5" />
+                                Detalle
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handlePrintGuide(order)}
+                                className="flex-1 bg-white hover:bg-gray-50"
+                              >
+                                <Printer className="w-4 h-4 mr-1.5" />
+                                Imprimir
+                              </Button>
+                            </div>
+
+                            {/* Edit Button */}
+                            {['pending', 'in_progress', 'completed'].includes(order.status) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingOrder(order)}
+                                className="bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800 border-amber-200 mt-1"
+                              >
+                                <Edit className="w-4 h-4 mr-1.5" />
+                                Editar Pedido
+                              </Button>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ));
+                };
+
+                return (
+                  <>
+                    {futureOrders.length > 0 && (
+                      <>
+                        <div className="col-span-1 md:col-span-2 lg:col-span-3 flex items-center gap-2 pb-2 pt-2">
+                          <div className={`h-px flex-1 bg-gradient-to-r from-purple-300 to-transparent`} />
+                          <span className={`text-sm font-medium px-4 py-1.5 rounded-full backdrop-blur-sm border text-purple-800 bg-purple-50/80 border-purple-200 shadow-sm`}>
+                            <Clock className="w-4 h-4 inline mr-1.5 -mt-0.5" />
+                            Programados (Futuro)
                           </span>
+                          <div className={`h-px flex-1 bg-gradient-to-l from-purple-300 to-transparent`} />
                         </div>
-                      )}
+                        {renderOrderCards(futureOrders, true)}
+                      </>
+                    )}
 
-                      {/* Dates */}
-                      <div className="grid grid-cols-2 gap-3 text-xs">
-                        <div>
-                          <p className="text-gray-500">Fecha</p>
-                          <p className="font-medium text-gray-900">
-                            {new Date(order.createdAt || order.date).toLocaleDateString('es-CL')}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Entrega</p>
-                          <p className="font-medium text-gray-900">
-                            {new Date(order.deadline).toLocaleDateString('es-CL')}
-                          </p>
-                        </div>
+                    {!searchTerm && statusFilter === 'ALL' && futureOrders.length > 0 && regularOrders.length > 0 && (
+                      <div className="col-span-1 md:col-span-2 lg:col-span-3 flex items-center gap-2 pb-2 pt-6">
+                        <div className={`h-px flex-1 bg-gradient-to-r from-blue-300 to-transparent`} />
+                        <span className={`text-sm font-medium px-4 py-1.5 rounded-full backdrop-blur-sm border text-blue-800 bg-blue-50/80 border-blue-200 shadow-sm`}>
+                          <Package className="w-4 h-4 inline mr-1.5 -mt-0.5" />
+                          De Hoy / Atrasados
+                        </span>
+                        <div className={`h-px flex-1 bg-gradient-to-l from-blue-300 to-transparent`} />
                       </div>
+                    )}
 
-                      {/* Notes */}
-                      {order.notes && (
-                        <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-md">
-                          <p className="text-xs text-gray-600 mb-1">Notas:</p>
-                          <p className="text-sm text-gray-800 line-clamp-2">{order.notes}</p>
-                        </div>
-                      )}
-
-                      {/* Actions */}
-                      <div className="flex flex-col gap-2 pt-2 border-t">
-                        {/* Primary action buttons */}
-                        <div className="flex gap-2">
-                          {order.status === 'pending' && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleStatusChange(order.id, 'in_progress')}
-                              className="flex-1 bg-blue-600 hover:bg-blue-700"
-                            >
-                              <TrendingUp className="w-4 h-4 mr-1" />
-                              Iniciar
-                            </Button>
-                          )}
-
-                          {order.status === 'in_progress' && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleStatusChange(order.id, 'completed')}
-                              className="flex-1 bg-green-600 hover:bg-green-700"
-                            >
-                              <CheckCircle2 className="w-4 h-4 mr-1" />
-                              Marcar Listo
-                            </Button>
-                          )}
-
-                          {order.status === 'completed' && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleStatusChange(order.id, 'dispatched')}
-                              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
-                            >
-                              <Package className="w-4 h-4 mr-1" />
-                              Despachar
-                            </Button>
-                          )}
-
-                          {order.status === 'dispatched' && (
-                            <div className="flex-1 text-center py-2 bg-indigo-50 rounded-md">
-                              <p className="text-sm text-indigo-700 font-medium">
-                                🚚 Despachado
-                              </p>
-                            </div>
-                          )}
-
-                          {order.status === 'delivered' && (
-                            <div className="flex-1 text-center py-2 bg-green-50 rounded-md">
-                              <p className="text-sm text-green-700 font-medium">
-                                ✅ Recibido
-                              </p>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Secondary action buttons */}
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onViewOrder(order)}
-                            className="flex-1"
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            Ver Detalle
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handlePrintGuide(order)}
-                            className="flex-1"
-                          >
-                            <Printer className="w-4 h-4 mr-1" />
-                            Imprimir
-                          </Button>
-                        </div>
-                        {/* Edit Button */}
-                        {['pending', 'in_progress', 'completed'].includes(order.status) && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setEditingOrder(order)}
-                            className="bg-yellow-50 text-yellow-700 hover:bg-yellow-100 hover:text-yellow-800 border-yellow-200"
-                          >
-                            <Edit className="w-4 h-4 mr-1" />
-                            Editar Pedido
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+                    {renderOrderCards(regularOrders, false)}
+                  </>
+                );
+              })()}
             </AnimatePresence>
           </div>
         )}

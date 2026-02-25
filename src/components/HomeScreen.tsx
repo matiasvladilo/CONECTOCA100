@@ -1,3 +1,4 @@
+import React from 'react';
 import { User, Order } from '../App';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
@@ -63,6 +64,8 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
 };
 
 export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfile, onViewHistory, onGoToProduction, onGoToDashboard, onManageProducts, pagination, onPageChange, isLoading = false }: HomeScreenProps) {
+  const [showFutureOrders, setShowFutureOrders] = React.useState(true);
+
   // If pagination is enabled, use all orders (already paginated from backend)
   // Otherwise, show only first 5 orders (legacy behavior)
   const displayOrders = pagination ? orders : orders.slice(0, 5);
@@ -468,18 +471,31 @@ export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfil
               <TrendingUp className="w-5 h-5" />
               {pagination ? 'Mis Pedidos' : 'Pedidos Recientes'}
             </h3>
-            {pagination && (
-              <span
-                className="text-xs px-2 py-1 rounded-full"
-                style={{
-                  background: 'rgba(0, 71, 186, 0.1)',
-                  color: '#0047BA',
-                  fontWeight: 500
-                }}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowFutureOrders(!showFutureOrders)}
+                className={`text-[11px] px-2.5 py-1 rounded-full transition-all flex items-center gap-1 border font-medium ${showFutureOrders
+                    ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'
+                    : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'
+                  }`}
+                title={showFutureOrders ? 'Ocultar Pedidos Futuros' : 'Mostrar Pedidos Futuros'}
               >
-                {pagination.total} total
-              </span>
-            )}
+                <Store className="w-3 h-3" />
+                {showFutureOrders ? 'Ocultar Futuros' : 'Mostrar Futuros'}
+              </button>
+              {pagination && (
+                <span
+                  className="text-xs px-2 py-1 rounded-full"
+                  style={{
+                    background: 'rgba(0, 71, 186, 0.1)',
+                    color: '#0047BA',
+                    fontWeight: 500
+                  }}
+                >
+                  {pagination.total} total
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -509,7 +525,18 @@ export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfil
             ) : (
               <div className={isLoading ? 'opacity-50 transition-opacity duration-300 pointer-events-none' : ''}>
                 {(() => {
-                  // Helper to flatten date for grouping
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+
+                  const isFutureOrder = (deadline?: string) => {
+                    if (!deadline) return false;
+                    const parts = deadline.split('T')[0].split('-');
+                    if (parts.length !== 3) return false;
+                    const deadlineDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                    deadlineDate.setHours(0, 0, 0, 0);
+                    return deadlineDate > today;
+                  };
+
                   const getDateKey = (dateStr: string) => {
                     const date = new Date(dateStr);
                     return date.toLocaleDateString('es-CL', {
@@ -519,18 +546,45 @@ export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfil
                     });
                   };
 
-                  // Group orders by date
-                  const groupedOrders: Record<string, typeof displayOrders> = {};
+                  // Separate future and regular orders
+                  const futureOrders: typeof displayOrders = [];
+                  const regularOrders: typeof displayOrders = [];
+
                   displayOrders.forEach(order => {
-                    const dateKey = getDateKey(order.createdAt || order.date);
-                    if (!groupedOrders[dateKey]) {
-                      groupedOrders[dateKey] = [];
+                    if (isFutureOrder(order.deadline)) {
+                      futureOrders.push(order);
+                    } else {
+                      regularOrders.push(order);
                     }
-                    groupedOrders[dateKey].push(order);
                   });
 
-                  // Render groups
-                  return Object.entries(groupedOrders).map(([dateLabel, groupOrders], groupIndex) => (
+                  // Group regular orders by creation date
+                  const regularGrouped: Record<string, typeof displayOrders> = {};
+                  regularOrders.forEach(order => {
+                    const dateKey = getDateKey(order.createdAt || order.date);
+                    if (!regularGrouped[dateKey]) {
+                      regularGrouped[dateKey] = [];
+                    }
+                    regularGrouped[dateKey].push(order);
+                  });
+
+                  // Group future orders by delivery deadline
+                  const futureGrouped: Record<string, typeof displayOrders> = {};
+                  futureOrders.forEach(order => {
+                    const parts = order.deadline!.split('T')[0].split('-');
+                    const deadlineDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                    const dateKey = 'Para el ' + deadlineDate.toLocaleDateString('es-CL', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long'
+                    });
+                    if (!futureGrouped[dateKey]) {
+                      futureGrouped[dateKey] = [];
+                    }
+                    futureGrouped[dateKey].push(order);
+                  });
+
+                  const renderOrderGroup = ([dateLabel, groupOrders]: [string, typeof displayOrders], groupIndex: number, isFutureGroup: boolean) => (
                     <div key={dateLabel} className="space-y-3 mb-6">
                       {/* Date Header */}
                       <motion.div
@@ -539,13 +593,14 @@ export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfil
                         transition={{ delay: 0.3 + (groupIndex * 0.1) }}
                         className="flex items-center gap-2 pb-1 pt-2"
                       >
-                        <div className="h-px flex-1 bg-gradient-to-r from-blue-200 to-transparent" />
+                        <div className={`h-px flex-1 ${isFutureGroup ? 'bg-gradient-to-r from-purple-300 to-transparent' : 'bg-gradient-to-r from-blue-200 to-transparent'}`} />
                         <span
-                          className="text-sm font-medium text-blue-800 capitalize px-2 py-1 rounded-full bg-blue-50/80 backdrop-blur-sm border border-blue-100"
+                          className={`text-sm font-medium capitalize px-2 py-1 rounded-full backdrop-blur-sm border ${isFutureGroup ? 'text-purple-800 bg-purple-50/80 border-purple-200 shadow-sm' : 'text-blue-800 bg-blue-50/80 border-blue-100'}`}
                         >
+                          {isFutureGroup && <Clock className="w-3.5 h-3.5 inline mr-1 -mt-0.5 text-purple-600" />}
                           {dateLabel}
                         </span>
-                        <div className="h-px flex-1 bg-gradient-to-l from-blue-200 to-transparent" />
+                        <div className={`h-px flex-1 ${isFutureGroup ? 'bg-gradient-to-l from-purple-300 to-transparent' : 'bg-gradient-to-l from-blue-200 to-transparent'}`} />
                       </motion.div>
 
                       {/* Orders for this date */}
@@ -566,21 +621,21 @@ export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfil
                             transition={{ delay: 0.4 + (groupIndex * 0.1) + (index * 0.05) }}
                           >
                             <Card
-                              className="cursor-pointer hover:shadow-xl transition-all duration-300 border-2 group"
+                              className={`cursor-pointer transition-all duration-300 border-2 group ${isFutureGroup ? 'hover:shadow-md border-dashed bg-slate-50 border-purple-200' : 'hover:shadow-xl'}`}
                               onClick={() => onViewOrder(order)}
                               style={{
                                 borderRadius: '16px',
-                                borderLeftWidth: '4px',
+                                borderLeftWidth: order.status === 'pending' || order.status === 'in_progress' || order.status === 'completed' ? '4px' : '2px',
                                 borderLeftColor: order.status === 'pending' ? '#F59E0B' :
                                   order.status === 'in_progress' ? '#0059FF' :
-                                    order.status === 'completed' ? '#10B981' : '#6B7280'
+                                    order.status === 'completed' ? '#10B981' : undefined
                               }}
                             >
                               <CardHeader className="pb-3">
                                 <div className="flex justify-between items-start gap-3">
                                   <div className="flex items-center gap-2 flex-1 min-w-0">
                                     <CardTitle
-                                      className="text-[#0047BA] group-hover:text-[#0059FF] transition-colors truncate"
+                                      className={`${isFutureGroup ? 'text-purple-900 group-hover:text-purple-700' : 'text-[#0047BA] group-hover:text-[#0059FF]'} transition-colors truncate`}
                                       style={{ fontSize: '16px', fontWeight: 600 }}
                                     >
                                       Pedido #{order.id.slice(0, 8).toUpperCase()}
@@ -667,7 +722,23 @@ export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfil
                         );
                       })}
                     </div>
-                  ));
+                  );
+
+                  // Render future groups first, then regular groups
+                  let currentGroupIndex = 0;
+                  const renderedGroups: React.ReactNode[] = [];
+
+                  if (showFutureOrders) {
+                    Object.entries(futureGrouped).forEach(entry => {
+                      renderedGroups.push(renderOrderGroup(entry, currentGroupIndex++, true));
+                    });
+                  }
+
+                  Object.entries(regularGrouped).forEach(entry => {
+                    renderedGroups.push(renderOrderGroup(entry, currentGroupIndex++, false));
+                  });
+
+                  return renderedGroups;
                 })()}
               </div>
             )}

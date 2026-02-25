@@ -1,3 +1,4 @@
+import React from 'react';
 import { Order } from '../App';
 import { formatCLP } from '../utils/format';
 import logo from '../assets/logo.png';

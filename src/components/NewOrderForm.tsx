@@ -86,7 +86,6 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
   const [deadline, setDeadline] = useState(today);
   const [deadlineDate, setDeadlineDate] = useState<Date | undefined>(new Date());
 
-  const [calendarOpen, setCalendarOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editForm, setEditForm] = useState({ name: '', description: '', price: '', image: '', stock: '', category: '', categoryId: '', trackStock: true });
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -986,46 +985,41 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                             Fecha límite de entrega
                           </Label>
                         </div>
-                        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className="w-full justify-start text-left font-normal border-blue-200 hover:border-blue-500"
-                            >
-                              <Calendar className="w-4 h-4 mr-2" />
-                              {deadlineDate ? (
-                                new Date(deadlineDate).toLocaleDateString('es-ES', {
-                                  day: '2-digit',
-                                  month: 'long',
-                                  year: 'numeric'
-                                })
-                              ) : (
-                                <span className="text-gray-500">Selecciona una fecha</span>
-                              )}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <CalendarComponent
-                              mode="single"
-                              selected={deadlineDate}
-                              onSelect={(date) => {
-                                setDeadlineDate(date);
-                                if (date) {
-                                  setDeadline(date.toISOString().split('T')[0]);
-                                  setCalendarOpen(false);
-                                }
-                              }}
-                              disabled={(date) => {
-                                const today = new Date();
-                                today.setHours(0, 0, 0, 0);
-                                const compareDate = new Date(date);
-                                compareDate.setHours(0, 0, 0, 0);
-                                return compareDate < today;
-                              }}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
+                        <div className="relative group">
+                          <div className="w-full flex items-center justify-center py-3 px-4 border-2 border-emerald-100 rounded-2xl bg-[#f2fbf5] group-hover:bg-[#e6f7ec] group-hover:border-emerald-200 transition-all duration-200 shadow-sm">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-5 h-5 text-emerald-600" />
+                              <span className="text-sm font-semibold text-emerald-800">
+                                {deadlineDate ? (
+                                  `Para el ${deadlineDate.toLocaleDateString('es-CL', {
+                                    weekday: 'long',
+                                    day: 'numeric',
+                                    month: 'long'
+                                  })}`
+                                ) : (
+                                  <span className="text-emerald-600/70 font-normal">Selecciona una fecha</span>
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                          <input
+                            type="date"
+                            value={deadline}
+                            min={today}
+                            onChange={(e) => {
+                              setDeadline(e.target.value);
+                              setDeadlineDate(new Date(e.target.value + 'T00:00:00'));
+                            }}
+                            onClick={(e) => {
+                              try {
+                                (e.target as HTMLInputElement).showPicker();
+                              } catch (err) {
+                                // Fallback for browsers without showPicker
+                              }
+                            }}
+                            className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                        </div>
                       </div>
 
                       {/* Notes */}
