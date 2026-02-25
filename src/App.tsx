@@ -1130,6 +1130,16 @@ export default function App() {
         ),
       );
 
+      setSelectedOrder((prevOrder) =>
+        prevOrder?.id === orderId
+          ? {
+            ...prevOrder,
+            status: newStatus,
+            progress: newProgress,
+          }
+          : prevOrder,
+      );
+
       toast.success("Estado actualizado correctamente");
 
       // Create notification for status change
@@ -1214,6 +1224,16 @@ export default function App() {
                 }
                 : order,
             ),
+          );
+
+          setSelectedOrder((prevOrder) =>
+            prevOrder?.id === orderId
+              ? {
+                ...prevOrder,
+                status: newStatus,
+                progress: newProgress,
+              }
+              : prevOrder,
           );
 
           toast.success("Estado actualizado correctamente (escalado)");
@@ -1394,8 +1414,12 @@ export default function App() {
             exit={{ scale: 0, opacity: 0 }}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
+            drag
+            dragConstraints={{ left: -window.innerWidth + 100, right: 0, top: -window.innerHeight + 100, bottom: 0 }}
+            dragElastic={0.1}
+            dragMomentum={false}
             onClick={() => setNotificationsOpen(true)}
-            className="fixed bottom-6 right-6 z-30 w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-full flex items-center justify-center shadow-2xl transition-all"
+            className="fixed bottom-6 right-6 z-30 w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-full flex items-center justify-center shadow-2xl transition-colors cursor-grab active:cursor-grabbing"
           >
             <motion.div
               animate={

@@ -475,8 +475,8 @@ export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfil
               <button
                 onClick={() => setShowFutureOrders(!showFutureOrders)}
                 className={`text-[11px] px-2.5 py-1 rounded-full transition-all flex items-center gap-1 border font-medium ${showFutureOrders
-                    ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'
-                    : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'
+                  ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'
+                  : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'
                   }`}
                 title={showFutureOrders ? 'Ocultar Pedidos Futuros' : 'Mostrar Pedidos Futuros'}
               >
@@ -671,7 +671,8 @@ export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfil
                                     <Clock className="w-3.5 h-3.5" />
                                     {new Date(order.createdAt || order.date).toLocaleString('es-CL', {
                                       hour: '2-digit',
-                                      minute: '2-digit'
+                                      minute: '2-digit',
+                                      hour12: false
                                     })}
                                   </span>
                                   {order.customerName && (

@@ -38,7 +38,7 @@ import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { toast } from 'sonner';
 import type { User, Order } from '../App';
-import { ingredientsAPI, productIngredientsAPI, type Ingredient, type ProductIngredient } from '../utils/api';
+import { ingredientsAPI, productIngredientsAPI, ordersAPI, type Ingredient, type ProductIngredient } from '../utils/api';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
 import { productsAPI, type Product } from '../utils/api';
 import { createClient } from '../utils/supabase/client';
@@ -103,6 +103,25 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
   const [productIngredients, setProductIngredients] = useState<ProductIngredient[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProduction, setLoadingProduction] = useState(false);
+  const [allOrders, setAllOrders] = useState<Order[]>(orders);
+
+  // Fetch all orders for comprehensive analytics processing
+  useEffect(() => {
+    const fetchAllOrders = async () => {
+      if (!accessToken) return;
+      try {
+        // Fetch up to 1000 orders to ensure we have enough historical data
+        const response = await ordersAPI.getAll(accessToken, 1, 1000);
+        if (response && response.data) {
+          setAllOrders(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching comprehensive orders for analytics:', error);
+      }
+    };
+
+    fetchAllOrders();
+  }, [accessToken]);
 
   // Color palette matching La Oca brand
   const COLORS = {
@@ -143,13 +162,20 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
 
   // Filter orders by date range
   const filteredOrders = useMemo(() => {
-    const filtered = orders.filter(order => {
+    const filtered = allOrders.filter(order => {
       const orderDate = new Date(order.createdAt || order.date);
-      if (timeRange === 'custom' && dateRange?.to) {
-        // End of day for the end date
-        const endDate = new Date(dateRange.to);
-        endDate.setHours(23, 59, 59, 999);
-        return orderDate >= startDate && orderDate <= endDate;
+      if (timeRange === 'custom') {
+        if (dateRange?.to) {
+          // End of day for the end date
+          const endDate = new Date(dateRange.to);
+          endDate.setHours(23, 59, 59, 999);
+          return orderDate >= startDate && orderDate <= endDate;
+        } else if (dateRange?.from) {
+          // If only 'from' is selected, filter for that specific day
+          const endDate = new Date(dateRange.from);
+          endDate.setHours(23, 59, 59, 999);
+          return orderDate >= startDate && orderDate <= endDate;
+        }
       }
       return orderDate >= startDate;
     }).map(order => ({
@@ -173,7 +199,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
     })));
 
     return filtered;
-  }, [orders, startDate]);
+  }, [allOrders, startDate, timeRange, dateRange]);
 
   // Calculate KPIs
   const kpis = useMemo(() => {
@@ -712,8 +738,10 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
       XLSX.utils.book_append_sheet(workbook, wsLocales, 'Por Local');
 
       // File name with date range
-      const rangeStr = timeRange === 'custom' && dateRange?.from && dateRange?.to
-        ? `${format(dateRange.from, 'dd-MM-yyyy')}_${format(dateRange.to, 'dd-MM-yyyy')}`
+      const rangeStr = timeRange === 'custom' && dateRange?.from
+        ? (dateRange.to
+          ? `${format(dateRange.from, 'dd-MM-yyyy')}_al_${format(dateRange.to, 'dd-MM-yyyy')}`
+          : format(dateRange.from, 'dd-MM-yyyy'))
         : `ultimos_${dateRangeInDays}_dias`;
 
       const fileName = `Reporte_ConectOca_${rangeStr}.xlsx`;
