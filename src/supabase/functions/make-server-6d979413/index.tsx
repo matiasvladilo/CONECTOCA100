@@ -1222,8 +1222,8 @@ app.get("/make-server-6d979413/orders", async (c) => {
       return c.json({ error: 'Usuario no asociado a ningún negocio' }, 404);
     }
 
-    // If user is production, dispatch, or admin role, get all orders FROM THEIR BUSINESS
-    if (userProfile?.role === 'production' || userProfile?.role === 'dispatch' || userProfile?.role === 'admin') {
+    // If user is production, dispatch, admin, or pastry role, get all orders FROM THEIR BUSINESS
+    if (userProfile?.role === 'production' || userProfile?.role === 'dispatch' || userProfile?.role === 'admin' || userProfile?.role === 'pastry') {
       console.log(`🏭 Loading all orders for business: ${userProfile.businessId}`);
       const allOrders = await kv.getByPrefix('order:');
       console.log(`📋 Total orders in system: ${allOrders?.length || 0}`);
@@ -2562,10 +2562,10 @@ app.put('/make-server-6d979413/ingredients/:id', async (c) => {
     if (currentStock <= minStock && previousStock > minStock) {
       console.log(`⚠️ Stock reached minimum for ${updatedIngredient.name}: ${currentStock} ${updatedIngredient.unit} (min: ${minStock})`);
 
-      // Get all users with admin or production role to notify them
+      // Get all users with admin, production, or pastry role to notify them
       const allUsersKeys = await kv.getByPrefix('user_profile:');
       const adminAndProductionUsers = allUsersKeys.filter((profile: any) =>
-        profile.role === 'admin' || profile.role === 'production'
+        profile.role === 'admin' || profile.role === 'production' || profile.role === 'pastry'
       );
 
       const notificationTitle = currentStock === 0
@@ -3669,10 +3669,10 @@ app.patch('/make-server-6d979413/production-orders/:orderId/status', async (c) =
       if (lowStockIngredients.length > 0) {
         console.log(`📢 Creating low stock notifications for ${lowStockIngredients.length} ingredients...`);
 
-        // Get all users with admin or production role to notify them
+        // Get all users with admin, production or pastry role to notify them
         const allUsersKeys = await kv.getByPrefix('user_profile:');
         const adminAndProductionUsers = allUsersKeys.filter((profile: any) =>
-          profile.role === 'admin' || profile.role === 'production'
+          profile.role === 'admin' || profile.role === 'production' || profile.role === 'pastry'
         );
 
         // Create notifications for each low stock ingredient for each admin/production user

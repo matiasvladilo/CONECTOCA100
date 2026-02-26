@@ -4,6 +4,7 @@ import { LoginScreen } from "./components/LoginScreen";
 import { HomeScreen } from "./components/HomeScreen";
 import { OrderDetail } from "./components/OrderDetail";
 import { ProductionArea } from "./components/ProductionArea";
+import { BakeryKDS } from "./components/BakeryKDS";
 import { ProductionOrders } from "./components/ProductionOrders";
 import { ProductionDashboard } from "./components/ProductionDashboard";
 import { DispatchOrders } from "./components/DispatchOrders";
@@ -134,7 +135,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: "admin" | "production" | "dispatch" | "local" | "user" | "worker";
+  role: "admin" | "production" | "dispatch" | "local" | "user" | "worker" | "pastry";
   address?: string;
 }
 
@@ -156,6 +157,7 @@ export default function App() {
     | "productionAreas"
     | "ingredients"
     | "productIngredients"
+    | "bakeryKds"
   >("login");
 
   // Debug: Log screen changes
@@ -229,7 +231,7 @@ export default function App() {
     });
 
     checkSession();
-    initializeDemoUsers();
+    // initializeDemoUsers(); // Disabled to prevent blocking login requests on load
   }, []);
 
   // Initialize audio on first user interaction
@@ -516,7 +518,12 @@ export default function App() {
       };
 
       setCurrentUser(user);
-      setCurrentScreen("home");
+
+      if (user.role === 'pastry') {
+        setCurrentScreen("bakeryKds");
+      } else {
+        setCurrentScreen("home");
+      }
 
       // Load orders
       console.log(" Loading orders...");
@@ -559,7 +566,7 @@ export default function App() {
         token.substring(0, 20) + "...",
       );
       const response: PaginatedResponse<APIOrder> =
-        await ordersAPI.getAll(token, page, 10);
+        await ordersAPI.getAll(token, page, 50);
 
       // Store pagination info
       setOrdersPagination(response.pagination);
@@ -1708,6 +1715,21 @@ export default function App() {
             onNavigateToOrders={() => setCurrentScreen("productionOrders")}
             onNavigateToIngredients={() => setCurrentScreen("ingredients")}
             onNavigateToRecipes={() => setCurrentScreen("productIngredients")}
+          />
+        )}
+
+      {currentScreen === "bakeryKds" &&
+        currentUser &&
+        (currentUser.role === "pastry" || currentUser.role === "admin") && (
+          <BakeryKDS
+            orders={orders}
+            onBack={() => setCurrentScreen("home")}
+            onUpdateOrderStatus={handleUpdateOrderStatus}
+            accessToken={accessToken}
+            lastSync={lastSync}
+            pagination={ordersPagination}
+            onPageChange={handlePageChange}
+            isLoading={isPaginationLoading}
           />
         )}
 

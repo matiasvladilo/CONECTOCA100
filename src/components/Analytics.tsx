@@ -65,6 +65,7 @@ interface ProductStats {
   name: string;
   cantidad: number;
   ingresos: number;
+  ventasTotales?: number;
 }
 
 interface StatusDistribution {
@@ -258,15 +259,16 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
     }));
   }, [filteredOrders, dateRangeInDays]);
 
-  // Product statistics for bar chart
-  const productStats = useMemo((): ProductStats[] => {
-    const statsMap = new Map<string, { cantidad: number; ingresos: number }>();
+  // Product statistics (All products)
+  const allProductStats = useMemo((): ProductStats[] => {
+    const statsMap = new Map<string, { cantidad: number; ingresos: number; pedidos: Set<string> }>();
 
     filteredOrders.forEach(order => {
       order.products?.forEach(product => {
-        const current = statsMap.get(product.name) || { cantidad: 0, ingresos: 0 };
+        const current = statsMap.get(product.name) || { cantidad: 0, ingresos: 0, pedidos: new Set<string>() };
         current.cantidad += product.quantity;
         current.ingresos += product.price * product.quantity;
+        if (order.id) current.pedidos.add(order.id);
         statsMap.set(product.name, current);
       });
     });
@@ -275,11 +277,14 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
       .map(([name, stats]) => ({
         name,
         cantidad: stats.cantidad,
-        ingresos: stats.ingresos
+        ingresos: stats.ingresos,
+        ventasTotales: stats.pedidos.size
       }))
-      .sort((a, b) => b.cantidad - a.cantidad)
-      .slice(0, 10); // Top 10 products
+      .sort((a, b) => b.cantidad - a.cantidad);
   }, [filteredOrders]);
+
+  // Top 10 products for the bar chart
+  const topProductStats = useMemo(() => allProductStats.slice(0, 10), [allProductStats]);
 
   // Status distribution for pie chart
   const statusDistribution = useMemo((): StatusDistribution[] => {
@@ -658,29 +663,29 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
       }));
       const wsVentas = XLSX.utils.json_to_sheet(ventasData);
 
-      // 3. Sheet: Productos (Aggregated)
-      let wsProductos;
-      if (profitabilityAnalysis.length > 0) {
-        const productosData = profitabilityAnalysis.map(p => ({
-          'Producto': p.name,
-          'Unidades Vendidas': p.unitsSold,
-          'Precio Promedio': p.avgPrice,
-          'Ingresos Totales': p.revenue,
-          'Costo Unitario (Est.)': p.costPerUnit,
-          'Costo Total (Est.)': p.cost,
-          'Utilidad (Est.)': p.profit,
-          'Margen (%)': `${p.margin.toFixed(1)}%`
-        }));
-        wsProductos = XLSX.utils.json_to_sheet(productosData);
-      } else {
-        // Fallback if no cost analysis
-        const productosData = productStats.map(p => ({
+      // 3. Sheet: Productos (Aggregated, All products)
+      const productosData = allProductStats.map(p => {
+        const prof = profitabilityAnalysis.find(x => x.name === p.name);
+
+        const rowData: any = {
           'Producto': p.name,
           'Unidades Vendidas': p.cantidad,
-          'Ingresos Totales': p.ingresos
-        }));
-        wsProductos = XLSX.utils.json_to_sheet(productosData);
-      }
+          'Ventas Totales (N° de Pedidos)': p.ventasTotales || 0,
+          'Ingresos Totales': p.ingresos,
+        };
+
+        if (prof) {
+          rowData['Precio Promedio'] = prof.avgPrice;
+          rowData['Costo Unitario (Est.)'] = prof.costPerUnit;
+          rowData['Costo Total (Est.)'] = prof.cost;
+          rowData['Utilidad (Est.)'] = prof.profit;
+          rowData['Margen (%)'] = `${prof.margin.toFixed(1)}%`;
+        }
+
+        return rowData;
+      });
+
+      const wsProductos = XLSX.utils.json_to_sheet(productosData);
 
       // 4. Sheet: Por Local (Matrix)
       // Group products by Local
@@ -701,32 +706,59 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
       });
 
       const sortedProductNames = Array.from(allProductNames).sort();
+      const sortedLocalNames = Array.from(localProductsMap.keys()).sort();
+
       const matrizLocales = [];
 
       // Header row
-      matrizLocales.push(['Local', ...sortedProductNames, 'Total Unidades', 'Gasto Total']);
+      matrizLocales.push(['Producto', ...sortedLocalNames, 'Total Unidades']);
 
-      // Data rows
-      localProductsMap.forEach((productMap, localName) => {
-        const row: any[] = [localName];
-        let totalUnits = 0;
-        let totalSpent = 0;
+      // Data rows (Products)
+      let totalGlobalUnits = 0;
 
-        // Calculate total spent for this local from filteredOrders
-        // (Slightly inefficient but accurate)
-        const localOrders = filteredOrders.filter(o => (o.customerName || 'Desconocido') === localName);
-        totalSpent = localOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+      sortedProductNames.forEach(pName => {
+        const row: any[] = [pName];
+        let totalUnitsProduct = 0;
 
-        sortedProductNames.forEach(pName => {
-          const qty = productMap.get(pName) || 0;
-          row.push(qty > 0 ? qty : ''); // Leave empty if 0 for cleaner look
-          totalUnits += qty;
+        sortedLocalNames.forEach(localName => {
+          const productMap = localProductsMap.get(localName);
+          const qty = productMap?.get(pName) || 0;
+          row.push(qty > 0 ? qty : '');
+          totalUnitsProduct += qty;
         });
 
-        row.push(totalUnits);
-        row.push(totalSpent);
+        row.push(totalUnitsProduct);
+        totalGlobalUnits += totalUnitsProduct;
         matrizLocales.push(row);
       });
+
+      // Totals rows at the bottom
+      const totalUnitsRow: any[] = ['Total Unidades'];
+      const gastoTotalRow: any[] = ['Gasto Total'];
+      let gastoGlobal = 0;
+
+      sortedLocalNames.forEach(localName => {
+        // Calculate units
+        let localUnits = 0;
+        const productMap = localProductsMap.get(localName);
+        if (productMap) {
+          productMap.forEach(qty => localUnits += qty);
+        }
+        totalUnitsRow.push(localUnits);
+
+        // Calculate total spent
+        const localOrders = filteredOrders.filter(o => (o.customerName || 'Desconocido') === localName);
+        const totalSpent = localOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+        gastoTotalRow.push(totalSpent);
+        gastoGlobal += totalSpent;
+      });
+
+      totalUnitsRow.push(totalGlobalUnits);
+      gastoTotalRow.push(gastoGlobal);
+
+      matrizLocales.push([]); // Empty row
+      matrizLocales.push(totalUnitsRow);
+      matrizLocales.push(gastoTotalRow);
 
       const wsLocales = XLSX.utils.aoa_to_sheet(matrizLocales);
 
@@ -1050,7 +1082,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={productStats} layout="vertical">
+                  <BarChart data={topProductStats} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis type="number" stroke="#6b7280" style={{ fontSize: '12px' }} />
                     <YAxis
@@ -1542,7 +1574,7 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
             </CardHeader>
             <CardContent>
               <div className="text-2xl text-green-600">
-                {productStats.length}
+                {allProductStats.length}
               </div>
               <p className="text-xs text-gray-500 mt-1">Diferentes productos vendidos</p>
             </CardContent>

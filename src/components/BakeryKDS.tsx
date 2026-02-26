@@ -19,7 +19,6 @@ import {
   PlayCircle,
   XCircle,
   Printer,
-  MapPin,
   Calendar,
   Hash,
   AlertCircle,
@@ -33,32 +32,16 @@ import {
   X as XIcon,
   DollarSign,
   MessageSquare,
-  Factory,
-  Layers,
-  ChefHat,
-  Cake,
-  Utensils,
-  Coffee,
-  Pizza,
-  IceCream,
-  Soup,
-  Salad,
-  Sandwich,
-  Wine,
-  CookingPot,
-  Beef,
-  Fish,
-  Apple,
   Truck
 } from 'lucide-react';
 import { PaginationControls } from './PaginationControls';
-import { PaginationInfo, ProductionArea as ProductionAreaType, productionAreasAPI } from '../utils/api';
+import { PaginationInfo, categoriesAPI, productsAPI } from '../utils/api';
 import logo from '../assets/logo.png';
 const logoFull = logo;
 import { toast } from 'sonner';
 import { formatCLP } from '../utils/format';
 
-interface ProductionAreaProps {
+interface BakeryKDSProps {
   orders: Order[];
   onBack: () => void;
   onUpdateOrderStatus: (orderId: string, status: Order['status'], progress: number) => void;
@@ -74,14 +57,13 @@ type FilterStatus = 'all' | 'pending' | 'in_progress' | 'completed' | 'dispatche
 type SortOption = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc' | 'customer-asc' | 'customer-desc';
 type ViewMode = 'grid' | 'list';
 
-export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToken, lastSync, pagination, onPageChange, onGoToKDS, isLoading = false }: ProductionAreaProps) {
+export function BakeryKDS({ orders, onBack, onUpdateOrderStatus, accessToken, lastSync, pagination, onPageChange, onGoToKDS, isLoading = false }: BakeryKDSProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [showDeliveryGuide, setShowDeliveryGuide] = useState(false);
 
-  // Production Areas state
-  const [productionAreas, setProductionAreas] = useState<ProductionAreaType[]>([]);
-  const [selectedAreaFilter, setSelectedAreaFilter] = useState<string>('all'); // 'all' or area ID
+  // Pasteleria Products State
+  const [pastryProductIds, setPastryProductIds] = useState<Set<string>>(new Set());
 
   // New advanced filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -97,21 +79,31 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
   const [maxAmount, setMaxAmount] = useState('');
   const [customerFilter, setCustomerFilter] = useState('');
 
-  // Load production areas on mount
+  // Load pastry products on mount
   useEffect(() => {
     if (accessToken) {
-      loadProductionAreas();
+      loadPastryProducts();
     }
   }, [accessToken]);
 
-  const loadProductionAreas = async () => {
+  const loadPastryProducts = async () => {
     if (!accessToken) return;
 
     try {
-      const areas = await productionAreasAPI.getAll(accessToken);
-      setProductionAreas(areas);
+      const categories = await categoriesAPI.getAll(accessToken);
+      const pastryCategory = categories.find(c => c.name.toLowerCase().includes('pasteler'));
+
+      const allProducts = await productsAPI.getAll(accessToken);
+      const pastryIds = new Set<string>();
+
+      allProducts.forEach(p => {
+        if (p.categoryId === pastryCategory?.id || p.category?.toLowerCase() === 'pastelería' || p.category?.toLowerCase() === 'pasteleria') {
+          pastryIds.add(p.id);
+        }
+      });
+      setPastryProductIds(pastryIds);
     } catch (error: any) {
-      console.error('Error loading production areas:', error);
+      console.error('Error loading pastry products:', error);
     }
   };
 
@@ -257,43 +249,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
     return orders.filter(o => o.status === status).length;
   };
 
-  // Get icon component for production area
-  const getAreaIcon = (iconName?: string) => {
-    const icons: Record<string, any> = {
-      ChefHat,
-      Cake,
-      Utensils,
-      Coffee,
-      Pizza,
-      IceCream,
-      Soup,
-      Salad,
-      Sandwich,
-      Wine,
-      CookingPot,
-      Beef,
-      Fish,
-      Apple
-    };
-    const IconComponent = (iconName && icons[iconName]) || Factory;
-    return <IconComponent className="w-4 h-4" />;
-  };
 
-  // Get unique production areas from order
-  const getOrderAreas = (order: Order) => {
-    if (!order.products) return [];
-
-    const areaIds = new Set<string>();
-    order.products.forEach(product => {
-      if (product.productionAreaId) {
-        areaIds.add(product.productionAreaId);
-      }
-    });
-
-    return Array.from(areaIds)
-      .map(id => productionAreas.find(a => a.id === id))
-      .filter((area): area is ProductionAreaType => area !== undefined);
-  };
 
   // Toggle priority
   const togglePriority = (orderId: string) => {
@@ -394,24 +350,17 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
       filtered = filtered.filter(o => o.status === filterStatus);
     }
 
-    // Apply production area filter
-    if (selectedAreaFilter !== 'all') {
-      console.log('🔍 Filtrando por área:', selectedAreaFilter);
-      console.log('📦 Total de pedidos antes del filtro:', filtered.length);
+    // Apply pastry category filter
+    console.log('📦 Total de pedidos antes del filtro: ', filtered.length);
 
-      filtered = filtered.filter(order => {
-        // Check if any product in the order belongs to the selected area
-        const hasProductInArea = order.products?.some(product => {
-          console.log(`  - Producto "${product.name}": areaId=${product.productionAreaId}`);
-          return product.productionAreaId === selectedAreaFilter;
-        });
+    filtered = filtered.map(order => {
+      // Only keep products that are in the Pastelería category
+      const pastryProducts = order.products?.filter(product => pastryProductIds.has(product.productId)) || [];
+      return { ...order, products: pastryProducts };
+    }).filter(order => order.products.length > 0);
 
-        console.log(`  Pedido ${order.id.substring(0, 8)}: ${hasProductInArea ? '✅ INCLUIDO' : '❌ EXCLUIDO'}`);
-        return hasProductInArea;
-      });
+    console.log('📦 Total de pedidos después del filtro: ', filtered.length);
 
-      console.log('📦 Total de pedidos después del filtro:', filtered.length);
-    }
 
     // Apply search filter
     filtered = filtered.filter(applySearchFilter);
@@ -925,54 +874,10 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
               </Popover>
             </div>
 
-            {/* Production Areas Filter - Only show if areas exist */}
-            {productionAreas.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className="flex items-center gap-2"
-              >
-                <Factory className="w-4 h-4 text-blue-300" />
-                <span className="text-sm text-blue-200">Área:</span>
-                <Select value={selectedAreaFilter} onValueChange={(value: string) => {
-                  setSelectedAreaFilter(value);
-                  toast.success(value === 'all' ? 'Mostrando todas las áreas' : `Filtrando por: ${productionAreas.find(a => a.id === value)?.name}`);
-                }}>
-                  <SelectTrigger className="w-[220px] bg-white/10 border-white/20 text-white">
-                    <Layers className="w-4 h-4 mr-2" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700">
-                    <SelectItem value="all" className="text-white hover:bg-white/10">
-                      <div className="flex items-center gap-2">
-                        <Layers className="w-4 h-4" />
-                        <span>Todas las áreas</span>
-                      </div>
-                    </SelectItem>
-                    {productionAreas.map((area) => (
-                      <SelectItem
-                        key={area.id}
-                        value={area.id}
-                        className="text-white hover:bg-white/10"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: area.color }}
-                          />
-                          {getAreaIcon(area.icon)}
-                          <span>{area.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </motion.div>
-            )}
+            {/* Pastelería Profile Mode */}
 
             {/* Filter Summary */}
-            {(searchQuery || hasActiveFilters || selectedAreaFilter !== 'all') && (
+            {(searchQuery || hasActiveFilters) && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1071,26 +976,7 @@ export function ProductionArea({ orders, onBack, onUpdateOrderStatus, accessToke
 
                       <CardContent className="space-y-3">
                         {/* Production Areas Badges - Show if order has areas */}
-                        {getOrderAreas(order).length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 -mt-1">
-                            {getOrderAreas(order).map((area) => (
-                              <Badge
-                                key={area.id}
-                                className="text-xs border-0 shadow-sm"
-                                style={{
-                                  backgroundColor: `${area.color}20`,
-                                  color: area.color,
-                                  borderLeft: `3px solid ${area.color}`
-                                }}
-                              >
-                                <div className="flex items-center gap-1">
-                                  {getAreaIcon(area.icon)}
-                                  <span>{area.name}</span>
-                                </div>
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
+
 
                         <div className={`${viewMode === 'list' ? 'grid grid-cols-2 md:grid-cols-4 gap-4' : 'space-y-3'}`}>
                           <div className="flex items-center gap-2 text-sm text-gray-300">

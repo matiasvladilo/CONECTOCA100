@@ -221,7 +221,7 @@ export const profileAPI = {
 
 // Orders API
 export const ordersAPI = {
-  getAll: async (token: string, page: number = 1, limit: number = 10): Promise<PaginatedResponse<Order>> => {
+  getAll: async (token: string, page: number = 1, limit: number = 50): Promise<PaginatedResponse<Order>> => {
     const response = await fetchAPI(
       `/orders?page=${page}&limit=${limit}`,
       {},
