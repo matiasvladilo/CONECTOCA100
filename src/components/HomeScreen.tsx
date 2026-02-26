@@ -246,21 +246,6 @@ export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfil
                 </p>
               </div>
               <div
-                className="p-3 rounded-xl backdrop-blur-md col-span-2"
-                style={{
-                  background: 'rgba(255, 212, 59, 0.2)',
-                  border: '1px solid rgba(255, 212, 59, 0.3)'
-                }}
-              >
-                <div className="flex items-center gap-1.5 mb-1">
-                  <UserIcon className="w-3.5 h-3.5 text-yellow-200" />
-                  <span className="text-[10px] text-yellow-100">Clientes Activos</span>
-                </div>
-                <p className="text-white" style={{ fontSize: '18px', fontWeight: 600 }}>
-                  {uniqueCustomers}
-                </p>
-              </div>
-              <div
                 className="p-3 rounded-xl backdrop-blur-md"
                 style={{
                   background: 'rgba(255, 255, 255, 0.15)',
@@ -273,6 +258,21 @@ export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfil
                 </div>
                 <p className="text-white" style={{ fontSize: '18px', fontWeight: 600 }}>
                   {dispatchedOrders}
+                </p>
+              </div>
+              <div
+                className="p-3 rounded-xl backdrop-blur-md col-span-2"
+                style={{
+                  background: 'rgba(255, 212, 59, 0.2)',
+                  border: '1px solid rgba(255, 212, 59, 0.3)'
+                }}
+              >
+                <div className="flex items-center gap-1.5 mb-1">
+                  <UserIcon className="w-3.5 h-3.5 text-yellow-200" />
+                  <span className="text-[10px] text-yellow-100">Clientes Activos</span>
+                </div>
+                <p className="text-white" style={{ fontSize: '18px', fontWeight: 600 }}>
+                  {uniqueCustomers}
                 </p>
               </div>
             </motion.div>

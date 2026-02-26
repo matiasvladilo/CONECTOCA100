@@ -689,17 +689,12 @@ export function ProductManagement({ accessToken, onBack, onManageCategories }: P
                 >
                   <CardContent className="p-5">
                     {/* Product Image/Icon */}
-                    <div
-                      className="w-full h-32 rounded-xl mb-4 flex items-center justify-center overflow-hidden bg-white"
-                      style={{
-                        background: 'white'
-                      }}
-                    >
+                    <div className="w-full h-40 sm:h-48 shrink-0 rounded-xl mb-4 overflow-hidden bg-gray-100/50 relative group flex items-center justify-center border border-gray-100">
                       {product.imageUrl ? (
                         <img
                           src={product.imageUrl}
                           alt={product.name}
-                          className="w-full h-full object-contain p-2"
+                          className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300"
                         />
                       ) : (
                         <Package className="w-16 h-16 text-blue-300" />

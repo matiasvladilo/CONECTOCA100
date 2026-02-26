@@ -769,6 +769,39 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
               </motion.div>
             )}
 
+            {/* Production Areas Management button */}
+            {onManageProductionAreas && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.35 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Button
+                  onClick={onManageProductionAreas}
+                  className="w-full h-12 relative overflow-hidden group"
+                  style={{
+                    background: 'linear-gradient(90deg, #FB923C 0%, #F97316 100%)',
+                    borderRadius: '12px',
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    boxShadow: '0 4px 14px rgba(251, 146, 60, 0.3)'
+                  }}
+                >
+                  <div className="flex items-center gap-2 relative z-10 text-white">
+                    <Factory className="w-5 h-5" />
+                    Áreas de Producción
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#FB923C] to-[#F97316] opacity-0 group-hover:opacity-100 transition-opacity" />
+                </Button>
+              </motion.div>
+            )}
+          </>
+        )}
+
+        {/* Producción y Admin actions */}
+        {(user.role === 'admin' || user.role === 'production') && (
+          <>
             {/* Product Management button */}
             {onManageProducts && (
               <motion.div
@@ -794,34 +827,6 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
                     Gestionar Productos
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-r from-[#FFC700] to-[#FFB800] opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Button>
-              </motion.div>
-            )}
-
-            {/* Production Areas Management button */}
-            {onManageProductionAreas && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.35 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Button
-                  onClick={onManageProductionAreas}
-                  className="w-full h-12 relative overflow-hidden group"
-                  style={{
-                    background: 'linear-gradient(90deg, #FB923C 0%, #F97316 100%)',
-                    borderRadius: '12px',
-                    fontSize: '15px',
-                    fontWeight: 600,
-                    boxShadow: '0 4px 14px rgba(251, 146, 60, 0.3)'
-                  }}
-                >
-                  <div className="flex items-center gap-2 relative z-10 text-white">
-                    <Factory className="w-5 h-5" />
-                    Áreas de Producción
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#FB923C] to-[#F97316] opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Button>
               </motion.div>
             )}

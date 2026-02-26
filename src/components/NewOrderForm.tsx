@@ -713,11 +713,11 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                         }
                       }}
                     >
-                      <div className="relative h-48 bg-white overflow-hidden group">
+                      <div className="relative w-full h-40 sm:h-48 bg-gray-100/50 flex items-center justify-center overflow-hidden group shrink-0">
                         <ImageWithFallback
                           src={product.image}
                           alt={product.name}
-                          className="w-full h-full object-contain p-2"
+                          className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300"
                         />
                         {isOutOfStock && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -926,7 +926,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                                 <ImageWithFallback
                                   src={item.image}
                                   alt={item.name}
-                                  className="w-full h-full object-contain p-1"
+                                  className="w-full h-full object-cover"
                                 />
                               </div>
 
@@ -1082,7 +1082,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
 
       {/* Edit Product Modal */}
       < Dialog open={!!editingProduct} onOpenChange={() => setEditingProduct(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto overflow-x-hidden p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="w-5 h-5 text-blue-600" />
@@ -1101,7 +1101,7 @@ export function NewOrderForm({ onBack, onSubmit, accessToken }: NewOrderFormProp
                 <ImageWithFallback
                   src={imagePreview || editForm.image}
                   alt="Preview"
-                  className="w-full h-full object-contain p-2"
+                  className="w-full h-full object-cover"
                 />
               </div>
 

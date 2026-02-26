@@ -103,11 +103,11 @@ export function ImageUpload({ value, onChange, label = "Imagen del producto", ac
             exit={{ opacity: 0, scale: 0.9 }}
             className="relative group"
           >
-            <div className="relative w-full aspect-video bg-white rounded-lg overflow-hidden border-2 border-blue-200">
+            <div className="relative w-40 h-40 mx-auto bg-gray-50 rounded-lg overflow-hidden border-2 border-blue-200 shadow-sm">
               <img
                 src={previewUrl}
                 alt="Preview"
-                className="w-full h-full object-contain p-2"
+                className="w-full h-full object-cover"
               />
               <motion.button
                 type="button"
