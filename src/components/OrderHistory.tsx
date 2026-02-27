@@ -90,7 +90,6 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName, accessToke
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-  const [dateFilterType, setDateFilterType] = useState<'creation' | 'delivery'>('delivery');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
@@ -120,7 +119,7 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName, accessToke
       filtered = filtered.filter(order => {
         let orderDate;
 
-        if (dateFilterType === 'delivery' && order.deadline) {
+        if (order.deadline) {
           // deadline is e.g. "2026-02-23"
           const [dy, dm, dd] = order.deadline.split('-').map(Number);
           orderDate = new Date(dy, dm - 1, dd);
@@ -149,13 +148,8 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName, accessToke
     filtered.sort((a, b) => {
       let dateA, dateB;
 
-      if (dateFilterType === 'delivery') {
-        dateA = a.deadline ? new Date(a.deadline + 'T00:00:00').getTime() : new Date(a.createdAt || a.date).getTime();
-        dateB = b.deadline ? new Date(b.deadline + 'T00:00:00').getTime() : new Date(b.createdAt || b.date).getTime();
-      } else {
-        dateA = new Date(a.createdAt || a.date).getTime();
-        dateB = new Date(b.createdAt || b.date).getTime();
-      }
+      dateA = a.deadline ? new Date(a.deadline + 'T00:00:00').getTime() : new Date(a.createdAt || a.date).getTime();
+      dateB = b.deadline ? new Date(b.deadline + 'T00:00:00').getTime() : new Date(b.createdAt || b.date).getTime();
 
       const totalA = a.total || 0;
       const totalB = b.total || 0;
@@ -567,27 +561,6 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName, accessToke
                       className="overflow-hidden"
                     >
                       <Separator className="my-4" />
-                      <div className="mb-4 bg-[#F8FAFC] p-3 rounded-lg border border-[#E2E8F0]">
-                        <label className="text-sm text-gray-700 mb-2 block" style={{ fontWeight: 600 }}>
-                          Buscar fechas por:
-                        </label>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setDateFilterType('delivery')}
-                            className={`flex-1 py-2 text-xs font-medium rounded-md transition-all ${dateFilterType === 'delivery' ? 'bg-[#10B981] text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}
-                          >
-                            <Clock className="w-3.5 h-3.5 inline-block mr-1.5" />
-                            Fecha de Entrega
-                          </button>
-                          <button
-                            onClick={() => setDateFilterType('creation')}
-                            className={`flex-1 py-2 text-xs font-medium rounded-md transition-all ${dateFilterType === 'creation' ? 'bg-[#0059FF] text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}
-                          >
-                            <Calendar className="w-3.5 h-3.5 inline-block mr-1.5" />
-                            Fecha de Creación
-                          </button>
-                        </div>
-                      </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                           <label className="text-sm text-gray-700 mb-2 block" style={{ fontWeight: 500 }}>
