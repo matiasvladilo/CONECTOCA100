@@ -35,7 +35,7 @@ import {
   Truck
 } from 'lucide-react';
 import { PaginationControls } from './PaginationControls';
-import { PaginationInfo, categoriesAPI, productsAPI } from '../utils/api';
+import { PaginationInfo, categoriesAPI, productsAPI, ordersAPI } from '../utils/api';
 import logo from '../assets/logo.png';
 const logoFull = logo;
 import { toast } from 'sonner';
@@ -61,6 +61,7 @@ export function BakeryKDS({ orders, onBack, onUpdateOrderStatus, accessToken, la
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [showDeliveryGuide, setShowDeliveryGuide] = useState(false);
+  const [updateTrigger, setUpdateTrigger] = useState(0);
 
   // Pasteleria Products State
   const [pastryProductIds, setPastryProductIds] = useState<Set<string>>(new Set());
@@ -393,6 +394,33 @@ export function BakeryKDS({ orders, onBack, onUpdateOrderStatus, accessToken, la
     setSelectedOrder(null);
   };
 
+  const handleItemStatusChange = async (orderId: string, productId: string, newStatus: 'pending' | 'in_progress' | 'completed') => {
+    if (!accessToken) return;
+    try {
+      const order = orders.find(o => o.id === orderId);
+      if (!order) return;
+
+      const currentItemStatuses = order.itemStatuses || {};
+      const updatedStatuses = {
+        ...currentItemStatuses,
+        [productId]: newStatus
+      };
+
+      // Optimistic visual update
+      order.itemStatuses = updatedStatuses;
+      setUpdateTrigger(prev => prev + 1);
+
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder({ ...order, itemStatuses: updatedStatuses });
+      }
+
+      await ordersAPI.update(accessToken, orderId, { itemStatuses: updatedStatuses });
+    } catch (error: any) {
+      console.error('Error al actualizar estado del ítem:', error);
+      toast.error('Error al actualizar el estado del producto');
+    }
+  };
+
   // Touch/Swipe handling for filter navigation
   const handleSwipe = (direction: number) => {
     if (direction > 0) {
@@ -605,8 +633,8 @@ export function BakeryKDS({ orders, onBack, onUpdateOrderStatus, accessToken, la
                   whileHover={{ rotate: [0, -10, 10, -10, 0], transition: { duration: 0.5 } }}
                 />
                 <div className="min-w-0">
-                  <h1 className="text-base sm:text-xl tracking-wider truncate">CONECTOCA - Despacho</h1>
-                  <p className="text-[10px] sm:text-xs text-blue-200 opacity-80 truncate">Panel de Despacho</p>
+                  <h1 className="text-base sm:text-xl tracking-wider truncate">CONECTOCA - Pastelería</h1>
+                  <p className="text-[10px] sm:text-xs text-blue-200 opacity-80 truncate">KDS de Pastelería</p>
                 </div>
               </div>
             </div>
@@ -913,130 +941,197 @@ export function BakeryKDS({ orders, onBack, onUpdateOrderStatus, accessToken, la
               : "space-y-3"
               } ${isLoading ? 'opacity-50 transition-opacity duration-300' : ''}`}>
               <AnimatePresence>
-                {filteredOrders.map((order) => (
-                  <motion.div
-                    key={order.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    layout
-                    className="relative"
-                  >
-                    {/* Priority Star Button */}
-                    <motion.button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        togglePriority(order.id);
-                      }}
-                      whileHover={{ scale: 1.2 }}
-                      whileTap={{ scale: 0.9 }}
-                      className={`absolute -top-2 -right-2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all ${priorityOrders.has(order.id)
-                        ? 'bg-yellow-500 text-yellow-900 shadow-lg'
-                        : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-                        }`}
-                    >
-                      <Star className={`w-4 h-4 ${priorityOrders.has(order.id) ? 'fill-current' : ''}`} />
-                    </motion.button>
+                {(() => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
 
-                    <Card
-                      className={`
+                  const isFutureOrder = (deadline?: string) => {
+                    if (!deadline) return false;
+                    const parts = deadline.split('T')[0].split('-');
+                    if (parts.length !== 3) return false;
+                    const deadlineDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                    deadlineDate.setHours(0, 0, 0, 0);
+                    return deadlineDate > today;
+                  };
+
+                  const futureOrders: Order[] = [];
+                  const regularOrders: Order[] = [];
+
+                  filteredOrders.forEach(order => {
+                    if (isFutureOrder(order.deadline)) {
+                      futureOrders.push(order);
+                    } else {
+                      regularOrders.push(order);
+                    }
+                  });
+
+                  const renderOrderCards = (ordersToRender: Order[], isFutureGroup: boolean) => {
+                    return ordersToRender.map((order) => (
+                      <motion.div
+                        key={order.id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        layout
+                        className="relative"
+                      >
+                        {/* Priority Star Button */}
+                        <motion.button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            togglePriority(order.id);
+                          }}
+                          whileHover={{ scale: 1.2 }}
+                          whileTap={{ scale: 0.9 }}
+                          className={`absolute -top-2 -right-2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all ${priorityOrders.has(order.id)
+                            ? 'bg-yellow-500 text-yellow-900 shadow-lg'
+                            : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                            }`}
+                        >
+                          <Star className={`w-4 h-4 ${priorityOrders.has(order.id) ? 'fill-current' : ''}`} />
+                        </motion.button>
+
+                        <Card
+                          className={`
                         cursor-pointer
                         border-l-8 ${getStatusColor(order.status)} 
                         bg-gray-800 border-gray-700 text-white 
                         hover:shadow-2xl hover:scale-105 transition-all
                         ${order.status === 'pending' ? 'animate-pulse' : ''}
                         ${priorityOrders.has(order.id) ? 'ring-2 ring-yellow-500' : ''}
+                        ${isFutureGroup ? 'border-dashed border-purple-500/50 bg-gray-800/80 shadow-[0_0_15px_rgba(168,85,247,0.15)]' : ''}
                       `}
-                      onClick={() => setSelectedOrder(order)}
-                    >
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-2">
-                            <Hash className="w-4 h-4 text-gray-400" />
-                            <CardTitle className="text-lg">
-                              {order.id.slice(0, 8).toUpperCase()}
-                            </CardTitle>
-                            {order.notes && order.notes.trim() && (
-                              <div
-                                className="w-5 h-5 rounded-full flex items-center justify-center bg-gradient-to-br from-yellow-500 to-amber-600 shadow-lg"
-                                title="Tiene observaciones"
-                              >
-                                <MessageSquare className="w-3 h-3 text-yellow-900" />
+                          onClick={() => setSelectedOrder(order)}
+                        >
+                          <CardHeader className="pb-3">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-center gap-2">
+                                <Hash className="w-4 h-4 text-gray-400" />
+                                <CardTitle className={`text-lg ${isFutureGroup ? 'text-purple-300' : ''}`}>
+                                  {order.id.slice(0, 8).toUpperCase()}
+                                </CardTitle>
+                                {order.notes && order.notes.trim() && (
+                                  <div
+                                    className="w-5 h-5 rounded-full flex items-center justify-center bg-gradient-to-br from-yellow-500 to-amber-600 shadow-lg"
+                                    title="Tiene observaciones"
+                                  >
+                                    <MessageSquare className="w-3 h-3 text-yellow-900" />
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                          <Badge className={`${getStatusColor(order.status)} text-white border-0`}>
-                            <div className="flex items-center gap-1">
-                              {getStatusIcon(order.status)}
-                              <span className="text-xs">{getStatusLabel(order.status)}</span>
-                            </div>
-                          </Badge>
-                        </div>
-                      </CardHeader>
-
-                      <CardContent className="space-y-3">
-                        {/* Production Areas Badges - Show if order has areas */}
-
-
-                        <div className={`${viewMode === 'list' ? 'grid grid-cols-2 md:grid-cols-4 gap-4' : 'space-y-3'}`}>
-                          <div className="flex items-center gap-2 text-sm text-gray-300">
-                            <User className="w-4 h-4 text-blue-400" />
-                            <span>{order.customerName}</span>
-                          </div>
-
-                          <div className="flex items-center gap-2 text-sm text-gray-300">
-                            <Clock className="w-4 h-4 text-yellow-400" />
-                            <span>{formatTime(order.createdAt || order.date)}</span>
-                          </div>
-
-                          {viewMode === 'list' && (
-                            <>
-                              <div className="flex items-center gap-2 text-sm text-gray-300">
-                                <DollarSign className="w-4 h-4 text-green-400" />
-                                <span className="text-green-400">${(order.total || 0).toLocaleString('es-CL')}</span>
-                              </div>
-
-                              <div className="flex items-center gap-2 text-sm text-gray-300">
-                                <Package className="w-4 h-4 text-purple-400" />
-                                <span>{order.products?.length || 0} producto{(order.products?.length || 0) !== 1 ? 's' : ''}</span>
-                              </div>
-                            </>
-                          )}
-                        </div>
-
-                        {viewMode === 'grid' && (
-                          <>
-                            <Separator className="bg-gray-700" />
-
-                            <div className="space-y-2">
-                              <p className="text-xs text-gray-400">Productos:</p>
-                              {order.products?.slice(0, 3).map((product, idx) => (
-                                <div key={idx} className="flex justify-between text-sm">
-                                  <span className="text-gray-300">{product.name}</span>
-                                  <span className="text-yellow-400">×{product.quantity}</span>
+                              <Badge className={`${getStatusColor(order.status)} text-white border-0`}>
+                                <div className="flex items-center gap-1">
+                                  {getStatusIcon(order.status)}
+                                  <span className="text-xs">{getStatusLabel(order.status)}</span>
                                 </div>
-                              ))}
-                              {(order.products?.length || 0) > 3 && (
-                                <p className="text-xs text-gray-500">
-                                  +{(order.products?.length || 0) - 3} más...
-                                </p>
+                              </Badge>
+                            </div>
+                          </CardHeader>
+
+                          <CardContent className="space-y-3">
+                            {/* Production Areas Badges - Show if order has areas */}
+
+
+                            <div className={`${viewMode === 'list' ? 'grid grid-cols-2 md:grid-cols-4 gap-4' : 'space-y-3'}`}>
+                              <div className="flex items-center gap-2 text-sm text-gray-300">
+                                <User className="w-4 h-4 text-blue-400" />
+                                <span>{order.customerName}</span>
+                              </div>
+
+                              <div className={`flex items-center gap-2 text-sm ${isFutureGroup ? 'bg-purple-900/40 p-1.5 rounded-md border border-purple-500/30' : 'text-gray-300'}`}>
+                                <Clock className={`w-4 h-4 ${isFutureGroup ? 'text-purple-400' : 'text-yellow-400'}`} />
+                                <span className={isFutureGroup ? 'text-purple-200' : ''}>
+                                  {isFutureGroup ? formatDate(order.deadline) : formatTime(order.createdAt || order.date)}
+                                </span>
+                              </div>
+
+                              {viewMode === 'list' && (
+                                <>
+                                  <div className="flex items-center gap-2 text-sm text-gray-300">
+                                    <DollarSign className="w-4 h-4 text-green-400" />
+                                    <span className="text-green-400">${(order.total || 0).toLocaleString('es-CL')}</span>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 text-sm text-gray-300">
+                                    <Package className="w-4 h-4 text-purple-400" />
+                                    <span>{order.products?.length || 0} producto{(order.products?.length || 0) !== 1 ? 's' : ''}</span>
+                                  </div>
+                                </>
                               )}
                             </div>
 
-                            <Separator className="bg-gray-700" />
+                            {viewMode === 'grid' && (
+                              <>
+                                <Separator className="bg-gray-700" />
 
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm text-gray-400">Total:</span>
-                              <span className="text-xl text-green-400">
-                                ${(order.total || 0).toLocaleString('es-CL')}
-                              </span>
-                            </div>
-                          </>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
+                                <div className="space-y-2">
+                                  <p className="text-xs text-gray-400">Productos:</p>
+                                  {order.products?.slice(0, 3).map((product, idx) => {
+                                    const status = order.itemStatuses?.[product.productId] || 'pending';
+                                    return (
+                                      <div key={idx} className="flex justify-between items-center text-sm">
+                                        <div className="flex items-center gap-2">
+                                          <div className={`w-2 h-2 rounded-full ${status === 'completed' ? 'bg-green-500' : status === 'in_progress' ? 'bg-blue-500' : 'bg-yellow-500'}`} />
+                                          <span className="text-gray-300">{product.name}</span>
+                                        </div>
+                                        <span className="text-yellow-400">×{product.quantity}</span>
+                                      </div>
+                                    );
+                                  })}
+                                  {(order.products?.length || 0) > 3 && (
+                                    <p className="text-xs text-gray-500">
+                                      +{(order.products?.length || 0) - 3} más...
+                                    </p>
+                                  )}
+                                </div>
+
+                                <Separator className="bg-gray-700" />
+
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-gray-400">Total:</span>
+                                  <span className="text-xl text-green-400">
+                                    ${(order.total || 0).toLocaleString('es-CL')}
+                                  </span>
+                                </div>
+                              </>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ));
+                  };
+
+                  return (
+                    <>
+                      {futureOrders.length > 0 && (
+                        <>
+                          <div className={`col-span-full flex items-center gap-2 pb-2 ${regularOrders.length > 0 ? 'pt-2' : ''}`}>
+                            <div className="h-px flex-1 bg-gradient-to-r from-purple-500/50 to-transparent" />
+                            <span className="text-sm font-medium px-4 py-1.5 rounded-full backdrop-blur-sm border text-purple-200 bg-purple-900/40 border-purple-500/30 shadow-sm">
+                              <Clock className="w-4 h-4 inline mr-1.5 -mt-0.5 text-purple-400" />
+                              Programados (Futuro)
+                            </span>
+                            <div className="h-px flex-1 bg-gradient-to-l from-purple-500/50 to-transparent" />
+                          </div>
+                          {renderOrderCards(futureOrders, true)}
+                        </>
+                      )}
+
+                      {!searchQuery && filterStatus === 'all' && futureOrders.length > 0 && regularOrders.length > 0 && (
+                        <div className="col-span-full flex items-center gap-2 pb-2 pt-6">
+                          <div className="h-px flex-1 bg-gradient-to-r from-blue-500/50 to-transparent" />
+                          <span className="text-sm font-medium px-4 py-1.5 rounded-full backdrop-blur-sm border text-blue-200 bg-blue-900/40 border-blue-500/30 shadow-sm">
+                            <Package className="w-4 h-4 inline mr-1.5 -mt-0.5 text-blue-400" />
+                            De Hoy / Atrasados
+                          </span>
+                          <div className="h-px flex-1 bg-gradient-to-l from-blue-500/50 to-transparent" />
+                        </div>
+                      )}
+
+                      {renderOrderCards(regularOrders, false)}
+                    </>
+                  );
+                })()}
               </AnimatePresence>
             </div>
 
@@ -1125,17 +1220,47 @@ export function BakeryKDS({ orders, onBack, onUpdateOrderStatus, accessToken, la
                   {selectedOrder.products?.map((product, idx) => (
                     <div
                       key={idx}
-                      className="flex justify-between items-center p-3 bg-gray-900 rounded-lg"
+                      className="flex justify-between items-center p-3 bg-gray-900 rounded-lg flex-wrap gap-4"
                     >
-                      <div>
+                      <div className="flex-1">
                         <p className="text-sm">{product.name}</p>
                         <p className="text-xs text-gray-500">
                           {formatCLP(product.price)} × {product.quantity}
                         </p>
                       </div>
-                      <p className="text-lg text-yellow-400">
-                        {formatCLP(product.price * product.quantity)}
-                      </p>
+                      <div className="flex gap-2 items-center">
+                        {(() => {
+                          const status = selectedOrder.itemStatuses?.[product.productId] || 'pending';
+                          return (
+                            <>
+                              <Button
+                                size="sm"
+                                variant={status === 'in_progress' ? 'default' : 'outline'}
+                                className={status === 'in_progress' ? 'bg-blue-600 hover:bg-blue-700 border-none' : 'text-blue-400 border-blue-800'}
+                                onClick={(e: any) => {
+                                  e.stopPropagation();
+                                  handleItemStatusChange(selectedOrder.id, product.productId, 'in_progress');
+                                }}
+                              >
+                                <PlayCircle className="w-4 h-4 mr-1" />
+                                En Producción
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={status === 'completed' ? 'default' : 'outline'}
+                                className={status === 'completed' ? 'bg-green-600 hover:bg-green-700 border-none' : 'text-green-400 border-green-800'}
+                                onClick={(e: any) => {
+                                  e.stopPropagation();
+                                  handleItemStatusChange(selectedOrder.id, product.productId, 'completed');
+                                }}
+                              >
+                                <CheckCircle2 className="w-4 h-4 mr-1" />
+                                Listo
+                              </Button>
+                            </>
+                          );
+                        })()}
+                      </div>
                     </div>
                   ))}
                 </div>

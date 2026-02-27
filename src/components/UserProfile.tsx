@@ -182,6 +182,7 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
       admin: 'Administración',
       production: 'Producción',
       local: 'Local',
+      pastry: 'Pastelería',
       user: 'Usuario'
     };
     return roleLabels[role] || 'Usuario';
@@ -192,6 +193,7 @@ export function UserProfile({ user, onBack, onLogout, onUpdateProfile, onViewAna
       admin: 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border-blue-200',
       production: 'bg-gradient-to-r from-orange-50 to-amber-50 text-orange-700 border-orange-200',
       local: 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-200',
+      pastry: 'bg-gradient-to-r from-pink-50 to-fuchsia-50 text-pink-700 border-pink-200',
       user: 'bg-gradient-to-r from-gray-50 to-slate-50 text-gray-700 border-gray-200'
     };
     return roleClasses[role] || 'bg-gray-50 text-gray-700 border-gray-200';

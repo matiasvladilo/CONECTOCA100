@@ -19,6 +19,7 @@ interface HomeScreenProps {
   onGoToProduction?: () => void;
   onGoToDashboard?: () => void;
   onManageProducts?: () => void;
+  onGoToBakeryKDS?: () => void;
   pagination?: PaginationInfo;
   onPageChange?: (page: number) => void;
   isLoading?: boolean;
@@ -63,7 +64,7 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
   }
 };
 
-export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfile, onViewHistory, onGoToProduction, onGoToDashboard, onManageProducts, pagination, onPageChange, isLoading = false }: HomeScreenProps) {
+export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfile, onViewHistory, onGoToProduction, onGoToBakeryKDS, onGoToDashboard, onManageProducts, pagination, onPageChange, isLoading = false }: HomeScreenProps) {
   const [showFutureOrders, setShowFutureOrders] = React.useState(true);
 
   // If pagination is enabled, use all orders (already paginated from backend)
@@ -429,6 +430,34 @@ export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfil
                   Ir a Panel de Despacho
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Bakery KDS Button */}
+          {onGoToBakeryKDS && (user.role === 'admin' || user.role === 'dispatch' || user.role === 'pastry') && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.33 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Button
+                onClick={onGoToBakeryKDS}
+                className="w-full h-12 text-white relative overflow-hidden group shadow-lg mt-3"
+                style={{
+                  background: 'linear-gradient(90deg, #D946EF 0%, #EC4899 100%)',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  boxShadow: '0 4px 14px rgba(236, 72, 153, 0.3)'
+                }}
+              >
+                <div className="flex items-center justify-center gap-2 relative z-10">
+                  <Store className="w-5 h-5" />
+                  Ir a Panel de Pastelería
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity" />
               </Button>
             </motion.div>
           )}

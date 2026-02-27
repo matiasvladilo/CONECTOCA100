@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -53,7 +53,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState<'local' | 'admin' | 'production' | 'dispatch' | 'worker' | 'user'>('user');
+  const [role, setRole] = useState<'local' | 'admin' | 'production' | 'dispatch' | 'worker' | 'pastry' | 'user'>('user');
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordRecovery, setShowPasswordRecovery] = useState(false);
@@ -465,7 +465,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                         <Shield className="w-4 h-4" />
                         Rol
                       </Label>
-                      <Select value={role} onValueChange={(value: 'local' | 'admin' | 'production' | 'dispatch' | 'worker' | 'user') => setRole(value)}>
+                      <Select value={role} onValueChange={(value: 'local' | 'admin' | 'production' | 'dispatch' | 'worker' | 'pastry' | 'user') => setRole(value)}>
                         <SelectTrigger
                           className="h-12 bg-white border-[#CBD5E1] focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
                           style={{ borderRadius: '10px' }}
@@ -509,6 +509,12 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                               <span>Despacho</span>
                             </div>
                           </SelectItem>
+                          <SelectItem value="pastry">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-pink-500"></div>
+                              <span>Pastelería</span>
+                            </div>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-gray-500 mt-1.5">
@@ -518,6 +524,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                         {role === 'admin' && '👑 Acceso completo al sistema'}
                         {role === 'production' && '🏭 Acceso al área de producción y gestión de pedidos'}
                         {role === 'dispatch' && '🚚 Acceso al módulo de despacho'}
+                        {role === 'pastry' && '🍰 Acceso al KDS de pastelería'}
                       </p>
                     </motion.div>
                   )}

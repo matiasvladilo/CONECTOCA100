@@ -1,11 +1,10 @@
 import { useState, useMemo } from 'react';
 import { Order } from '../App';
 import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Separator } from './ui/separator';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatCLP } from '../utils/format';
@@ -18,16 +17,12 @@ import {
   Search,
   Filter,
   Calendar,
-  Download,
   FileText,
-  TrendingUp,
-  BarChart3,
   Grid3x3,
   List,
   X,
   DollarSign,
   User,
-  Sparkles,
   ChevronRight,
   Edit
 } from 'lucide-react';
@@ -40,6 +35,8 @@ interface OrderHistoryProps {
   onBack: () => void;
   onViewOrder: (order: Order) => void;
   userName: string;
+  accessToken: string;
+  onRefresh: () => void;
 }
 
 type FilterStatus = 'all' | 'pending' | 'in_progress' | 'completed' | 'dispatched' | 'delivered' | 'cancelled';
@@ -93,6 +90,7 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName, accessToke
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
+  const [dateFilterType, setDateFilterType] = useState<'creation' | 'delivery'>('delivery');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
@@ -118,21 +116,47 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName, accessToke
     }
 
     // Filter by date range
-    if (dateFrom) {
-      filtered = filtered.filter(order =>
-        new Date(order.createdAt || order.date) >= new Date(dateFrom)
-      );
-    }
-    if (dateTo) {
-      filtered = filtered.filter(order =>
-        new Date(order.createdAt || order.date) <= new Date(dateTo)
-      );
+    if (dateFrom || dateTo) {
+      filtered = filtered.filter(order => {
+        let orderDate;
+
+        if (dateFilterType === 'delivery' && order.deadline) {
+          // deadline is e.g. "2026-02-23"
+          const [dy, dm, dd] = order.deadline.split('-').map(Number);
+          orderDate = new Date(dy, dm - 1, dd);
+        } else {
+          const d = new Date(order.createdAt || order.date);
+          orderDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        }
+
+        if (dateFrom) {
+          const [y, m, day] = dateFrom.split('-').map(Number);
+          const fromDate = new Date(y, m - 1, day);
+          if (orderDate < fromDate) return false;
+        }
+
+        if (dateTo) {
+          const [y, m, day] = dateTo.split('-').map(Number);
+          const toDate = new Date(y, m - 1, day);
+          if (orderDate > toDate) return false;
+        }
+
+        return true;
+      });
     }
 
     // Sort
     filtered.sort((a, b) => {
-      const dateA = new Date(a.createdAt || a.date).getTime();
-      const dateB = new Date(b.createdAt || b.date).getTime();
+      let dateA, dateB;
+
+      if (dateFilterType === 'delivery') {
+        dateA = a.deadline ? new Date(a.deadline + 'T00:00:00').getTime() : new Date(a.createdAt || a.date).getTime();
+        dateB = b.deadline ? new Date(b.deadline + 'T00:00:00').getTime() : new Date(b.createdAt || b.date).getTime();
+      } else {
+        dateA = new Date(a.createdAt || a.date).getTime();
+        dateB = new Date(b.createdAt || b.date).getTime();
+      }
+
       const totalA = a.total || 0;
       const totalB = b.total || 0;
 
@@ -163,13 +187,13 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName, accessToke
   // Statistics
   const stats = useMemo(() => {
     const total = filteredOrders.length;
-    const pending = filteredOrders.filter(o => o.status === 'pending').length;
-    const inProgress = filteredOrders.filter(o => o.status === 'in_progress').length;
-    const completed = filteredOrders.filter(o => o.status === 'completed').length;
-    const dispatched = filteredOrders.filter(o => o.status === 'dispatched').length;
-    const delivered = filteredOrders.filter(o => o.status === 'delivered').length;
-    const cancelled = filteredOrders.filter(o => o.status === 'cancelled').length;
-    const totalAmount = filteredOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const pending = filteredOrders.filter((o: Order) => o.status === 'pending').length;
+    const inProgress = filteredOrders.filter((o: Order) => o.status === 'in_progress').length;
+    const completed = filteredOrders.filter((o: Order) => o.status === 'completed').length;
+    const dispatched = filteredOrders.filter((o: Order) => o.status === 'dispatched').length;
+    const delivered = filteredOrders.filter((o: Order) => o.status === 'delivered').length;
+    const cancelled = filteredOrders.filter((o: Order) => o.status === 'cancelled').length;
+    const totalAmount = filteredOrders.reduce((sum: number, o: Order) => sum + (o.total || 0), 0);
 
     return { total, pending, inProgress, completed, dispatched, delivered, cancelled, totalAmount };
   }, [filteredOrders]);
@@ -543,6 +567,27 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName, accessToke
                       className="overflow-hidden"
                     >
                       <Separator className="my-4" />
+                      <div className="mb-4 bg-[#F8FAFC] p-3 rounded-lg border border-[#E2E8F0]">
+                        <label className="text-sm text-gray-700 mb-2 block" style={{ fontWeight: 600 }}>
+                          Buscar fechas por:
+                        </label>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setDateFilterType('delivery')}
+                            className={`flex-1 py-2 text-xs font-medium rounded-md transition-all ${dateFilterType === 'delivery' ? 'bg-[#10B981] text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}
+                          >
+                            <Clock className="w-3.5 h-3.5 inline-block mr-1.5" />
+                            Fecha de Entrega
+                          </button>
+                          <button
+                            onClick={() => setDateFilterType('creation')}
+                            className={`flex-1 py-2 text-xs font-medium rounded-md transition-all ${dateFilterType === 'creation' ? 'bg-[#0059FF] text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}
+                          >
+                            <Calendar className="w-3.5 h-3.5 inline-block mr-1.5" />
+                            Fecha de Creación
+                          </button>
+                        </div>
+                      </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                           <label className="text-sm text-gray-700 mb-2 block" style={{ fontWeight: 500 }}>
@@ -719,9 +764,13 @@ export function OrderHistory({ orders, onBack, onViewOrder, userName, accessToke
                               <Package className="w-3.5 h-3.5" />
                               {order.quantity} unid.
                             </span>
-                            <span className="flex items-center gap-1.5">
+                            <span className="flex items-center gap-1.5" title="Fecha de Creación">
                               <Calendar className="w-3.5 h-3.5" />
-                              {new Date(order.createdAt || order.date).toLocaleDateString('es-CL')}
+                              Creado: {new Date(order.createdAt || order.date).toLocaleDateString('es-CL')}
+                            </span>
+                            <span className="flex items-center gap-1.5 text-green-600" style={{ fontWeight: 500 }} title="Fecha de Entrega">
+                              <Clock className="w-3.5 h-3.5" />
+                              Entrega: {order.deadline ? new Date(order.deadline + 'T00:00:00').toLocaleDateString('es-CL') : '?'}
                             </span>
                             <span className="flex items-center gap-1.5 text-[#0047BA]" style={{ fontWeight: 600 }}>
                               <DollarSign className="w-3.5 h-3.5" />
