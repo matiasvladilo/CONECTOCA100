@@ -1312,6 +1312,7 @@ export default function App() {
         total: newOrder.total,
         deliveryAddress: newOrder.deliveryAddress,
         userId: newOrder.userId,
+        createdAt: newOrder.createdAt, // Fix: Include createdAt to prevent timestamp defaulting to midnight
         notes: newOrder.notes, // Include notes from API
       };
 
