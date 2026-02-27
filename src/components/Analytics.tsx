@@ -164,7 +164,8 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
   // Filter orders by date range
   const filteredOrders = useMemo(() => {
     const filtered = allOrders.filter(order => {
-      const orderDate = new Date(order.createdAt || order.date);
+      const dateString = order.deadline ? `${order.deadline}T12:00:00` : (order.createdAt || order.date);
+      const orderDate = new Date(dateString);
       if (timeRange === 'custom') {
         if (dateRange?.to) {
           // End of day for the end date
@@ -242,7 +243,8 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
 
     // Fill with actual data
     filteredOrders.forEach(order => {
-      const orderDate = new Date(order.createdAt || order.date);
+      const dateString = order.deadline ? `${order.deadline}T12:00:00` : (order.createdAt || order.date);
+      const orderDate = new Date(dateString);
       const dateStr = orderDate.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' });
 
       const current = statsMap.get(dateStr);

@@ -300,24 +300,7 @@ export const ordersAPI = {
 
     // 4. Construct Order Object
     const newOrderId = crypto.randomUUID();
-
-    // FEATURE MODIFICATION: Use deadline as creation date to register sale on delivery date
-    let creationDate = new Date();
-    try {
-      if (orderData.deadline) {
-        // Parse "YYYY-MM-DD" back into a proper Date object for the assigned day at 00:00:00
-        const [dy, dm, dd] = orderData.deadline.split('-').map(Number);
-        if (!isNaN(dy) && !isNaN(dm) && !isNaN(dd)) {
-          // Setting the time to 12:00 PM local time to avoid timezone offset pushing it to the previous day safely
-          creationDate = new Date(dy, dm - 1, dd, 12, 0, 0);
-        }
-      }
-    } catch (e) {
-      console.error("Error parsing deadline as creationDate", e);
-    }
-
-    // Fallback or formatted correctly based on deadline
-    const now = creationDate.toISOString();
+    const now = new Date().toISOString();
 
     // Enrich products with productionAreaId from definition
     const enrichedProducts = orderData.products.map(item => {
