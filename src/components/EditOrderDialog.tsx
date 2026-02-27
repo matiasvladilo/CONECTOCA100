@@ -184,8 +184,8 @@ export function EditOrderDialog({
                 const product = freshProducts.find(p => p.id === item.productId);
                 if (!product) continue;
 
-                // Skip unlimited stock items (-1)
-                if (product.stock === -1 || product.unlimitedStock) continue;
+                // Skip unlimited stock items (-1 or trackStock false)
+                if (product.stock === -1 || product.unlimitedStock || product.trackStock === false) continue;
 
                 const quantityDiff = item.quantity - item.originalQuantity;
 
@@ -193,7 +193,7 @@ export function EditOrderDialog({
                 if (quantityDiff !== 0) {
                     const newStock = Math.max(0, product.stock - quantityDiff);
 
-                    if (newStock < 0 && product.stock !== -1 && !product.unlimitedStock) {
+                    if (newStock < 0 && product.stock !== -1 && !product.unlimitedStock && product.trackStock !== false) {
                         toast.error(`No hay suficiente stock para ${product.name}`);
                         setIsSaving(false);
                         return;
@@ -215,7 +215,7 @@ export function EditOrderDialog({
                 const product = freshProducts.find(p => p.id === removedId);
                 if (!product) continue;
 
-                if (product.stock === -1 || product.unlimitedStock) continue;
+                if (product.stock === -1 || product.unlimitedStock || product.trackStock === false) continue;
 
                 const newStock = product.stock + originalItem.quantity;
                 stockUpdates.push(productsAPI.update(accessToken, product.id, { stock: newStock }));

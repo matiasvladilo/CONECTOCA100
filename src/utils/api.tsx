@@ -21,6 +21,7 @@ export interface Product {
   imageUrl?: string;
   stock: number;
   unlimitedStock?: boolean; // New: If true, stock is not controlled
+  trackStock?: boolean; // Legacy: If false, stock is not controlled
   category?: string;
   categoryId?: string;
   productionAreaId?: string; // New: ID of production area assigned to this product
@@ -281,8 +282,8 @@ export const ordersAPI = {
         continue;
       }
 
-      // Check for unlimited stock (-1 or unlimitedStock flag)
-      if (product.stock === -1 || product.unlimitedStock) {
+      // Check for unlimited stock (-1 or unlimitedStock flag or trackStock === false)
+      if (product.stock === -1 || product.unlimitedStock || product.trackStock === false) {
         continue; // Skip stock check/update
       }
 
