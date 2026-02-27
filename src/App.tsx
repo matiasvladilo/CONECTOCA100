@@ -82,6 +82,7 @@ export interface Order {
   deliveryAddress?: string;
   userId?: string;
   createdAt?: string;
+  itemStatuses?: Record<string, 'pending' | 'in_progress' | 'completed'>;
 }
 
 // Orden de Producción (for manufacturing)
@@ -566,7 +567,7 @@ export default function App() {
         token.substring(0, 20) + "...",
       );
       const response: PaginatedResponse<APIOrder> =
-        await ordersAPI.getAll(token, page, 50);
+        await ordersAPI.getAll(token, page, 5000);
 
       // Store pagination info
       setOrdersPagination(response.pagination);
@@ -598,6 +599,7 @@ export default function App() {
           userId: order.userId,
           createdAt: order.createdAt, // Keep original timestamp for sorting
           notes: order.notes, // Include notes from API
+          itemStatuses: order.itemStatuses || {},
         }),
       );
       // Note: Sorting is now handled by backend
@@ -1498,6 +1500,7 @@ export default function App() {
           onViewProfile={() => setCurrentScreen("profile")}
           onViewHistory={() => setCurrentScreen("history")}
           onGoToProduction={() => setCurrentScreen("production")}
+          onGoToBakeryKDS={() => setCurrentScreen("bakeryKds")}
           onGoToDashboard={() => {
             // Production users go to production dashboard
             if (currentUser.role === 'production') {
