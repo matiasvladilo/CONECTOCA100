@@ -282,16 +282,18 @@ export const ordersAPI = {
         continue;
       }
 
+      const currentStock = Number(product.stock);
+
       // Check for unlimited stock (-1 or unlimitedStock flag or trackStock === false)
-      if (product.stock === -1 || product.unlimitedStock || product.trackStock === false) {
+      if (currentStock === -1 || product.unlimitedStock === true || product.trackStock === false) {
         continue; // Skip stock check/update
       }
 
-      if (product.stock < item.quantity) {
-        throw new Error(`Stock insuficiente para "${item.name}". Disponible: ${product.stock}, Solicitado: ${item.quantity}`);
+      if (currentStock < item.quantity) {
+        throw new Error(`Stock insuficiente para "${item.name}". Disponible: ${currentStock}, Solicitado: ${item.quantity}`);
       }
 
-      const newStock = Math.max(0, product.stock - item.quantity);
+      const newStock = Math.max(0, currentStock - item.quantity);
       stockUpdates.push(productsAPI.update(token, product.id, { stock: newStock }));
     }
 

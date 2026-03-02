@@ -651,18 +651,24 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
       const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
 
       // 2. Sheet: Detalle Ventas
-      const ventasData = filteredOrders.map(order => ({
-        'Fecha': new Date(order.createdAt || order.date).toLocaleDateString('es-CL'),
-        'Hora': new Date(order.createdAt || order.date).toLocaleTimeString('es-CL'),
-        'ID Pedido': order.id.slice(0, 8),
-        'Cliente/Local': order.customerName || 'N/A',
-        'Estado': order.status === 'pending' ? 'Pendiente' :
-          order.status === 'in_progress' ? 'En Preparación' :
-            order.status === 'completed' ? 'Completado' : 'Despachado',
-        'Total ($)': order.total || 0,
-        'Productos': order.products?.map(p => `${p.name} (x${p.quantity})`).join('; ') || '',
-        'Notas': order.notes || ''
-      }));
+      const ventasData = filteredOrders.map(order => {
+        const createDate = new Date(order.createdAt || order.date);
+        const deadlineDate = order.deadline ? new Date(`${order.deadline}T12:00:00`) : createDate;
+
+        return {
+          'Fecha Creación': createDate.toLocaleDateString('es-CL'),
+          'Hora Creación': createDate.toLocaleTimeString('es-CL'),
+          'Fecha Entrega (Deadline)': deadlineDate.toLocaleDateString('es-CL'),
+          'ID Pedido': order.id.slice(0, 8),
+          'Cliente/Local': order.customerName || 'N/A',
+          'Estado': order.status === 'pending' ? 'Pendiente' :
+            order.status === 'in_progress' ? 'En Preparación' :
+              order.status === 'completed' ? 'Completado' : 'Despachado',
+          'Total ($)': order.total || 0,
+          'Productos': order.products?.map(p => `${p.name} (x${p.quantity})`).join('; ') || '',
+          'Notas': order.notes || ''
+        };
+      });
       const wsVentas = XLSX.utils.json_to_sheet(ventasData);
 
       // 3. Sheet: Productos (Aggregated, All products)
@@ -788,6 +794,171 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
     }
   };
 
+  // Exportar formato Google Drive (XLSX completo)
+  const handleExportDrive = async () => {
+    try {
+      // Import the xlsx library dynamically
+      const XLSX = await import('xlsx');
+
+      // 1. Sheet: Resumen General
+      const resumenData = [
+        ['Resumen de Gestión', ''],
+        ['Periodo', timeRange === 'custom' && dateRange?.from && dateRange?.to
+          ? `${dateRange.from.toLocaleDateString('es-CL')} - ${dateRange.to.toLocaleDateString('es-CL')}`
+          : `Últimos ${dateRangeInDays} días`],
+        ['Fecha Generación', new Date().toLocaleDateString('es-CL')],
+        ['', ''],
+        ['Métricas Clave', 'Valor'],
+        ['Ingresos Totales', kpis.totalRevenue],
+        ['Pedidos Totales', kpis.totalOrders],
+        ['Pedidos Completados', kpis.completedOrders],
+        ['Tasa de Éxito', `${kpis.successRate.toFixed(1)}%`],
+      ];
+
+      if ((user.role === 'admin' || user.role === 'production') && profitabilityAnalysis.length > 0) {
+        const totalProfit = profitabilityAnalysis.reduce((sum, p) => sum + p.profit, 0);
+        const margin = kpis.totalRevenue > 0 ? (totalProfit / kpis.totalRevenue) * 100 : 0;
+        resumenData.push(
+          ['Utilidad Estimada', totalProfit],
+          ['Margen Global Estimado', `${margin.toFixed(1)}%`]
+        );
+      }
+      const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
+
+      // 2. Sheet: Detalle Ventas (Con fecha de entrega vs creación para aclarar filtrado)
+      const ventasData = filteredOrders.map(order => {
+        const createDate = new Date(order.createdAt || order.date);
+        const deadlineDate = order.deadline ? new Date(`${order.deadline}T12:00:00`) : createDate;
+
+        return {
+          'Fecha Creación': createDate.toLocaleDateString('es-CL'),
+          'Hora Creación': createDate.toLocaleTimeString('es-CL'),
+          'Fecha Entrega (Deadline)': deadlineDate.toLocaleDateString('es-CL'),
+          'ID Pedido': order.id.slice(0, 8),
+          'Cliente/Local': order.customerName || 'N/A',
+          'Estado': order.status === 'pending' ? 'Pendiente' :
+            order.status === 'in_progress' ? 'En Preparación' :
+              order.status === 'completed' ? 'Completado' : 'Despachado',
+          'Total ($)': order.total || 0,
+          'Productos': order.products?.map(p => `${p.name} (x${p.quantity})`).join('; ') || '',
+          'Notas': order.notes || ''
+        };
+      });
+      const wsVentas = XLSX.utils.json_to_sheet(ventasData);
+
+      // 3. Sheet: Productos
+      const productosData = allProductStats.map(p => {
+        const prof = profitabilityAnalysis.find(x => x.name === p.name);
+        const rowData: any = {
+          'Producto': p.name,
+          'Unidades Vendidas': p.cantidad,
+          'Ventas Totales (N° de Pedidos)': p.ventasTotales || 0,
+          'Ingresos Totales': p.ingresos,
+        };
+        if (prof) {
+          rowData['Precio Promedio'] = prof.avgPrice;
+          rowData['Costo Unitario (Est.)'] = prof.costPerUnit;
+          rowData['Costo Total (Est.)'] = prof.cost;
+          rowData['Utilidad (Est.)'] = prof.profit;
+          rowData['Margen (%)'] = `${prof.margin.toFixed(1)}%`;
+        }
+        return rowData;
+      });
+      const wsProductos = XLSX.utils.json_to_sheet(productosData);
+
+      // 4. Sheet: Por Local (Matrix)
+      const localProductsMap = new Map<string, Map<string, number>>();
+      const allProductNames = new Set<string>();
+
+      filteredOrders.forEach(order => {
+        const localName = order.customerName || 'Desconocido';
+        if (!localProductsMap.has(localName)) {
+          localProductsMap.set(localName, new Map());
+        }
+        const productMap = localProductsMap.get(localName)!;
+
+        order.products?.forEach(p => {
+          productMap.set(p.name, (productMap.get(p.name) || 0) + p.quantity);
+          allProductNames.add(p.name);
+        });
+      });
+
+      const sortedProductNames = Array.from(allProductNames).sort();
+      const sortedLocalNames = Array.from(localProductsMap.keys()).sort();
+
+      const matrizLocales = [];
+      matrizLocales.push(['Producto', ...sortedLocalNames, 'Total Unidades']);
+
+      let totalGlobalUnits = 0;
+      sortedProductNames.forEach(pName => {
+        const row: any[] = [pName];
+        let totalUnitsProduct = 0;
+
+        sortedLocalNames.forEach(localName => {
+          const productMap = localProductsMap.get(localName);
+          const qty = productMap?.get(pName) || 0;
+          row.push(qty > 0 ? qty : '');
+          totalUnitsProduct += qty;
+        });
+
+        row.push(totalUnitsProduct);
+        totalGlobalUnits += totalUnitsProduct;
+        matrizLocales.push(row);
+      });
+
+      const totalUnitsRow: any[] = ['Total Unidades'];
+      const gastoTotalRow: any[] = ['Gasto Total'];
+      let gastoGlobal = 0;
+
+      sortedLocalNames.forEach(localName => {
+        let localUnits = 0;
+        const productMap = localProductsMap.get(localName);
+        if (productMap) {
+          productMap.forEach(qty => localUnits += qty);
+        }
+        totalUnitsRow.push(localUnits);
+
+        const localOrders = filteredOrders.filter(o => (o.customerName || 'Desconocido') === localName);
+        const totalSpent = localOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+        gastoTotalRow.push(totalSpent);
+        gastoGlobal += totalSpent;
+      });
+
+      totalUnitsRow.push(totalGlobalUnits);
+      gastoTotalRow.push(gastoGlobal);
+
+      matrizLocales.push([]);
+      matrizLocales.push(totalUnitsRow);
+      matrizLocales.push(gastoTotalRow);
+
+      const wsLocales = XLSX.utils.aoa_to_sheet(matrizLocales);
+
+      // Create workbook
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, wsResumen, 'Resumen');
+      XLSX.utils.book_append_sheet(workbook, wsVentas, 'Detalle Ventas');
+      XLSX.utils.book_append_sheet(workbook, wsProductos, 'Productos');
+      XLSX.utils.book_append_sheet(workbook, wsLocales, 'Por Local');
+
+      // File name with date range
+      const rangeStr = timeRange === 'custom' && dateRange?.from
+        ? (dateRange.to
+          ? `${format(dateRange.from, 'dd-MM-yyyy')}_al_${format(dateRange.to, 'dd-MM-yyyy')}`
+          : format(dateRange.from, 'dd-MM-yyyy'))
+        : `ultimos_${dateRangeInDays}_dias`;
+
+      const fileName = `GoogleDrive_ConectOca_${rangeStr}.xlsx`;
+
+      XLSX.writeFile(workbook, fileName);
+
+      toast.success('Reporte compatible con Google Drive generado');
+    } catch (error) {
+      console.error('Error exporting data for Google Drive:', error);
+      toast.error('Error al exportar datos para Google Drive');
+    }
+  };
+
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
@@ -816,17 +987,30 @@ export function Analytics({ user, orders, onBack, accessToken }: AnalyticsProps)
               </div>
             </div>
 
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                onClick={handleExport}
-                variant="outline"
-                size="sm"
-                className="bg-white/10 border-white/20 hover:bg-white/20 text-white"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Exportar Excel
-              </Button>
-            </motion.div>
+            <div className="flex gap-2">
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  onClick={handleExportDrive}
+                  variant="outline"
+                  size="sm"
+                  className="bg-emerald-600 border-emerald-500 hover:bg-emerald-700 text-white lg:mr-2"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Google Drive
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  onClick={handleExport}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/10 border-white/20 hover:bg-white/20 text-white"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Excel
+                </Button>
+              </motion.div>
+            </div>
           </div>
 
           <motion.div
