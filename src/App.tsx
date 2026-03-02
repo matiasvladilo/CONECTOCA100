@@ -232,6 +232,31 @@ export default function App() {
     });
 
     checkSession();
+
+    // Configurar listener para cambios de sesión (login, logout, token refresh automático de Supabase)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`🔑 Evento de sesión Supabase: ${event}`, session ? "Sesión activa" : "Sin sesión");
+
+      if (session?.access_token) {
+        // Restaurar silenciosamente o en background si recibimos un nuevo token refescado
+        if (accessToken !== session.access_token) {
+          console.log("✅ Token actualizado por evento automático");
+          setAccessToken(session.access_token);
+        }
+      } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        console.log("⚠️ Sesión cerrada detectada");
+        setAccessToken(null);
+        setCurrentUser(null);
+        setCurrentScreen("login");
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
     // initializeDemoUsers(); // Disabled to prevent blocking login requests on load
   }, []);
 
@@ -526,7 +551,6 @@ export default function App() {
         setCurrentScreen("home");
       }
 
-      // Load orders
       console.log(" Loading orders...");
       await loadOrders(token);
       console.log("✓ Session restored successfully");
@@ -534,20 +558,33 @@ export default function App() {
     } catch (error: any) {
       console.error("❌ Error restoring session:", error);
 
-      // Clear invalid session
-      await supabase.auth.signOut();
-      setAccessToken(null);
-      setCurrentUser(null);
-      setCurrentScreen("login");
-      setLoading(false); // CRITICAL: Set loading to false on error
+      const errorMessage = error.message || "";
+      const isAuthError =
+        errorMessage.includes("Unauthorized") ||
+        errorMessage.includes("Invalid JWT") ||
+        errorMessage.includes("401") ||
+        errorMessage.includes("403") ||
+        errorMessage.includes("expir");
 
-      if (error.message?.includes("Unauthorized")) {
-        toast.error(
-          "Sesión inválida. Por favor inicia sesión.",
-        );
+      if (isAuthError) {
+        // Solo borrar la sesión si es un error estrictamente de autenticación (Expirada / Inválida)
+        await supabase.auth.signOut();
+        setAccessToken(null);
+        setCurrentUser(null);
+        setCurrentScreen("login");
+        toast.error("Sesión inválida o expirada. Por favor inicia sesión nuevamente.");
       } else {
-        toast.error("Error al restaurar sesión");
+        // En caso de que sea un timeout o cold start del servidor de Supabase
+        toast.warning("Hubo un problema de conexión al cargar la app. Reintentando de fondo...");
+        // Mantener el loading para que no lo mande inmediatamente al login sin explicación lógica
+        // y darle la oportunidad al usuario de refrescar la página manualmente.
+        setTimeout(() => {
+          setLoading(false);
+          setCurrentScreen("login");
+        }, 5000);
       }
+
+      setLoading(false); // Liberar carga
     }
   };
 
