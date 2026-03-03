@@ -528,7 +528,31 @@ export function HomeScreen({ user, orders, onViewOrder, onNewOrder, onViewProfil
           </div>
 
           <div className="space-y-3">
-            {displayOrders.length === 0 ? (
+            {isLoading && displayOrders.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="space-y-4"
+              >
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="animate-pulse" style={{ borderRadius: '16px' }}>
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start gap-3">
+                        <div className="h-6 bg-gray-200 rounded w-1/3"></div>
+                        <div className="h-6 bg-gray-200 rounded w-24"></div>
+                      </div>
+                      <div className="h-4 bg-gray-200 rounded w-1/2 mt-2"></div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="w-full h-2.5 bg-gray-100 rounded-full mb-2"></div>
+                      <div className="flex justify-between">
+                        <div className="h-3 bg-gray-200 rounded w-20"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </motion.div>
+            ) : displayOrders.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}

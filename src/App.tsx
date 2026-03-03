@@ -176,6 +176,7 @@ export default function App() {
     null,
   );
   const [loading, setLoading] = useState(true);
+  const [isInitialOrdersLoading, setIsInitialOrdersLoading] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
 
   const [ordersPagination, setOrdersPagination] =
@@ -552,7 +553,16 @@ export default function App() {
       }
 
       console.log(" Loading orders...");
-      await loadOrders(token);
+      setIsInitialOrdersLoading(true);
+
+      // Load orders in background to not block UI login transition
+      loadOrders(token).then(() => {
+        setIsInitialOrdersLoading(false);
+      }).catch(err => {
+        console.error("Failed to load initial orders", err);
+        setIsInitialOrdersLoading(false);
+      });
+
       console.log("✓ Session restored successfully");
       setLoading(false); // CRITICAL: Set loading to false after successful restore
     } catch (error: any) {
@@ -603,41 +613,52 @@ export default function App() {
         "Loading orders with token:",
         token.substring(0, 20) + "...",
       );
+      const limit = page === 1 ? 50 : 50; // Use reasonable limit to prevent login timeouts
       const response: PaginatedResponse<APIOrder> =
-        await ordersAPI.getAll(token, page, 5000);
+        await ordersAPI.getAll(token, page, limit);
 
       // Store pagination info
       setOrdersPagination(response.pagination);
 
       // Transform API orders to app format
       const transformedOrders: Order[] = response.data.map(
-        (order: APIOrder) => ({
-          id: order.id,
-          productName: order.products
-            .map((p) => p.name)
-            .join(", "),
-          quantity: order.products.reduce(
-            (sum, p) => sum + p.quantity,
-            0,
-          ),
-          date: new Date(order.createdAt)
-            .toISOString()
-            .split("T")[0],
-          status: (order.status === 'entregado' ? 'delivered' :
-            order.status === 'despachado' ? 'dispatched' :
-              order.status) as OrderStatus,
-          customerName: order.customerName || "", // Comes from API now
-          deadline: order.deadline,
-          progress: order.progress,
-          products: order.products,
-          total: order.total,
-          deliveryAddress:
-            order.deliveryAddress || "Sin dirección registrada",
-          userId: order.userId,
-          createdAt: order.createdAt, // Keep original timestamp for sorting
-          notes: order.notes, // Include notes from API
-          itemStatuses: order.itemStatuses || {},
-        }),
+        (order: APIOrder) => {
+          const products = order.products || [];
+          let safeDate = new Date().toISOString().split("T")[0];
+          try {
+            if (order.createdAt) {
+              safeDate = new Date(order.createdAt).toISOString().split("T")[0];
+            }
+          } catch (e) {
+            // keep today as fallback
+          }
+
+          return {
+            id: order.id || crypto.randomUUID(),
+            productName: products
+              .map((p) => p.name || 'Producto')
+              .join(", ") || 'Sin productos',
+            quantity: products.reduce(
+              (sum, p) => sum + (p.quantity || 0),
+              0,
+            ),
+            date: safeDate,
+            status: (order.status === 'entregado' ? 'delivered' :
+              order.status === 'despachado' ? 'dispatched' :
+                order.status || 'pending') as OrderStatus,
+            customerName: order.customerName || "",
+            deadline: order.deadline || safeDate,
+            progress: order.progress || 0,
+            products: products,
+            total: order.total || 0,
+            deliveryAddress:
+              order.deliveryAddress || "Sin dirección registrada",
+            userId: order.userId || '',
+            createdAt: order.createdAt || new Date().toISOString(),
+            notes: order.notes,
+            itemStatuses: order.itemStatuses || {},
+          };
+        }
       );
       // Note: Sorting is now handled by backend
 
@@ -1094,6 +1115,7 @@ export default function App() {
       setCurrentUser(null);
       setAccessToken(null);
       setOrders([]);
+      setIsInitialOrdersLoading(false);
       setNotifications([]);
       hasLoadedInitialOrders.current = false; // Reset notification flag
       initialOrderIds.current.clear(); // Clear initial order IDs
@@ -1552,7 +1574,7 @@ export default function App() {
           }
           pagination={ordersPagination}
           onPageChange={handlePageChange}
-          isLoading={isPaginationLoading}
+          isLoading={isPaginationLoading || isInitialOrdersLoading}
         />
       )}
 
@@ -1583,7 +1605,7 @@ export default function App() {
             lastSync={lastSync}
             pagination={ordersPagination}
             onPageChange={handlePageChange}
-            isLoading={isPaginationLoading}
+            isLoading={isPaginationLoading || isInitialOrdersLoading}
           />
         )}
 
@@ -1770,7 +1792,7 @@ export default function App() {
             lastSync={lastSync}
             pagination={ordersPagination}
             onPageChange={handlePageChange}
-            isLoading={isPaginationLoading}
+            isLoading={isPaginationLoading || isInitialOrdersLoading}
           />
         )}
 
